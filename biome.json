@@ -6,7 +6,11 @@
     "useIgnoreFile": true
   },
   "files": {
-    "ignoreUnknown": false
+    "ignoreUnknown": false,
+    "experimentalScannerIgnores": [
+      "node_modules/**",
+      "dist/**"
+    ]
   },
   "formatter": {
     "enabled": true,

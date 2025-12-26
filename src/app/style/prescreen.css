@@ -1,0 +1,33 @@
+/* Prescreen container rules */
+.prescreen {
+    font-family: "Kode";
+    width: 100%;
+    container-type: inline-size;
+    position: relative;
+    /* Match text sizing to layers and define line-height */
+    font-size: 2.8cqi;
+    line-height: 1em;
+    /* 24 rows tall without needing a hidden sizer */
+    height: calc(24lh);
+}
+
+/* Any pre within prescreen has zero margin (includes the sizer) */
+.prescreen pre {
+    margin: 0;
+    font-family: "Kode";
+    transform: scaleX(1.5);
+}
+
+/* Row divs within any prescreen pre (includes the sizer rows) */
+.prescreen pre>div {
+    margin: 0;
+    white-space: pre;
+}
+
+/* Only the layered pre elements get absolute positioning/overlay behavior */
+.prescreen .prescreen-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    user-select: none;
+}

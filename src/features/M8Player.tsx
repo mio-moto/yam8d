@@ -1,12 +1,14 @@
-import { css } from '@linaria/core'
-import { type FC, useCallback, useEffect, useRef, useState } from 'react'
+import { css, cx } from '@linaria/core'
+import { type FC, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { style } from '../app/style/style'
 import type { ConnectedBus } from './connection/connection'
 import { isDown, isEdit, isLeft, isOpt, isPlay, isRight, isShift, isUp, type pressKeys } from './connection/keys'
-import type { CharacterCommand, KeyCommand } from './connection/protocol'
-import { M8Screen } from './M8Screen'
+import type { KeyCommand } from './connection/protocol'
+import { M8Screen } from './rendering/M8Screen'
+import { M8PreText } from './rendering/M8PreText'
 
 const containerClass = css`
+  transition: max-height 400ms ease;
   z-index: 0;
   position: relative;
   flex: 1;
@@ -16,9 +18,8 @@ const containerClass = css`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  max-height: 80vh;
   isolation: isolate;
-  
+  max-height:300vh;
 
   padding: 0 32px;
 
@@ -44,8 +45,8 @@ const containerClass = css`
 
   > svg {
     max-height: 100vw;
-    shape-rendering: optimizeQuality;
-
+    shape-rendering: geometricprecision; /* optimizeQuality doesn't exist */
+  
 
     .button {
       fill: ${style.themeColors.text.disabled} !important;
@@ -91,22 +92,33 @@ const containerClass = css`
       z-index: -2;
       fill-opacity: 0 !important;
     }
-    
-
 
     .logo, .button-outline {
       opacity: 0;
     }
+
+    .M8-full-view {
+      max-height:88vh;
+    }
+    :not(.M8-full-view) {
+      max-height:300vh;
+    }
+
   }
+`
+
+const screen = css`
+  z-index: -1;
+  left:-1px;
+  container-type: inline-size;
 `
 
 const SvgComponent: FC<{
   strokeColor: string
   bus?: ConnectedBus
-}> = ({ strokeColor, bus, ...props }) => {
-  const [screenEdge, setScreenEdge] = useState<SVGPathElement | null>(null)
-  const [parent, setParent] = useState<HTMLDivElement | null>(null)
-  const element = useRef<HTMLCanvasElement>(null)
+  fullView?: boolean
+  WGLRendering?: boolean
+}> = ({ strokeColor, bus, fullView = true, WGLRendering = true, ...props }) => {
 
   const [buttonOpt, setButtonOpt] = useState<SVGPathElement | null>(null)
   const [buttonEdit, setButtonEdit] = useState<SVGPathElement | null>(null)
@@ -117,29 +129,70 @@ const SvgComponent: FC<{
   const [buttonShift, setButtonShift] = useState<SVGPathElement | null>(null)
   const [buttonPlay, setButtonPlay] = useState<SVGPathElement | null>(null)
 
-  useEffect(() => {
-    const fn = () => {
-      if (!screenEdge || !parent) {
-        return
-      }
 
-      if (!element.current) {
-        return
-      }
 
-      const parentPosition = parent.getBoundingClientRect()
-      const screenPosition = screenEdge.getBoundingClientRect()
-      const top = screenPosition.top - parentPosition.top
-      const left = screenPosition.left - parentPosition.left
-      const bottom = screenPosition.bottom - parentPosition.bottom
-      const right = screenPosition.right - parentPosition.right
 
-      element.current.style = `top: ${top}px; bottom: ${bottom}px; left: ${left}px; right: ${right}px; width: ${screenPosition.width}px; height: ${screenPosition.height}px;`
-      num = requestAnimationFrame(fn)
-    }
-    let num = requestAnimationFrame(fn)
-    return () => cancelAnimationFrame(num)
-  }, [parent, screenEdge])
+  // it's better to use ref instead of state
+  const screenEdgeRef = useRef<SVGPathElement | null>(null);
+
+  // L’élément à placer (par ex. un <div> overlay en HTML)
+  const overlayRef = useRef<HTMLDivElement | null>(null);
+
+  // Le parent de référence (si tu calcules des positions relatives au parent)
+  const parentRef = useRef<HTMLDivElement | null>(null);
+
+  useLayoutEffect(() => {
+    const node = screenEdgeRef.current;
+    const overlay = overlayRef.current;
+    const parent = parentRef.current;
+
+    if (!node || !overlay || !parent) return;
+
+    const updatePosition = () => {
+      // Boîte du path SVG dans le viewport
+      const screenBox = node.getBoundingClientRect();
+      // Boîte du parent (dans le viewport)
+      const parentBox = parent.getBoundingClientRect();
+
+      const top = screenBox.top - parentBox.top;
+      const left = screenBox.left - parentBox.left;
+      const bottom = parentBox.bottom - screenBox.bottom;
+      const right = parentBox.right - screenBox.right;
+
+      // ⚠️ Évite d’assigner une string entière, mets les propriétés
+      const style = overlay.style;
+      style.position = 'absolute';               // nécessaire pour top/left/right/bottom
+      style.top = `${top}px`;
+      style.left = `${left}px`;
+      style.bottom = `${bottom}px`;
+      style.right = `${right}px`;
+      style.width = `${screenBox.width}px`;
+      style.height = `${screenBox.height}px`;
+      // Si tu préfères width/height + top/left seulement :
+      // style.right = ''; style.bottom = '';
+    };
+
+    // Mesure initiale
+    updatePosition();
+
+    // Observer les variations d’occupation/layout
+    const resizeObs = new ResizeObserver(updatePosition);
+    resizeObs.observe(parent);
+
+    // Recalculer sur scroll/resize fenêtre (si positions relatives à viewport)
+    window.addEventListener('scroll', updatePosition, { passive: true });
+    window.addEventListener('resize', updatePosition);
+
+    // Certaines animations/transforms peuvent changer la boîte => rafraîchit à la prochaine frame
+    const raf = requestAnimationFrame(updatePosition);
+
+    return () => {
+      resizeObs.disconnect();
+      window.removeEventListener('scroll', updatePosition);
+      window.removeEventListener('resize', updatePosition);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
 
   useEffect(() => {
     if (!bus) {
@@ -211,49 +264,14 @@ const SvgComponent: FC<{
     [bus, buttonUp, buttonDown, buttonLeft, buttonRight, buttonOpt, buttonEdit, buttonPlay, buttonShift],
   )
 
-  useEffect(() => {
-    const buffer: string[][] = []
-    for (let y = 0; y < 24; y += 1) {
-      const array = []
-      for (let x = 0; x < 40; x += 1) [array.push(' ')]
-      buffer.push(array)
-    }
-    const handler = (data: CharacterCommand) => {
-      const idx_y = Math.floor(data.pos.y / 14)
-      const idx_x = Math.floor(data.pos.x / 12)
-
-      const char = data.character
-      const screen = buffer
-      if (idx_y > screen.length || idx_x > screen[idx_y].length) {
-        console.log('OOB', idx_x, idx_y)
-        return
-      }
-
-      // console.table(screenBuffer)
-      buffer[idx_y][idx_x] = char
-      let text = ''
-      if (element.current) {
-        const screen = buffer
-        for (let y = 0; y < screen.length; y += 1) {
-          const row = buffer[y]
-          for (let x = 0; x < row.length; x += 1) {
-            const col = row[x]
-            text += col
-          }
-          text += '\n'
-        }
-        element.current.innerText = text
-      }
-    }
-
-    bus?.protocol.eventBus.on('text', handler)
-    return () => bus?.protocol.eventBus.off('text', handler)
-  }, [bus])
-
   return (
-    <div ref={setParent} className={containerClass}>
-      <M8Screen bus={bus} ref={element} />
-      <pre className="element" ref={element} />
+    <div ref={parentRef} className={cx(containerClass, fullView && 'M8-full-view')}>
+
+      <div ref={overlayRef} className={screen}>
+        {WGLRendering && <M8Screen bus={bus} />}
+        {!WGLRendering && <M8PreText bus={bus} />}
+      </div>
+
       <svg
         xmlns="http://www.w3.org/2000/svg"
         xmlSpace="preserve"
@@ -448,7 +466,7 @@ const SvgComponent: FC<{
         />
         <path
           className="screen"
-          ref={setScreenEdge}
+          ref={screenEdgeRef}
           d="M11.996 12.103h115.2v76.8h-115.2z"
           style={{
             fill: '#ebebeb',
@@ -460,6 +478,10 @@ const SvgComponent: FC<{
   )
 }
 
-export const M8Player: FC<{ bus: ConnectedBus | undefined }> = ({ bus }) => {
-  return <SvgComponent strokeColor={style.themeColors.text.default} bus={bus} />
+export const M8Player: FC<{
+  bus?: ConnectedBus
+  fullView?: boolean
+  WGLRendering?: boolean
+}> = ({ bus, ...props }) => {
+  return <SvgComponent {...props} strokeColor={style.themeColors.text.default} bus={bus} />
 }

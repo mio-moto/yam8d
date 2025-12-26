@@ -8,8 +8,12 @@ if (!element) {
   throw new Error('Application error.')
 }
 
-createRoot(element).render(
+const useStrict = !import.meta.env.VITE_BUILD_WITHOUT_STRICT
+
+createRoot(element).render(useStrict ? (
   <StrictMode>
     <App />
-  </StrictMode>,
-)
+  </StrictMode>
+) : (
+  <App />
+))
