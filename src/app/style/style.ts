@@ -2,10 +2,10 @@ import { css } from '@linaria/core'
 import { colorTheme, colors } from './colors'
 import { fragments } from './fragments'
 import { notCss } from './util'
-import './font.css'
-import './prescreen.css'
 import { fontName } from './fonts'
 import { themeColors } from './themeColors'
+import './font.css'
+import './prescreen.css'
 
 export const style = notCss({
   colors,

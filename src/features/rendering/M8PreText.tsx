@@ -29,7 +29,6 @@ export const M8PreText = forwardRef<HTMLDivElement, { bus: ConnectedBus | undefi
         const fgLayers = new Map<string, Layer>()
         const colorAt: string[][] = []
         const bgAt: string[][] = []
-        // for counting the number of times each background colour appears to select the most common color
         const bgCounts = new Map<string, number>()
         const bgCurrent = { value: '' as string }
         for (let y = 0; y < HEIGHT; y += 1) {
@@ -67,9 +66,7 @@ export const M8PreText = forwardRef<HTMLDivElement, { bus: ConnectedBus | undefi
             return layer
         }
 
-        // Sizing handled purely via CSS on .prescreen; no JS sizer needed
-
-        // bus content handler
+        // bus handler
         const handler = (data: CharacterCommand) => {
             if (!container.current) return
 
@@ -87,7 +84,7 @@ export const M8PreText = forwardRef<HTMLDivElement, { bus: ConnectedBus | undefi
 
             const prevFgColor = colorAt[idx_y][idx_x]
 
-            // clear previous char on the layer
+            // clear previous char on its previous color layer 
             if (prevFgColor) {
                 const prevLayer = fgLayers.get(prevFgColor)
                 if (prevLayer) {

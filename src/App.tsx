@@ -42,21 +42,22 @@ export const App: FC = () => {
 
   // Handle checkbox change
   const handleFullviewCheckboxChange = (event: any) => {
-    setIsFullview(event.target.checked); // event.target.checked is a boolean
+    setIsFullview(event.target.checked);
   };
   const handleWGLCheckboxChange = (event: any) => {
-    setWGLRendering(event.target.checked); // event.target.checked is a boolean
+    setWGLRendering(event.target.checked);
   };
   return (
     <div className={appClass}>
       {!connectedBus && <Button onClick={tryConnect}>Connect</Button>}
       {connectedBus &&
         <>
+          {/* TODO: create a menu component, the code below is just for test purpose */}
           <div className='menu'>
             <label>
               <input
                 type="checkbox"
-                checked={isFullview} // Controlled component
+                checked={isFullview}
                 onChange={handleFullviewCheckboxChange}
               />
               Full M8 view
@@ -64,7 +65,7 @@ export const App: FC = () => {
             <label>
               <input
                 type="checkbox"
-                checked={isWGLRendering} // Controlled component
+                checked={isWGLRendering}
                 onChange={handleWGLCheckboxChange}
               />
               Web GL

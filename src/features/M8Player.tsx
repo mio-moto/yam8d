@@ -8,7 +8,6 @@ import { M8Screen } from './rendering/M8Screen'
 import { M8PreText } from './rendering/M8PreText'
 
 const containerClass = css`
-  transition: max-height 400ms ease;
   z-index: 0;
   position: relative;
   flex: 1;
@@ -19,7 +18,10 @@ const containerClass = css`
   align-items: center;
   justify-content: center;
   isolation: isolate;
-  max-height:300vh;
+
+  /* these are for animation */
+  max-height:300vh; /* fake height just to have a final value */
+  transition: max-height 400ms ease; /* to animate on max-height change */
 
   padding: 0 32px;
 
@@ -45,7 +47,7 @@ const containerClass = css`
 
   > svg {
     max-height: 100vw;
-    shape-rendering: geometricprecision; /* optimizeQuality doesn't exist */
+    shape-rendering: geometricprecision; /* i've change it because optimizeQuality doesn't exist */
   
 
     .button {
@@ -132,26 +134,25 @@ const SvgComponent: FC<{
 
 
 
-  // it's better to use ref instead of state
+  // because change of state triggers re-rendreing, I've change it to a ref 
   const screenEdgeRef = useRef<SVGPathElement | null>(null);
 
-  // L’élément à placer (par ex. un <div> overlay en HTML)
-  const overlayRef = useRef<HTMLDivElement | null>(null);
+  // screen ref
+  const screenRef = useRef<HTMLDivElement | null>(null);
 
-  // Le parent de référence (si tu calcules des positions relatives au parent)
+  // M8 body ref (as parent for the screen)
   const parentRef = useRef<HTMLDivElement | null>(null);
 
+
   useLayoutEffect(() => {
-    const node = screenEdgeRef.current;
-    const overlay = overlayRef.current;
+    const screenEdge = screenEdgeRef.current;
+    const screen = screenRef.current;
     const parent = parentRef.current;
 
-    if (!node || !overlay || !parent) return;
+    if (!screenEdge || !screen || !parent) return;
 
     const updatePosition = () => {
-      // Boîte du path SVG dans le viewport
-      const screenBox = node.getBoundingClientRect();
-      // Boîte du parent (dans le viewport)
+      const screenBox = screenEdge.getBoundingClientRect();
       const parentBox = parent.getBoundingClientRect();
 
       const top = screenBox.top - parentBox.top;
@@ -159,38 +160,23 @@ const SvgComponent: FC<{
       const bottom = parentBox.bottom - screenBox.bottom;
       const right = parentBox.right - screenBox.right;
 
-      // ⚠️ Évite d’assigner une string entière, mets les propriétés
-      const style = overlay.style;
-      style.position = 'absolute';               // nécessaire pour top/left/right/bottom
+      const style = screen.style;
+      style.position = 'absolute';
       style.top = `${top}px`;
       style.left = `${left}px`;
       style.bottom = `${bottom}px`;
       style.right = `${right}px`;
       style.width = `${screenBox.width}px`;
       style.height = `${screenBox.height}px`;
-      // Si tu préfères width/height + top/left seulement :
-      // style.right = ''; style.bottom = '';
     };
 
-    // Mesure initiale
     updatePosition();
 
-    // Observer les variations d’occupation/layout
     const resizeObs = new ResizeObserver(updatePosition);
     resizeObs.observe(parent);
 
-    // Recalculer sur scroll/resize fenêtre (si positions relatives à viewport)
-    window.addEventListener('scroll', updatePosition, { passive: true });
-    window.addEventListener('resize', updatePosition);
-
-    // Certaines animations/transforms peuvent changer la boîte => rafraîchit à la prochaine frame
-    const raf = requestAnimationFrame(updatePosition);
-
     return () => {
       resizeObs.disconnect();
-      window.removeEventListener('scroll', updatePosition);
-      window.removeEventListener('resize', updatePosition);
-      cancelAnimationFrame(raf);
     };
   }, []);
 
@@ -267,7 +253,7 @@ const SvgComponent: FC<{
   return (
     <div ref={parentRef} className={cx(containerClass, fullView && 'M8-full-view')}>
 
-      <div ref={overlayRef} className={screen}>
+      <div ref={screenRef} className={screen}>
         {WGLRendering && <M8Screen bus={bus} />}
         {!WGLRendering && <M8PreText bus={bus} />}
       </div>
