@@ -66,6 +66,9 @@ export default defineConfig({
     }),
     react(),
     checker({ overlay: { initialIsOpen: false, position: 'br' }, typescript: true, biome: false }),
+    //    temporary deactivating biome to not lint the dist 
+    //    checker({ overlay: { initialIsOpen: false, position: 'br' }, typescript: true, biome: { command: 'lint' } }),
+
     fixSourceMaps(),
     //mkcert()
   ],
