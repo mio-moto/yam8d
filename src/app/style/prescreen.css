@@ -1,0 +1,28 @@
+/* Prescreen container rules */
+.prescreen {
+    font-family: "Kode";
+    width: 100%;
+    container-type: inline-size;
+    position: relative;
+    font-size: 2.8cqi;
+    line-height: 1em;
+    height: calc(24lh);
+}
+
+.prescreen pre {
+    margin: 0;
+    font-family: "Kode";
+    transform: scaleX(1.5);
+}
+
+.prescreen pre>div {
+    margin: 0;
+    white-space: pre;
+}
+
+.prescreen .prescreen-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    user-select: none;
+}

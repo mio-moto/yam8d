@@ -146,21 +146,22 @@ const midiReader = (output: MIDIInput) => {
 
   let resolver:
     | ((
-        value:
-          | {
-              terminated: true
-            }
-          | {
-              terminated: false
-              data: DataView
-            },
-      ) => void)
+      value:
+        | {
+          terminated: true
+        }
+        | {
+          terminated: false
+          data: DataView
+        },
+    ) => void)
     | undefined
 
   const handler = (evt: MIDIMessageEvent) => {
     if (!evt.data) {
       return
     }
+    console.log("message received:", evt)
     const message = decodeM8Sysex(evt.data)
     if (!message) {
       return
@@ -200,7 +201,7 @@ const beginRead = (
   handler: ReturnType<typeof protocol>,
   asMidi: boolean,
 ) => {
-  ;(async () => {
+  ; (async () => {
     while (true) {
       const { terminated, data } = await read()
       if (data) {
@@ -236,8 +237,8 @@ export const connection = () => {
     const device =
       devices.length <= 0
         ? await navigator.usb.requestDevice({
-            filters: [{ vendorId: vendorId, productId: productId }],
-          })
+          filters: [{ vendorId: vendorId, productId: productId }],
+        })
         : devices[0]
 
     if (!device) {

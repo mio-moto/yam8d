@@ -1,8 +1,24 @@
 /* geo-regular - latin */
 @font-face {
-  font-display: block; /* Check https://developer.mozilla.org/en-US/docs/Web/CSS/@font-face/font-display for other options. */
+  font-display: block;
   font-family: "Geo";
   font-style: normal;
   font-weight: 400;
-  src: url("./font/geo-v21-latin-regular.woff2") format("woff2"); /* Chrome 36+, Opera 23+, Firefox 39+, Safari 12+, iOS 10+ */
+  src: url("./font/geo-v21-latin-regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-display: block;
+  font-family: "Player";
+  font-style: normal;
+  font-weight: 400;
+  src: url("./font/PlayerSansMono8x8-Classic.woff2") format("woff2");
+}
+
+@font-face {
+  font-display: block;
+  font-family: "Kode";
+  font-style: normal;
+  font-weight: 400;
+  src: url("./font/KodeMono-SemiBold.ttf");
 }

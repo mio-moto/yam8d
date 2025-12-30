@@ -2,9 +2,10 @@ import { css } from '@linaria/core'
 import { colorTheme, colors } from './colors'
 import { fragments } from './fragments'
 import { notCss } from './util'
-import './font.css'
 import { fontName } from './fonts'
 import { themeColors } from './themeColors'
+import './font.css'
+import './prescreen.css'
 
 export const style = notCss({
   colors,
@@ -16,11 +17,6 @@ export const globalStyle = css`
     :root {
       ${colorTheme}
 
-      font-family: "${fontName}";
-
-      ${fragments.textStyle.body.m.regular};
-      line-height: normal;
-      
       color-scheme: light dark;
       color: ${style.themeColors.text.default};
       background-color: ${style.themeColors.background.default};
@@ -33,29 +29,21 @@ export const globalStyle = css`
       interpolate-size: allow-keywords;
       cursor: default;
       user-select: none;
-
-      &:focus {
-        outline: none;
-      }
     }
 
-    * {
-      font-synthesis: style small-caps weight;
-      font-family: "${fontName}";
-      ${fragments.textStyle.body.m.regular};
-      line-height: normal;
-
-      &:focus {
-        outline: none;
-      }
+    *:focus {
+      outline: none;
     }
 
     body {
+      font-family: "${fontName}";
+      ${fragments.textStyle.body.m.regular};
+      line-height: normal;
       margin: 0;
       display: flex;
       place-items: center;
       min-width: 320px;
-      min-height: 100vh;
+      min-height: 100%;
     }
 
     a {
@@ -99,7 +87,13 @@ export const globalStyle = css`
       flex: 1;
       display: flex;
       flex-direction: column;
-      min-height: 100vh;
+      min-height: 100%;
+      max-height: 100%;
     }
+
+    .M8-full-view {
+      max-height:88vh !important;
+    }
+
   }
 `
