@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import type { ConnectedBus } from '../connection/connection'
 import type { CharacterCommand } from '../connection/protocol'
 
@@ -8,12 +8,17 @@ import type { CharacterCommand } from '../connection/protocol'
 // in each pre there one div per row (24 rows)
 // The background color is sampled to take the most 
 
-export const M8PreText = forwardRef<HTMLDivElement, { bus: ConnectedBus | undefined }>(function M8PreText({ bus }) {
+export const M8PreText = ({ bus }: { bus?: ConnectedBus | null }) => {
 
     const container = useRef<HTMLDivElement | null>(null)
 
     const rgbToHex = (rgb: { r: number; g: number; b: number }) =>
         `#${[rgb.r, rgb.g, rgb.b].map((v) => v.toString(16).padStart(2, '0')).join('')}`
+
+    // would have been cool but it seems that calling resetScreen breaks the connection
+    // useEffect(() => {
+    //     bus?.commands.resetScreen()
+    // }, [])
 
     useEffect(() => {
         const WIDTH = 40
@@ -145,6 +150,7 @@ export const M8PreText = forwardRef<HTMLDivElement, { bus: ConnectedBus | undefi
         }
 
         bus?.protocol.eventBus.on('text', handler)
+
         return () => {
             bus?.protocol.eventBus.off('text', handler)
         }
@@ -153,5 +159,4 @@ export const M8PreText = forwardRef<HTMLDivElement, { bus: ConnectedBus | undefi
     return (
         <div className="element prescreen" ref={container} />
     )
-
-})
+}

@@ -7,9 +7,15 @@ import { renderer } from './renderer'
 // kronsilds: I split the M8Screen in 2 rendering:
 // this one if for WebGL in canvas
 // and the other one is for pure html using PRE
-export const M8Screen = forwardRef<HTMLCanvasElement, { bus: ConnectedBus | undefined }>(function M8Screen({ bus }, ref) {
+export const M8Screen = ({ bus }: { bus?: ConnectedBus | null }) => {
   const innerRef = useRef<HTMLCanvasElement | null>(null)
-  const refs = mergeRefs([ref, innerRef])
+
+
+  // would have been cool but it seems that calling resetScreen breaks the connection
+  // useEffect(() => {
+  //   bus?.commands.resetScreen()
+  // }, [])
+
   useEffect(() => {
     if (!innerRef.current) {
       return
@@ -40,6 +46,8 @@ export const M8Screen = forwardRef<HTMLCanvasElement, { bus: ConnectedBus | unde
     bus?.protocol.eventBus.on('text', drawText)
     bus?.protocol.eventBus.on('rect', drawRect)
     bus?.protocol.eventBus.on('wave', drawWave)
+
+
     return () => {
       bus?.protocol.eventBus.off('text', drawText)
       bus?.protocol.eventBus.off('rect', drawRect)
@@ -47,5 +55,5 @@ export const M8Screen = forwardRef<HTMLCanvasElement, { bus: ConnectedBus | unde
     }
   }, [bus])
 
-  return <canvas className="element" ref={refs} style={{ width: '100%' }}></canvas>
-})
+  return <canvas className="element" ref={innerRef} style={{ width: '100%' }}></canvas>
+}

@@ -2,7 +2,7 @@ import { css, cx } from '@linaria/core'
 import { type FC, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { style } from '../app/style/style'
 import type { ConnectedBus } from './connection/connection'
-import { isDown, isEdit, isLeft, isOpt, isPlay, isRight, isShift, isUp, type pressKeys } from './connection/keys'
+import { isDown, isEdit, isLeft, isOpt, isPlay, isRight, isShift, isUp, pressKeys } from './connection/keys'
 import type { KeyCommand } from './connection/protocol'
 import { M8Screen } from './rendering/M8Screen'
 import { M8PreText } from './rendering/M8PreText'
@@ -132,8 +132,6 @@ const SvgComponent: FC<{
   const [buttonPlay, setButtonPlay] = useState<SVGPathElement | null>(null)
 
 
-
-
   // because change of state triggers re-rendreing, I've change it to a ref 
   const screenEdgeRef = useRef<SVGPathElement | null>(null);
 
@@ -209,6 +207,7 @@ const SvgComponent: FC<{
     }
 
     bus.protocol.eventBus.on('key', onKey)
+
     return () => {
       bus.protocol.eventBus.off('key', onKey)
     }
@@ -216,7 +215,14 @@ const SvgComponent: FC<{
 
   const onClick = useCallback(
     (keys: Parameters<typeof pressKeys>[0]) => {
-      bus?.commands.sendKeys(keys)
+
+      bus?.commands.sendKeys(pressKeys(keys))
+
+      // TODO : make toggle button on click
+      // meanwhile send no key pressed
+      bus?.commands.sendKeys(0)
+
+      /* this is unecessary because the bus onKey will be triggered and update the classes
       if (keys.up) {
         buttonUp?.classList.add('press')
       }
@@ -242,10 +248,11 @@ const SvgComponent: FC<{
         buttonShift?.classList.add('press')
       }
       requestAnimationFrame(() => {
+
         for (const button of [buttonUp, buttonDown, buttonLeft, buttonRight, buttonOpt, buttonEdit, buttonPlay, buttonShift]) {
           button?.classList.remove('press')
         }
-      })
+      })*/
     },
     [bus, buttonUp, buttonDown, buttonLeft, buttonRight, buttonOpt, buttonEdit, buttonPlay, buttonShift],
   )

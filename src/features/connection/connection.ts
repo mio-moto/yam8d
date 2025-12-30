@@ -26,17 +26,17 @@ const midiCommands = (output: MIDIOutput) => {
       commands.push(new Uint8Array([0xf0, 0x00, 0x02, 0x61, 0x00, 0x00, 0x44, 0xf7]))
       commands.push(new Uint8Array([0xf0, 0x00, 0x02, 0x61, 0x00, 0x00, 0x45, 0x52, 0xf7]))
     },
-    sendKeys: (keys: Parameters<typeof pressKeys>[0]) => {
-      const press = pressKeys(keys)
+    sendKeys: (keys: number | Parameters<typeof pressKeys>[0]) => {
+      const press = typeof keys === 'number' ? keys : pressKeys(keys)
       const msb = 0 | (press & 0x80 ? 1 << 2 : 0)
 
       commands.push(new Uint8Array([0xf0, 0x00, 0x02, 0x61, 0x00, msb, 0x00, 0x43, press & 0x7f, 0xf7]))
       const release = pressKeys({})
-      const msbRelease = 0 | (press & 0x80 ? 1 << 2 : 0)
+      const msbRelease = 0 | (release & 0x80 ? 1 << 2 : 0)
       commands.push(new Uint8Array([0xf0, 0x00, 0x02, 0x61, 0x00, msbRelease, 0x00, 0x43, release & 0x7f, 0xf7]))
     },
     sendNoteOn: (note: number, velocity: number) => {
-      velocity = Math.min(0x7f, Math.max(0x00), velocity)
+      velocity = Math.min(0x7f, Math.max(0x00, velocity))
       const msb = 0 | (note & 0x80 ? 1 << 2 : 0) | (velocity & 0x80 ? 1 << 3 : 0)
       commands.push(new Uint8Array([0xf0, 0x00, 0x02, 0x61, 0x00, msb, 0x00, 0x48, note & 0x7f, velocity & 0x7f, 0xf7]))
     },
@@ -64,9 +64,15 @@ const commands = (writer: ReturnType<typeof usbWriter> | ReturnType<typeof seria
       commands.push(new Uint8Array([0x44]))
       commands.push(new Uint8Array([0x45, 0x52]))
     },
-    sendKeys: async (keys: Parameters<typeof pressKeys>[0]) => {
-      commands.push(new Uint8Array([0x43, pressKeys(keys)]))
-      commands.push(new Uint8Array([0x43, 0x00]))
+    sendKeys: (keys: number | Parameters<typeof pressKeys>[0]) => {
+      // I added handling keys as both number or flags object.
+      // BTW I think this pressKeys function should be removed from here and called
+      // by the caller before sending the keys.
+      // this sendkeys func should only receive a bitmask of pressed keys
+      const press = typeof keys === 'number' ? keys : pressKeys(keys)
+      commands.push(new Uint8Array([0x43, press]))
+      // and no need to send keyUp here, the key up will be sent eventually from the outside
+      //commands.push(new Uint8Array([0x43, 0x00]))
     },
     sendNoteOn: async (note: number, velocity: number) => {
       commands.push(new Uint8Array([0x48, note, velocity]))
