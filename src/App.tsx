@@ -5,10 +5,11 @@ import { Button } from './components/Button'
 import type { ConnectedBus } from './features/connection/connection'
 import { device } from './features/connection/device'
 import { M8Player } from './features/M8Player'
-import { SettingsProvider } from './features/settings/settings'
+import { useSettingsContext } from './features/settings/settings'
 import { useM8Input } from './features/inputs/useM8input'
 import { VirtualKeyboard } from './features/virtualKeyboard/VirtualKeyboard'
 import { style } from './app/style/style'
+import { Menu } from './features/settings/menu'
 
 const appClass = css`
   display: flex;
@@ -17,7 +18,7 @@ const appClass = css`
   justify-content: stretch;
   align-items: stretch;
 
-  gap: 16qpx;
+  gap: 16px;
 
   > ._buttons {
     display: flex;
@@ -25,6 +26,8 @@ const appClass = css`
 `
 
 export const App: FC = () => {
+  const { settings } = useSettingsContext()
+
   const [connectedBus, setConnectedBus] = useState<ConnectedBus>()
 
   const tryConnect = useCallback(() => {
@@ -42,49 +45,19 @@ export const App: FC = () => {
 
   useM8Input(connectedBus)
 
-  // State to track checkbox status
-  const [isFullview, setIsFullview] = useState(true)
-  const [isWGLRendering, setWGLRendering] = useState(true)
 
 
-  // Handle checkbox change
-  const handleFullviewCheckboxChange = (event: any) => {
-    setIsFullview(event.target.checked);
-  };
-  const handleWGLCheckboxChange = (event: any) => {
-    setWGLRendering(event.target.checked);
-  };
   return (
-    <SettingsProvider>
-      <div className={appClass}>
-        {!connectedBus && <Button onClick={tryConnect}>Connect</Button>}
-        {connectedBus &&
-          <>
-            {/* TODO: create a menu component, the code below is just for test purpose */}
-            <div className='menu'>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={isFullview}
-                  onChange={handleFullviewCheckboxChange}
-                />
-                Full M8 view
-              </label>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={isWGLRendering}
-                  onChange={handleWGLCheckboxChange}
-                />
-                Web GL
-              </label>
-            </div>
-            <VirtualKeyboard bus={connectedBus} strokeColor={style.themeColors.text.default}></VirtualKeyboard>
-            <M8Player bus={connectedBus} fullView={isFullview} WGLRendering={isWGLRendering} />
-          </>
-        }
-      </div>
-    </SettingsProvider>
+    <div className={appClass}>
+      <Menu />
+      {!connectedBus && <Button onClick={tryConnect}>Connect</Button>}
+      {connectedBus &&
+        <>
 
+          {settings.virtualKeyboard && <VirtualKeyboard bus={connectedBus} strokeColor={style.themeColors.text.default}></VirtualKeyboard>}
+          <M8Player bus={connectedBus} fullView={settings.fullM8View} WGLRendering={settings.webGLRendering} />
+        </>
+      }
+    </div>
   )
 }

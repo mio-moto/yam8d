@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react'
 import { M8KeyMask } from '../connection/keys.ts'
 
 
-const defaultInputMap = Object.freeze({
+export const defaultInputMap = Object.freeze({
     ArrowUp: M8KeyMask.Up,
     ArrowDown: M8KeyMask.Down,
     ArrowLeft: M8KeyMask.Left,
@@ -37,7 +37,7 @@ const inputMap: Record<string, number> = {}
 
 export const useM8Input = (connection?: ConnectedBus) => {
 
-    const { settingsContextValues } = useSettingsContext()
+    const { settings: settingsContextValues } = useSettingsContext()
     const pressedKeyMask = useRef(0)
 
     useEffect(() => {

@@ -2,7 +2,7 @@ import { useSettingsContext } from '../settings/settings.tsx'
 import type { ConnectedBus } from '../connection/connection.ts'
 import { useEffect, useRef, useState } from 'react'
 
-const defaultKeyMap = Object.freeze({
+export const defaultKeyMap = Object.freeze({
     KeyA: 0,
     KeyW: 1,
     KeyS: 2,
@@ -34,7 +34,7 @@ const keyMap: Record<string, number | string> = {}
 
 export const useVirtualKeyboard = (connection?: ConnectedBus) => {
 
-    const { settingsContextValues } = useSettingsContext()
+    const { settings: settingsContextValues } = useSettingsContext()
     const [octave, setOctave] = useState(3)
     const [velocity, setVelocity] = useState(103)
     const octaveRef = useRef(octave)
