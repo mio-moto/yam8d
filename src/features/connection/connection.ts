@@ -75,10 +75,10 @@ const commands = (writer: ReturnType<typeof usbWriter> | ReturnType<typeof seria
       //commands.push(new Uint8Array([0x43, 0x00]))
     },
     sendNoteOn: async (note: number, velocity: number) => {
-      commands.push(new Uint8Array([0x48, note, velocity]))
+      commands.push(new Uint8Array([0x4B, note, velocity]))
     },
     sendNoteOff: async () => {
-      commands.push(new Uint8Array([0x48, 255]))
+      commands.push(new Uint8Array([0x4B, 255]))
     },
   }
 }

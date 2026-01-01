@@ -5,10 +5,10 @@ const initialSettings: Record<string, any> = JSON.parse(localStorage[SETTINGS] ?
 
 const SettingsContext = React.createContext<{
     settingsContextValues: Record<string, any>,
-    updateContextValues: (setting: string, value: any) => void
+    updateContextValues: (settingName: string, value: any) => void
 }>({
     settingsContextValues: initialSettings,
-    updateContextValues: (setting: string, value: any) => { }
+    updateContextValues: (settingName: string, value: any) => { }
 })
 
 export const SettingsProvider = ({ children }: { children?: React.ReactNode }) => {

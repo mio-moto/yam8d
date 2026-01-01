@@ -1,5 +1,4 @@
-import { forwardRef, useEffect, useRef } from 'react'
-import { mergeRefs } from '../../utils/mergeRefs'
+import { useEffect, useRef } from 'react'
 import type { ConnectedBus } from '../connection/connection'
 import type { CharacterCommand, RectCommand, WaveCommand } from '../connection/protocol'
 import { renderer } from './renderer'

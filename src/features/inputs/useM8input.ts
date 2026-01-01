@@ -1,6 +1,3 @@
-// Copyright 2021-2022 James Deery
-// Released under the MIT licence, https://opensource.org/licenses/MIT
-
 import { useSettingsContext } from '../settings/settings.tsx'
 import type { ConnectedBus } from '../connection/connection.ts'
 import { useEffect, useRef } from 'react'

@@ -1,12 +1,14 @@
 import { css } from '@linaria/core'
 import './App.css'
-import { type FC, useCallback, useEffect, useState } from 'react'
+import { type FC, useCallback, useState } from 'react'
 import { Button } from './components/Button'
 import type { ConnectedBus } from './features/connection/connection'
 import { device } from './features/connection/device'
 import { M8Player } from './features/M8Player'
 import { SettingsProvider } from './features/settings/settings'
-import { useM8Input } from './features/inputs/M8input'
+import { useM8Input } from './features/inputs/useM8input'
+import { VirtualKeyboard } from './features/virtualKeyboard/VirtualKeyboard'
+import { style } from './app/style/style'
 
 const appClass = css`
   display: flex;
@@ -15,7 +17,7 @@ const appClass = css`
   justify-content: stretch;
   align-items: stretch;
 
-  gap: 32px;
+  gap: 16qpx;
 
   > ._buttons {
     display: flex;
@@ -77,6 +79,7 @@ export const App: FC = () => {
                 Web GL
               </label>
             </div>
+            <VirtualKeyboard bus={connectedBus} strokeColor={style.themeColors.text.default}></VirtualKeyboard>
             <M8Player bus={connectedBus} fullView={isFullview} WGLRendering={isWGLRendering} />
           </>
         }
