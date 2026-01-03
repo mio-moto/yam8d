@@ -10,6 +10,7 @@ import { useM8Input } from './features/inputs/useM8input'
 import { VirtualKeyboard } from './features/virtualKeyboard/VirtualKeyboard'
 import { style } from './app/style/style'
 import { Menu } from './features/settings/menu'
+import { useMacroInput } from './features/macros/useMacroInput'
 
 const appClass = css`
   display: flex;
@@ -44,8 +45,7 @@ export const App: FC = () => {
   }, [])
 
   useM8Input(connectedBus)
-
-
+  useMacroInput(connectedBus)
 
   return (
     <div className={appClass}>

@@ -31,6 +31,13 @@ export const defaultInputMap = Object.freeze({
     Gamepad0: M8KeyMask.Edit
 })
 
+const dirNames = {
+    ArrowUp: 'Up',
+    ArrowDown: 'Down',
+    ArrowLeft: 'Left',
+    ArrowRight: 'Right',
+}
+
 const INPUT_MAP_SETTINGS = 'inputMap'
 
 const inputMap: Record<string, number> = {}
@@ -50,6 +57,9 @@ export const useM8Input = (connection?: ConnectedBus) => {
 
 
         const handleKeyDown = (ev: KeyboardEvent) => {
+            const dir = dirNames[ev.code as keyof typeof dirNames]
+
+            if (dir) console.log('move', dir)
             handleInput(ev, true)
         };
         const handleKeyUp = (ev: KeyboardEvent) => {

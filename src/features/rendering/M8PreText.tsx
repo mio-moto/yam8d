@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import type { ConnectedBus } from '../connection/connection'
 import type { CharacterCommand } from '../connection/protocol'
+import { rgbToHex } from '../../utils/colorTools'
 
 // this rendering is pure html
 // it uses the CharacterCommand sent by the bus.text
@@ -12,8 +13,6 @@ export const M8PreText = ({ bus }: { bus?: ConnectedBus | null }) => {
 
     const container = useRef<HTMLDivElement | null>(null)
 
-    const rgbToHex = (rgb: { r: number; g: number; b: number }) =>
-        `#${[rgb.r, rgb.g, rgb.b].map((v) => v.toString(16).padStart(2, '0')).join('')}`
 
     // would have been cool but it seems that calling resetScreen breaks the connection
     // useEffect(() => {

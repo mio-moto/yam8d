@@ -1,11 +1,10 @@
-import { pressKeys } from './keys'
 import { protocol } from './protocol'
 
 const vendorId = 0x16c0
 const productId = 0x048a
 // the device processes frame by frame ingress messages - which means each button press needs to wait for ~5ms currently
 // doubling the time is a good safe margin
-const waitTime = 50
+const waitTime = 30
 
 const usbWriter = (device: USBDevice) => (data: Uint8Array<ArrayBuffer>) => device.transferOut(3, data)
 const serialWriter = (writer: WritableStreamDefaultWriter<Uint8Array<ArrayBufferLike>>) => (data: Uint8Array<ArrayBuffer>) => writer.write(data)
@@ -26,12 +25,12 @@ const midiCommands = (output: MIDIOutput) => {
       commands.push(new Uint8Array([0xf0, 0x00, 0x02, 0x61, 0x00, 0x00, 0x44, 0xf7]))
       commands.push(new Uint8Array([0xf0, 0x00, 0x02, 0x61, 0x00, 0x00, 0x45, 0x52, 0xf7]))
     },
-    sendKeys: (keys: number | Parameters<typeof pressKeys>[0]) => {
-      const press = typeof keys === 'number' ? keys : pressKeys(keys)
+    sendKeys: (keys: number) => {
+      const press = keys
       const msb = 0 | (press & 0x80 ? 1 << 2 : 0)
 
       commands.push(new Uint8Array([0xf0, 0x00, 0x02, 0x61, 0x00, msb, 0x00, 0x43, press & 0x7f, 0xf7]))
-      const release = pressKeys({})
+      const release = 0x00
       const msbRelease = 0 | (release & 0x80 ? 1 << 2 : 0)
       commands.push(new Uint8Array([0xf0, 0x00, 0x02, 0x61, 0x00, msbRelease, 0x00, 0x43, release & 0x7f, 0xf7]))
     },
@@ -64,15 +63,9 @@ const commands = (writer: ReturnType<typeof usbWriter> | ReturnType<typeof seria
       commands.push(new Uint8Array([0x44]))
       commands.push(new Uint8Array([0x45, 0x52]))
     },
-    sendKeys: (keys: number | Parameters<typeof pressKeys>[0]) => {
-      // I added handling keys as both number or flags object.
-      // BTW I think this pressKeys function should be removed from here and called
-      // by the caller before sending the keys.
-      // this sendkeys func should only receive a bitmask of pressed keys
-      const press = typeof keys === 'number' ? keys : pressKeys(keys)
+    sendKeys: (keys: number) => {
+      const press = keys
       commands.push(new Uint8Array([0x43, press]))
-      // and no need to send keyUp here, the key up will be sent eventually from the outside
-      //commands.push(new Uint8Array([0x43, 0x00]))
     },
     sendNoteOn: async (note: number, velocity: number) => {
       commands.push(new Uint8Array([0x4B, note, velocity]))
@@ -329,7 +322,7 @@ export const connection = () => {
   }
 
   const connect = async () => {
-    // const connection = await (webMidiAvailable ? midiConnect() : webSerialAvailable ? serialConnect() : usbConnect())
+    //const connection = await (webMidiAvailable ? midiConnect() : webSerialAvailable ? serialConnect() : usbConnect())
     const connection = await (webSerialAvailable ? serialConnect() : webUsbAvailable ? usbConnect() : midiConnect())
     connection.commands.resetScreen()
     const protocolHandler = protocol()
