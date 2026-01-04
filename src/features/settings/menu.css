@@ -1,0 +1,76 @@
+.menu {
+    position: absolute;
+    background: rgb(77, 77, 77);
+}
+
+.menu.opened {
+    display: grid;
+    row-gap: 5px;
+    width: 500px;
+    z-index: 1000;
+    padding: 40px 20px 20px 40px;
+}
+
+.menu-hitbox {
+    position: absolute;
+    left: 32px;
+    top: 0;
+    bottom: 0;
+    width: 40px;
+    z-index: 1001;
+    cursor: pointer;
+}
+
+.menu::before,
+.menu::after {
+    content: "";
+    position: absolute;
+    left: 8px;
+    width: 24px;
+    height: 2px;
+    background: currentColor;
+    transition: transform 200ms ease, top 200ms ease, opacity 200ms ease;
+}
+
+.menu.closed::before {
+    top: 8px;
+    transform: rotate(0deg);
+}
+
+.menu.closed::after {
+    top: 16px;
+    transform: rotate(0deg);
+}
+
+.menu.opened::before {
+    top: 12px;
+    transform: rotate(45deg);
+}
+
+.menu.opened::after {
+    top: 12px;
+    transform: rotate(-45deg);
+}
+
+.menu.closed .menu-item {
+    display: none;
+}
+
+.menu-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.menu-item>.title {
+    display: block;
+    font-weight: 600;
+}
+
+/* Inner content of a menu-item: flex with 8px gap */
+.menu-item>div {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}

@@ -1,20 +1,22 @@
-const keyLeft = 0b10000000
-const keyUp = 0b01000000
-const keyDown = 0b00100000
-const keyShift = 0b00010000
-const keyPlay = 0b00001000
-const keyRight = 0b00000100
-const keyOpt = 0b00000010
-const keyEdit = 0b00000001
+export const M8KeyMask = {
+  Left: 0b10000000,
+  Up: 0b01000000,
+  Down: 0b00100000,
+  Shift: 0b00010000,
+  Play: 0b00001000,
+  Right: 0b00000100,
+  Opt: 0b00000010,
+  Edit: 0b00000001,
+} as const
 
-export const isLeft = (frame: number) => !!(frame & keyLeft)
-export const isUp = (frame: number) => !!(frame & keyUp)
-export const isDown = (frame: number) => !!(frame & keyDown)
-export const isShift = (frame: number) => !!(frame & keyShift)
-export const isPlay = (frame: number) => !!(frame & keyPlay)
-export const isRight = (frame: number) => !!(frame & keyRight)
-export const isOpt = (frame: number) => !!(frame & keyOpt)
-export const isEdit = (frame: number) => !!(frame & keyEdit)
+export const isLeft = (frame: number) => !!(frame & M8KeyMask.Left)
+export const isUp = (frame: number) => !!(frame & M8KeyMask.Up)
+export const isDown = (frame: number) => !!(frame & M8KeyMask.Down)
+export const isShift = (frame: number) => !!(frame & M8KeyMask.Shift)
+export const isPlay = (frame: number) => !!(frame & M8KeyMask.Play)
+export const isRight = (frame: number) => !!(frame & M8KeyMask.Right)
+export const isOpt = (frame: number) => !!(frame & M8KeyMask.Opt)
+export const isEdit = (frame: number) => !!(frame & M8KeyMask.Edit)
 
 export const pressKeys = ({
   left,
@@ -37,28 +39,28 @@ export const pressKeys = ({
 }) => {
   let state = 0x00
   if (left) {
-    state |= keyLeft
+    state |= M8KeyMask.Left
   }
   if (right) {
-    state |= keyRight
+    state |= M8KeyMask.Right
   }
   if (up) {
-    state |= keyUp
+    state |= M8KeyMask.Up
   }
   if (down) {
-    state |= keyDown
+    state |= M8KeyMask.Down
   }
   if (shift) {
-    state |= keyShift
+    state |= M8KeyMask.Shift
   }
   if (play) {
-    state |= keyPlay
+    state |= M8KeyMask.Play
   }
   if (opt) {
-    state |= keyOpt
+    state |= M8KeyMask.Opt
   }
   if (edit) {
-    state |= keyEdit
+    state |= M8KeyMask.Edit
   }
   return state
 }

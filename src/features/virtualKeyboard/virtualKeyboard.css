@@ -1,0 +1,32 @@
+.virtual-keyboard {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0px;
+    flex-wrap: nowrap;
+}
+
+.virtual-keyboard>* {
+    flex: 0 0 auto;
+}
+
+.virtual-keyboard svg {
+    height: 32px;
+    width: auto;
+    display: block;
+}
+
+.velocity {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    height: 32px;
+    width: 8px;
+    border: 1px solid;
+    box-sizing: border-box;
+    margin-right: 3px;
+}
+
+.velocity-fill {
+    width: 100%;
+}
