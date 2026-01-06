@@ -55,7 +55,7 @@ const fixSourceMaps = (): Plugin => {
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/',
+  base: "./",
   plugins: [
     tsconfigPaths(),
     wyw({
