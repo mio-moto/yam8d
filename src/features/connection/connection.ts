@@ -329,7 +329,7 @@ export const connection = () => {
   }
 
   const usbConnect = async () => {
-    const devices = (await navigator.usb.getDevices()).filter((d) => d.vendorId === vendorId && d.productId === productId)
+    const devices = (await navigator.usb.getDevices()).filter((d) => d /* d.vendorId === vendorId  && d.productId === productId */)
     // TODO: check out what happens with two devices attached
     if (devices.length > 1) {
       console.warn('Suspicious: there is more than one device, are multiple devices connected?')
@@ -370,15 +370,14 @@ export const connection = () => {
 
   const serialConnect = async () => {
     const ports = (await navigator.serial.getPorts()).filter((x) => {
-      const info = x.getInfo()
-      return info.usbVendorId === vendorId && info.usbProductId === productId
+      const _info = x.getInfo()
+      return true // info.usbVendorId === vendorId // && info.usbProductId === productId
     })
     if (ports.length > 1) {
       console.warn('Suspicious: there are more than one port, when expecting just one.')
     }
 
-    const port =
-      ports.length <= 0 ? await navigator.serial.requestPort({ filters: [{ usbVendorId: vendorId, usbProductId: productId }] }) : ports[0]
+    const port = ports.length <= 0 ? await navigator.serial.requestPort({ filters: [{ usbVendorId: vendorId /*, usbProductId: productId */ }] }) : ports[0]
 
     await port.open({
       baudRate: 115200,

@@ -1,5 +1,6 @@
 import type { RectCommand, WaveCommand } from '../connection/protocol'
-import { font1 } from './fonts/font1'
+import Font4 from './fonts/font4.png?url'
+import Font5 from './fonts/font5.png?url'
 import FragBlit from './shader/blit.frag?raw'
 import VertBlit from './shader/blit.vert?raw'
 import FragRect from './shader/rect.frag?raw'
@@ -8,6 +9,8 @@ import FragText from './shader/text.frag?raw'
 import VertText from './shader/text.vert?raw'
 import FragWave from './shader/wave.frag?raw'
 import VertWave from './shader/wave.vert?raw'
+
+const screenLayout = 4;
 
 const compileShader = (context: WebGL2RenderingContext, shaderText: string, type: GLenum) => {
   const shader = context.createShader(type)
@@ -110,13 +113,32 @@ export const renderer = (element: HTMLCanvasElement | null) => {
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, fontImage.width, fontImage.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, fontImage)
       queueFrame()
     })
-    fontImage.src = font1
+    if (screenLayout === 4) {
+      fontImage.src = Font4
+    } else {
+      fontImage.src = Font5
+    }
 
     return {
       renderText: () => {
         gl.useProgram(textShader)
         gl.bindVertexArray(textVao)
 
+
+        if (screenLayout === 4) {
+          // TODO: program offsets are static
+          gl.uniform2f(gl.getUniformLocation(textShader, "size"), 10.0, 10.0);
+          gl.uniform2f(gl.getUniformLocation(textShader, "posScale"), 12.0, 14.0);
+          gl.uniform2f(gl.getUniformLocation(textShader, "posOffset"), 0.0, 2.0);
+          gl.uniform2f(gl.getUniformLocation(textShader, "posOffsetRow0"), 0.0, 0.0);
+          gl.uniform1f(gl.getUniformLocation(textShader, 'rowOffset'), 0.0);
+        } else {
+          gl.uniform2f(gl.getUniformLocation(textShader, "size"), 12.0, 12.0);
+          gl.uniform2f(gl.getUniformLocation(textShader, "posScale"), 15.0, 16.0);
+          gl.uniform2f(gl.getUniformLocation(textShader, "posOffset"), 0.0, -2.0);
+          gl.uniform2f(gl.getUniformLocation(textShader, "posOffsetRow0"), 0.0, 5.0);
+          gl.uniform1f(gl.getUniformLocation(textShader, 'rowOffset'), -3.0);
+        }
         if (textColorsUpdated) {
           gl.bindBuffer(gl.ARRAY_BUFFER, textColorsBuffer)
           gl.bufferSubData(gl.ARRAY_BUFFER, 0, textColors)
