@@ -1,9 +1,9 @@
 import { css } from '@linaria/core'
-import { colorTheme, colors } from './colors'
-import { fragments } from './fragments'
-import { notCss } from './util'
+import { colors, colorTheme } from './colors'
 import { fontName } from './fonts'
+import { fragments } from './fragments'
 import { themeColors } from './themeColors'
+import { notCss } from './util'
 import './font.css'
 import './prescreen.css'
 

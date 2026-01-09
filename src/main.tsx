@@ -11,14 +11,16 @@ if (!element) {
 
 const useStrict = !import.meta.env.VITE_BUILD_WITHOUT_STRICT
 
-createRoot(element).render(useStrict ? (
-  <StrictMode>
+createRoot(element).render(
+  useStrict ? (
+    <StrictMode>
+      <SettingsProvider>
+        <App />
+      </SettingsProvider>
+    </StrictMode>
+  ) : (
     <SettingsProvider>
       <App />
     </SettingsProvider>
-  </StrictMode>
-) : (
-  <SettingsProvider>
-    <App />
-  </SettingsProvider>
-))
+  ),
+)

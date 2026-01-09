@@ -1,5 +1,5 @@
 import { css, cx } from '@linaria/core'
-import { type FC, type HTMLProps, forwardRef } from 'react'
+import { type FC, forwardRef, type HTMLProps } from 'react'
 import { fragments } from '../app/style/fragments'
 import { style } from '../app/style/style'
 

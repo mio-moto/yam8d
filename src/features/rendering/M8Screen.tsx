@@ -9,12 +9,6 @@ import { renderer } from './renderer'
 export const M8Screen = ({ bus }: { bus?: ConnectedBus | null }) => {
   const innerRef = useRef<HTMLCanvasElement | null>(null)
 
-
-  // would have been cool but it seems that calling resetScreen breaks the connection
-  // useEffect(() => {
-  //   bus?.commands.resetScreen()
-  // }, [])
-
   useEffect(() => {
     if (!innerRef.current) {
       return
@@ -46,6 +40,8 @@ export const M8Screen = ({ bus }: { bus?: ConnectedBus | null }) => {
     bus?.protocol.eventBus.on('rect', drawRect)
     bus?.protocol.eventBus.on('wave', drawWave)
 
+    // effectively reset the screen but brak the bus, no event are recieved anymore
+    //bus?.commands.resetScreen()
 
     return () => {
       bus?.protocol.eventBus.off('text', drawText)
@@ -54,5 +50,5 @@ export const M8Screen = ({ bus }: { bus?: ConnectedBus | null }) => {
     }
   }, [bus])
 
-  return <canvas className="element" ref={innerRef} style={{ width: '100%' }}></canvas>
+  return <canvas className="element" ref={innerRef} style={{ width: '100%', imageRendering: 'pixelated' }}></canvas>
 }

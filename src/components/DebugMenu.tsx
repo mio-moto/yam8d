@@ -1,5 +1,5 @@
 import { css, cx } from '@linaria/core'
-import { type FC, type ReactNode, createContext, useContext, useMemo, useState } from 'react'
+import { createContext, type FC, type ReactNode, useContext, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { fragments } from '../app/style/fragments'
 import { style } from '../app/style/style'

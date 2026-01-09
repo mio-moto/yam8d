@@ -1,16 +1,16 @@
 import { css } from '@linaria/core'
 import './App.css'
 import { type FC, useCallback, useState } from 'react'
+import { style } from './app/style/style'
 import { Button } from './components/Button'
 import type { ConnectedBus } from './features/connection/connection'
 import { device } from './features/connection/device'
-import { M8Player } from './features/M8Player'
-import { useSettingsContext } from './features/settings/settings'
 import { useM8Input } from './features/inputs/useM8input'
-import { VirtualKeyboard } from './features/virtualKeyboard/VirtualKeyboard'
-import { style } from './app/style/style'
-import { Menu } from './features/settings/menu'
+import { M8Player } from './features/M8Player'
 import { useMacroInput } from './features/macros/useMacroInput'
+import { Menu } from './features/settings/menu'
+import { useSettingsContext } from './features/settings/settings'
+import { VirtualKeyboard } from './features/virtualKeyboard/VirtualKeyboard'
 
 const appClass = css`
   display: flex;
@@ -34,14 +34,14 @@ export const App: FC = () => {
   const tryConnect = useCallback(() => {
     const res = device()
 
-      ; (async () => {
-        if (!res.connection.browserSupport) {
-          console.error('No usb / serial support detected.')
-          return
-        }
-        setConnectedBus(await res.connection.connect())
-        await res.audio.connect()
-      })()
+    ;(async () => {
+      if (!res.connection.browserSupport) {
+        console.error('No usb / serial support detected.')
+        return
+      }
+      setConnectedBus(await res.connection.connect())
+      await res.audio.connect()
+    })()
   }, [])
 
   useM8Input(connectedBus)
@@ -51,13 +51,12 @@ export const App: FC = () => {
     <div className={appClass}>
       <Menu />
       {!connectedBus && <Button onClick={tryConnect}>Connect</Button>}
-      {connectedBus &&
+      {connectedBus && (
         <>
-
           {settings.virtualKeyboard && <VirtualKeyboard bus={connectedBus} strokeColor={style.themeColors.text.default}></VirtualKeyboard>}
           <M8Player bus={connectedBus} fullView={settings.fullM8View} WGLRendering={settings.webGLRendering} />
         </>
-      }
+      )}
     </div>
   )
 }
