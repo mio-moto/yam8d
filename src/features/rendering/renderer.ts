@@ -1,4 +1,7 @@
 import type { RectCommand, WaveCommand } from '../connection/protocol'
+import Font1 from './fonts/font1.png?url'
+import Font2 from './fonts/font2.png?url'
+import Font3 from './fonts/font3.png?url'
 import Font4 from './fonts/font4.png?url'
 import Font5 from './fonts/font5.png?url'
 import FragBlit from './shader/blit.frag?raw'
@@ -10,7 +13,129 @@ import VertText from './shader/text.vert?raw'
 import FragWave from './shader/wave.frag?raw'
 import VertWave from './shader/wave.vert?raw'
 
-const screenLayout = 4;
+export type ScreenLayout = 1 | 2 | 3 | 4 | 5
+type ScreenConfig = {
+  rectOffset: number
+  programType: 1 | 2
+  font: {
+    url: string
+    sizeX: number
+    sizeY: number
+    spacingX: number
+    spacingY: number
+    offsetX: number
+    offsetY: number
+    rowOffset: number
+    row0Offset: number
+  }
+  screen: {
+    width: number
+    height: number
+  }
+}
+
+const v1Screen = {
+  width: 320,
+  height: 240,
+} as const
+const v2Screen = {
+  width: 480,
+  height: 320,
+} as const
+
+// M8:01 small font
+const screenLayout1Config = {
+  rectOffset: 0,
+  programType: 1,
+  font: {
+    url: Font1,
+    sizeX: 5.0,
+    sizeY: 7.0,
+    spacingX: 8.0,
+    spacingY: 10.0,
+    offsetX: 0.0,
+    offsetY: 0.0,
+    rowOffset: 0.0,
+    row0Offset: 0.0,
+  },
+  screen: v1Screen,
+} as const satisfies ScreenConfig
+// M8:01 large font
+const screenLayout2Config = {
+  rectOffset: -40,
+  programType: 1,
+  font: {
+    url: Font2,
+    sizeX: 8.0,
+    sizeY: 9.0,
+    spacingX: 10.0,
+    spacingY: 12.0,
+    offsetX: 0.0,
+    offsetY: 0.0,
+    rowOffset: -3.0,
+    row0Offset: 5.0,
+  },
+  screen: v1Screen,
+} as const satisfies ScreenConfig
+// M8:02 small font
+const screenLayout3Config = {
+  rectOffset: -2,
+  programType: 2,
+  font: {
+    url: Font3,
+    sizeX: 9.0,
+    sizeY: 9.0,
+    spacingX: 12,
+    spacingY: 14,
+    offsetX: 0.0,
+    offsetY: 3.0,
+    rowOffset: 0.0,
+    row0Offset: 0.0,
+  },
+  screen: v2Screen,
+} as const satisfies ScreenConfig
+// M8:02 large font
+const screenLayout4Config = {
+  rectOffset: -2,
+  programType: 2,
+  font: {
+    url: Font4,
+    sizeX: 10.0,
+    sizeY: 10.0,
+    spacingX: 12.0,
+    spacingY: 14.0,
+    offsetX: 0.0,
+    offsetY: 2.0,
+    rowOffset: 0.0,
+    row0Offset: 0.0,
+  },
+  screen: v2Screen,
+} as const satisfies ScreenConfig
+// M8:02 large font, no scope
+const screenLayout5Config = {
+  rectOffset: -54,
+  programType: 2,
+  font: {
+    url: Font5,
+    sizeX: 12,
+    sizeY: 12,
+    spacingX: 15,
+    spacingY: 16,
+    offsetX: 0.0,
+    offsetY: 5.0,
+    rowOffset: -3.0,
+    row0Offset: 5.0,
+  },
+  screen: v2Screen,
+} as const satisfies ScreenConfig
+
+const screenLayoutConfig: Record<ScreenLayout, ScreenConfig> = {
+  1: screenLayout1Config,
+  2: screenLayout2Config,
+  3: screenLayout3Config,
+  4: screenLayout4Config,
+  5: screenLayout5Config,
+} as const
 
 const compileShader = (context: WebGL2RenderingContext, shaderText: string, type: GLenum) => {
   const shader = context.createShader(type)
@@ -40,10 +165,12 @@ const buildProgram = (context: WebGL2RenderingContext, vert: string, frag: strin
   return linkProgram(context, compileShader(context, vert, context.VERTEX_SHADER), compileShader(context, frag, context.FRAGMENT_SHADER))
 }
 
-export const renderer = (element: HTMLCanvasElement | null) => {
+export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout: ScreenLayout) => {
   if (!element) {
     return
   }
+
+  let screenLayout: ScreenLayout = initialScreenLayout
 
   const gl = element.getContext('webgl2', {
     preserveDrawingBuffer: false,
@@ -54,6 +181,16 @@ export const renderer = (element: HTMLCanvasElement | null) => {
   if (!gl) {
     return
   }
+  const textTexture = gl.createTexture()
+
+  const fontImage = new Image()
+  fontImage.addEventListener('load', () => {
+    fontImage.width
+    gl.activeTexture(gl.TEXTURE1)
+    gl.bindTexture(gl.TEXTURE_2D, textTexture)
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, fontImage.width, fontImage.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, fontImage)
+    queueFrame()
+  })
 
   const queueFrame = (() => {
     let isQueued = false
@@ -94,7 +231,6 @@ export const renderer = (element: HTMLCanvasElement | null) => {
     gl.vertexAttribPointer(1, 1, gl.UNSIGNED_BYTE, false, 0, 0)
     gl.vertexAttribDivisor(1, 1)
 
-    const textTexture = gl.createTexture()
     gl.activeTexture(gl.TEXTURE1)
     gl.bindTexture(gl.TEXTURE_2D, textTexture)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
@@ -105,40 +241,22 @@ export const renderer = (element: HTMLCanvasElement | null) => {
     let textColorsUpdated = false
     let textCharsUpdated = false
 
-    const fontImage = new Image()
-    fontImage.addEventListener('load', () => {
-      fontImage.width
-      gl.activeTexture(gl.TEXTURE1)
-      gl.bindTexture(gl.TEXTURE_2D, textTexture)
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, fontImage.width, fontImage.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, fontImage)
-      queueFrame()
-    })
-    if (screenLayout === 4) {
-      fontImage.src = Font4
-    } else {
-      fontImage.src = Font5
-    }
-
     return {
       renderText: () => {
         gl.useProgram(textShader)
         gl.bindVertexArray(textVao)
 
+        const {
+          font: { spacingX: posScaleX, spacingY: posScaleY, sizeX, sizeY, offsetX, offsetY, rowOffset, row0Offset },
+          screen: { width, height },
+        } = screenLayoutConfig[screenLayout]
+        gl.uniform2f(gl.getUniformLocation(textShader, 'size'), sizeX, sizeY)
+        gl.uniform2f(gl.getUniformLocation(textShader, 'spacing'), posScaleX, posScaleY)
+        gl.uniform2f(gl.getUniformLocation(textShader, 'posOffset'), offsetX, offsetY)
+        gl.uniform1f(gl.getUniformLocation(textShader, 'rowOffset'), rowOffset)
+        gl.uniform2f(gl.getUniformLocation(textShader, 'posOffsetRow0'), 0.0, row0Offset)
+        gl.uniform2f(gl.getUniformLocation(textShader, 'camSize'), width, height)
 
-        if (screenLayout === 4) {
-          // TODO: program offsets are static
-          gl.uniform2f(gl.getUniformLocation(textShader, "size"), 10.0, 10.0);
-          gl.uniform2f(gl.getUniformLocation(textShader, "posScale"), 12.0, 14.0);
-          gl.uniform2f(gl.getUniformLocation(textShader, "posOffset"), 0.0, 2.0);
-          gl.uniform2f(gl.getUniformLocation(textShader, "posOffsetRow0"), 0.0, 0.0);
-          gl.uniform1f(gl.getUniformLocation(textShader, 'rowOffset'), 0.0);
-        } else {
-          gl.uniform2f(gl.getUniformLocation(textShader, "size"), 12.0, 12.0);
-          gl.uniform2f(gl.getUniformLocation(textShader, "posScale"), 15.0, 16.0);
-          gl.uniform2f(gl.getUniformLocation(textShader, "posOffset"), 0.0, -2.0);
-          gl.uniform2f(gl.getUniformLocation(textShader, "posOffsetRow0"), 0.0, 5.0);
-          gl.uniform1f(gl.getUniformLocation(textShader, 'rowOffset'), -3.0);
-        }
         if (textColorsUpdated) {
           gl.bindBuffer(gl.ARRAY_BUFFER, textColorsBuffer)
           gl.bufferSubData(gl.ARRAY_BUFFER, 0, textColors)
@@ -170,7 +288,11 @@ export const renderer = (element: HTMLCanvasElement | null) => {
           b: number
         }
       }) => {
-        const i = y * 40 + x
+        const {
+          font: { spacingX, spacingY },
+        } = screenLayoutConfig[screenLayout]
+        // const i = Math.floor(y / spacingX) * 40 + Math.floor(x * spacingY)
+        const i = Math.floor(y / spacingY) * 40 + Math.floor(x / spacingX)
         if (i >= 960) {
           return
         }
@@ -207,7 +329,8 @@ export const renderer = (element: HTMLCanvasElement | null) => {
     const rectsTexture = gl.createTexture()
     gl.activeTexture(gl.TEXTURE0)
     gl.bindTexture(gl.TEXTURE_2D, rectsTexture)
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 480, 320, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
+    const { width, height } = screenLayoutConfig[screenLayout].screen
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
@@ -236,6 +359,7 @@ export const renderer = (element: HTMLCanvasElement | null) => {
     let rectCount = 0
 
     const renderRects = () => {
+      const { width, height } = screenLayoutConfig[screenLayout].screen
       if (rectsClear) {
         gl.bindFramebuffer(gl.FRAMEBUFFER, rectsFramebuffer)
         gl.clearColor(background.r, background.g, background.b, 1)
@@ -249,12 +373,14 @@ export const renderer = (element: HTMLCanvasElement | null) => {
         gl.bindVertexArray(rectVao)
         gl.bindBuffer(gl.ARRAY_BUFFER, rectShapeBuffer)
         gl.bufferSubData(gl.ARRAY_BUFFER, 0, rectShapes.subarray(0, rectCount * 6))
+        gl.uniform2f(gl.getUniformLocation(rectShader, 'size'), width, height)
         gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, rectCount)
         rectCount = 0
       }
       gl.bindFramebuffer(gl.FRAMEBUFFER, null)
       // biome-ignore lint/correctness/useHookAtTopLevel: ain't a hook
       gl.useProgram(blitShader)
+      gl.uniform2f(gl.getUniformLocation(blitShader, 'size'), width, height)
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
     }
     const drawRect = ({ pos: { x, y }, size: { width, height }, color }: Exclude<RectCommand, undefined>) => {
@@ -265,14 +391,16 @@ export const renderer = (element: HTMLCanvasElement | null) => {
         renderRects()
       }
 
-      if (x === 0 && y === 0 && width >= 480 && height >= 320) {
+      const { rectOffset, screen } = screenLayoutConfig[screenLayout]
+
+      if (x === 0 && y === 0 && width >= screen.width && height >= screen.height) {
         background = { r: r / 255, g: g / 255, b: b / 255 }
         rectCount = 0
         rectsClear = true
       } else if (rectCount < 1024) {
         const i = rectCount
         rectShapes[i * 6 + 0] = x
-        rectShapes[i * 6 + 1] = y > 0 ? y - 2 : y
+        rectShapes[i * 6 + 1] = y > 0 ? y + rectOffset : y
         rectShapes[i * 6 + 2] = width
         rectShapes[i * 6 + 3] = height
         rectColors[i * 12 + 0] = r
@@ -294,7 +422,7 @@ export const renderer = (element: HTMLCanvasElement | null) => {
     const waveColor = new Float32Array([0.5, 1, 1])
 
     const waveShader = buildProgram(gl, VertWave, FragWave)
-    const colorUniform = gl.getUniformLocation(waveShader, 'colour')
+    const colorUniform = gl.getUniformLocation(waveShader, 'color')
     const waveVao = gl.createVertexArray()
     gl.bindVertexArray(waveVao)
 
@@ -310,8 +438,14 @@ export const renderer = (element: HTMLCanvasElement | null) => {
         if (!waveUpdated) {
           return
         }
+        const {
+          programType,
+          screen: { width, height },
+        } = screenLayoutConfig[screenLayout]
         // biome-ignore lint/correctness/useHookAtTopLevel: ain't a hook
         gl.useProgram(waveShader)
+        gl.uniform1i(gl.getUniformLocation(waveShader, 'programType'), programType)
+        gl.uniform2f(gl.getUniformLocation(waveShader, 'size'), width, height)
         gl.uniform3fv(colorUniform, waveColor)
         gl.bindVertexArray(waveVao)
 
@@ -320,7 +454,8 @@ export const renderer = (element: HTMLCanvasElement | null) => {
           gl.bufferSubData(gl.ARRAY_BUFFER, 0, waveData)
           waveUpdated = false
         }
-        gl.drawArrays(gl.POINTS, 0, 480)
+
+        gl.drawArrays(gl.POINTS, 0, width)
       },
       drawWave: ({ color: { r, g, b }, wave }: WaveCommand) => {
         waveColor[0] = r / 255
@@ -328,8 +463,11 @@ export const renderer = (element: HTMLCanvasElement | null) => {
         waveColor[2] = b / 255
 
         if (wave.length > 0) {
+          const {
+            screen: { width },
+          } = screenLayoutConfig[screenLayout]
           waveData.fill(-1)
-          waveData.set(wave, 480 - wave.length)
+          waveData.set(wave, width - wave.length)
           waveUpdated = true
           queueFrame()
           return
@@ -343,15 +481,24 @@ export const renderer = (element: HTMLCanvasElement | null) => {
     }
   })()
 
-  gl.enable(gl.BLEND)
-  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
-  gl.viewport(0, 0, 480, 320)
-  element.width = 480
-  element.height = 320
+  const updateScreen = () => {
+    const { width, height } = screenLayoutConfig[screenLayout].screen
+    gl.enable(gl.BLEND)
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+    gl.viewport(0, 0, width, height)
+    element.width = width
+    element.height = height
+    fontImage.src = screenLayoutConfig[screenLayout].font.url
+  }
 
+  updateScreen()
   return {
     text: textRenderer,
     rect: rectRenderer,
     wave: waveRenderer,
+    setScreenLayout: (newScreenLayout: ScreenLayout) => {
+      screenLayout = newScreenLayout
+      updateScreen()
+    },
   }
 }

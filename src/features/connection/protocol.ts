@@ -80,7 +80,7 @@ const parseKeyCommand = (data: DataView, length: number) => {
 }
 
 export type SystemCommand = ReturnType<typeof parseSystemCommand>
-const device = ['Headless', 'Beta M8', 'M8 Model:01', 'M8 Model:02']
+const device = ['Headless', 'Beta M8', 'M8 Model:01', 'M8 Model:02'] as const
 const parseSystemCommand = (data: DataView, length: number) => {
   if (length !== 6) {
     throw new Error(`Invalid length (${length}) of wave command data`)
@@ -89,9 +89,11 @@ const parseSystemCommand = (data: DataView, length: number) => {
   return {
     model: device[data.getUint8(1)],
     version: `v${data.getUint8(2)}.${data.getUint8(3)}.${data.getUint8(4)}`,
-    fontMode: data.getUint8(5),
+    fontMode: data.getUint8(5) as 0 | 1 | 2,
   }
 }
+
+let lastSystemInfo: SystemCommand | undefined
 
 export const protocol = () => {
   const eventBus = createEventBus<{
@@ -136,9 +138,11 @@ export const protocol = () => {
         case 0xfb: // key events
           eventBus.emit('key', parseKeyCommand(data, dataLength))
           break
-        case 0xff: // system info
-          eventBus.emit('system', parseSystemCommand(data, dataLength))
+        case 0xff: { // system info
+          lastSystemInfo = parseSystemCommand(data, dataLength)
+          eventBus.emit('system', lastSystemInfo)
           break
+        }
         default:
           console.warn(`Unknown byte 0x${data.getUint8(0).toString(16).padStart(2, '0')} as command`)
           break
@@ -206,5 +210,6 @@ export const protocol = () => {
     eventBus,
     parse,
     dispatch,
+    getSystemInfo: () => lastSystemInfo,
   }
 }

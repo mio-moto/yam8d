@@ -5,7 +5,6 @@ import type { ConnectedBus } from './connection/connection'
 import { isDown, isEdit, isLeft, isOpt, isPlay, isRight, isShift, isUp, pressKeys } from './connection/keys'
 import type { KeyCommand } from './connection/protocol'
 import { M8Screen } from './rendering/M8Screen'
-import { M8PreText } from './rendering/M8PreText'
 
 const containerClass = css`
   z-index: 0;
@@ -119,9 +118,7 @@ const SvgComponent: FC<{
   strokeColor: string
   bus?: ConnectedBus
   fullView?: boolean
-  WGLRendering?: boolean
-}> = ({ strokeColor, bus, fullView = true, WGLRendering = true, ...props }) => {
-
+}> = ({ strokeColor, bus, fullView = true, ...props }) => {
   const [buttonOpt, setButtonOpt] = useState<SVGPathElement | null>(null)
   const [buttonEdit, setButtonEdit] = useState<SVGPathElement | null>(null)
   const [buttonUp, setButtonUp] = useState<SVGPathElement | null>(null)
@@ -131,52 +128,50 @@ const SvgComponent: FC<{
   const [buttonShift, setButtonShift] = useState<SVGPathElement | null>(null)
   const [buttonPlay, setButtonPlay] = useState<SVGPathElement | null>(null)
 
-
-  // because change of state triggers re-rendreing, I've change it to a ref 
-  const screenEdgeRef = useRef<SVGPathElement | null>(null);
+  // because change of state triggers re-rendreing, I've change it to a ref
+  const screenEdgeRef = useRef<SVGPathElement | null>(null)
 
   // screen ref
-  const screenRef = useRef<HTMLDivElement | null>(null);
+  const screenRef = useRef<HTMLDivElement | null>(null)
 
   // M8 body ref (as parent for the screen)
-  const parentRef = useRef<HTMLDivElement | null>(null);
-
+  const parentRef = useRef<HTMLDivElement | null>(null)
 
   useLayoutEffect(() => {
-    const screenEdge = screenEdgeRef.current;
-    const screen = screenRef.current;
-    const parent = parentRef.current;
+    const screenEdge = screenEdgeRef.current
+    const screen = screenRef.current
+    const parent = parentRef.current
 
-    if (!screenEdge || !screen || !parent) return;
+    if (!screenEdge || !screen || !parent) return
 
     const updatePosition = () => {
-      const screenBox = screenEdge.getBoundingClientRect();
-      const parentBox = parent.getBoundingClientRect();
+      const screenBox = screenEdge.getBoundingClientRect()
+      const parentBox = parent.getBoundingClientRect()
 
-      const top = screenBox.top - parentBox.top;
-      const left = screenBox.left - parentBox.left;
-      const bottom = parentBox.bottom - screenBox.bottom;
-      const right = parentBox.right - screenBox.right;
+      const top = screenBox.top - parentBox.top
+      const left = screenBox.left - parentBox.left
+      const bottom = parentBox.bottom - screenBox.bottom
+      const right = parentBox.right - screenBox.right
 
-      const style = screen.style;
-      style.position = 'absolute';
-      style.top = `${top}px`;
-      style.left = `${left}px`;
-      style.bottom = `${bottom}px`;
-      style.right = `${right}px`;
-      style.width = `${screenBox.width}px`;
-      style.height = `${screenBox.height}px`;
-    };
+      const style = screen.style
+      style.position = 'absolute'
+      style.top = `${top}px`
+      style.left = `${left}px`
+      style.bottom = `${bottom}px`
+      style.right = `${right}px`
+      style.width = `${screenBox.width}px`
+      style.height = `${screenBox.height}px`
+    }
 
-    updatePosition();
+    updatePosition()
 
-    const resizeObs = new ResizeObserver(updatePosition);
-    resizeObs.observe(parent);
+    const resizeObs = new ResizeObserver(updatePosition)
+    resizeObs.observe(parent)
 
     return () => {
-      resizeObs.disconnect();
-    };
-  }, []);
+      resizeObs.disconnect()
+    }
+  }, [])
 
   useEffect(() => {
     if (!bus) {
@@ -215,7 +210,6 @@ const SvgComponent: FC<{
 
   const onClick = useCallback(
     (keys: Parameters<typeof pressKeys>[0]) => {
-
       bus?.commands.sendKeys(pressKeys(keys))
 
       // TODO : make toggle button on click
@@ -254,15 +248,13 @@ const SvgComponent: FC<{
         }
       })*/
     },
-    [bus, buttonUp, buttonDown, buttonLeft, buttonRight, buttonOpt, buttonEdit, buttonPlay, buttonShift],
+    [bus],
   )
 
   return (
     <div ref={parentRef} className={cx(containerClass, fullView && 'M8-full-view')}>
-
       <div ref={screenRef} className={screen}>
-        {WGLRendering && <M8Screen bus={bus} />}
-        {!WGLRendering && <M8PreText bus={bus} />}
+        <M8Screen bus={bus} />
       </div>
 
       <svg
@@ -474,7 +466,6 @@ const SvgComponent: FC<{
 export const M8Player: FC<{
   bus?: ConnectedBus
   fullView?: boolean
-  WGLRendering?: boolean
 }> = ({ bus, ...props }) => {
   return <SvgComponent {...props} strokeColor={style.themeColors.text.default} bus={bus} />
 }

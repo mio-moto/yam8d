@@ -1,10 +1,10 @@
-import { useSettingsContext } from '../settings/settings.tsx'
+import { useCallback, useEffect, useRef } from 'react'
 import type { ConnectedBus } from '../connection/connection.ts'
-import { useEffect, useRef } from 'react'
 import { M8KeyMask } from '../connection/keys.ts'
+import { useSettingsContext } from '../settings/settings.tsx'
 
 
-export const defaultInputMap = Object.freeze({
+export const defaultInputMap = {
     ArrowUp: M8KeyMask.Up,
     ArrowDown: M8KeyMask.Down,
     ArrowLeft: M8KeyMask.Left,
@@ -29,7 +29,7 @@ export const defaultInputMap = Object.freeze({
     Gamepad3: M8KeyMask.Play,
     Gamepad1: M8KeyMask.Opt,
     Gamepad0: M8KeyMask.Edit
-})
+} as const
 
 const dirNames = {
     ArrowUp: 'Up',
@@ -46,6 +46,30 @@ export const useM8Input = (connection?: ConnectedBus) => {
 
     const { settings: settingsContextValues } = useSettingsContext()
     const pressedKeyMask = useRef(0)
+
+
+    const handleInput = useCallback((ev: KeyboardEvent, isDown: boolean) => {
+        if (!ev || !ev.code) return
+
+        const M8Key = inputMap[ev.code] as unknown as number
+
+        // exit if the key pressed isn't found in the input map
+        if (!M8Key) return
+
+        ev.preventDefault()
+
+        const before = pressedKeyMask.current
+        if (isDown) {
+            pressedKeyMask.current = before | M8Key
+        } else {
+            pressedKeyMask.current = before & ~(M8Key)
+        }
+
+        // Avoid unnecessary sends for key repeat
+        if (pressedKeyMask.current !== before) {
+            connection?.commands.sendKeys(pressedKeyMask.current)
+        }
+    }, [connection?.commands.sendKeys])
 
     useEffect(() => {
 
@@ -75,31 +99,9 @@ export const useM8Input = (connection?: ConnectedBus) => {
             window.removeEventListener("keyup", handleKeyUp)
         }
 
-    }, [connection])
+    }, [handleInput, settingsContextValues[INPUT_MAP_SETTINGS]])
 
 
-    function handleInput(ev: KeyboardEvent, isDown: boolean) {
-        if (!ev || !ev.code) return
-
-        const M8Key = inputMap[ev.code] as unknown as number
-
-        // exit if the key pressed isn't found in the input map
-        if (!M8Key) return
-
-        ev.preventDefault()
-
-        const before = pressedKeyMask.current
-        if (isDown) {
-            pressedKeyMask.current = before | M8Key
-        } else {
-            pressedKeyMask.current = before & ~(M8Key)
-        }
-
-        // Avoid unnecessary sends for key repeat
-        if (pressedKeyMask.current !== before) {
-            connection?.commands.sendKeys(pressedKeyMask.current)
-        }
-    }
 
 }
 
