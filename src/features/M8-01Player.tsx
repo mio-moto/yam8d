@@ -121,14 +121,14 @@ const SvgComponent: FC<{
   fullView?: boolean
   WGLRendering?: boolean
 }> = ({ strokeColor, bus, fullView = true, WGLRendering = true, ...props }) => {
-  const [buttonOpt, _setButtonOpt] = useState<SVGPathElement | null>(null)
-  const [buttonEdit, _setButtonEdit] = useState<SVGPathElement | null>(null)
-  const [buttonUp, _setButtonUp] = useState<SVGPathElement | null>(null)
-  const [buttonDown, _setButtonDown] = useState<SVGPathElement | null>(null)
-  const [buttonLeft, _setButtonLeft] = useState<SVGPathElement | null>(null)
-  const [buttonRight, _setButtonRight] = useState<SVGPathElement | null>(null)
-  const [buttonShift, _setButtonShift] = useState<SVGPathElement | null>(null)
-  const [buttonPlay, _setButtonPlay] = useState<SVGPathElement | null>(null)
+  const [buttonOpt, setButtonOpt] = useState<SVGPathElement | null>(null)
+  const [buttonEdit, setButtonEdit] = useState<SVGPathElement | null>(null)
+  const [buttonUp, setButtonUp] = useState<SVGPathElement | null>(null)
+  const [buttonDown, setButtonDown] = useState<SVGPathElement | null>(null)
+  const [buttonLeft, setButtonLeft] = useState<SVGPathElement | null>(null)
+  const [buttonRight, setButtonRight] = useState<SVGPathElement | null>(null)
+  const [buttonShift, setButtonShift] = useState<SVGPathElement | null>(null)
+  const [buttonPlay, setButtonPlay] = useState<SVGPathElement | null>(null)
 
   // because change of state triggers re-rendreing, I've change it to a ref
   const screenEdgeRef = useRef<SVGRectElement | null>(null)
@@ -210,7 +210,7 @@ const SvgComponent: FC<{
     }
   }, [buttonOpt, buttonEdit, buttonPlay, buttonUp, buttonRight, buttonShift, buttonLeft, buttonDown, bus])
 
-  const _onClick = useCallback(
+  const onClick = useCallback(
     (keys: Parameters<typeof pressKeys>[0]) => {
       bus?.commands.sendKeys(pressKeys(keys))
 
@@ -293,6 +293,9 @@ const SvgComponent: FC<{
           }}
         />
         <path
+          className="button opt"
+          onClick={() => onClick({ opt: true })}
+          ref={setButtonOpt}
           d="M83.699,78.442c0,-0.181 -0.148,-0.328 -0.329,-0.328l-20.657,0c-0.181,0 -0.328,0.147 -0.328,0.328l0,19.439c0,0.181 0.147,0.328 0.328,0.328l20.657,0c0.181,0 0.329,-0.147 0.329,-0.328l0,-19.439Z"
           style={{
             fill: 'none',
@@ -303,6 +306,9 @@ const SvgComponent: FC<{
           }}
         />
         <path
+          className="button up"
+          onClick={() => onClick({ up: true })}
+          ref={setButtonUp}
           d="M55.919,83.23c0,-0.181 -0.147,-0.328 -0.328,-0.328l-20.657,0c-0.182,0 -0.329,0.147 -0.329,0.328l0,19.439c0,0.181 0.147,0.328 0.329,0.328l20.657,0c0.181,0 0.328,-0.147 0.328,-0.328l0,-19.439Z"
           style={{
             fill: 'none',
@@ -313,6 +319,9 @@ const SvgComponent: FC<{
           }}
         />
         <path
+          className="button down"
+          onClick={() => onClick({ down: true })}
+          ref={setButtonDown}
           d="M55.919,105.278c0,-0.181 -0.147,-0.328 -0.328,-0.328l-20.657,0c-0.182,0 -0.329,0.147 -0.329,0.328l0,19.439c0,0.181 0.147,0.328 0.329,0.328l20.657,0c0.181,0 0.328,-0.147 0.328,-0.328l0,-19.439Z"
           style={{
             fill: 'none',
@@ -323,6 +332,9 @@ const SvgComponent: FC<{
           }}
         />
         <path
+          className="button shift"
+          onClick={() => onClick({ shift: true })}
+          ref={setButtonShift}
           d="M55.971,132.166c0,-0.181 -0.147,-0.328 -0.328,-0.328l-20.657,0c-0.182,0 -0.329,0.147 -0.329,0.328l0,19.439c0,0.181 0.147,0.328 0.329,0.328l20.657,0c0.181,0 0.328,-0.147 0.328,-0.328l0,-19.439Z"
           style={{
             fill: 'none',
@@ -333,6 +345,9 @@ const SvgComponent: FC<{
           }}
         />
         <path
+          className="button play"
+          onClick={() => onClick({ play: true })}
+          ref={setButtonPlay}
           d="M79.198,132.166c0,-0.181 -0.147,-0.328 -0.328,-0.328l-20.657,0c-0.182,0 -0.329,0.147 -0.329,0.328l0,19.439c0,0.181 0.147,0.328 0.329,0.328l20.657,0c0.181,0 0.328,-0.147 0.328,-0.328l0,-19.439Z"
           style={{
             fill: 'none',
@@ -343,6 +358,9 @@ const SvgComponent: FC<{
           }}
         />
         <path
+          className="button right"
+          onClick={() => onClick({ right: true })}
+          ref={setButtonRight}
           d="M79.198,105.278c0,-0.181 -0.147,-0.328 -0.328,-0.328l-20.657,0c-0.182,0 -0.329,0.147 -0.329,0.328l0,19.439c0,0.181 0.147,0.328 0.329,0.328l20.657,0c0.181,0 0.328,-0.147 0.328,-0.328l0,-19.439Z"
           style={{
             fill: 'none',
@@ -353,6 +371,9 @@ const SvgComponent: FC<{
           }}
         />
         <path
+          className="button left"
+          onClick={() => onClick({ left: true })}
+          ref={setButtonLeft}
           d="M32.692,105.304c0,-0.181 -0.147,-0.328 -0.328,-0.328l-20.657,0c-0.182,0 -0.329,0.147 -0.329,0.328l0,19.439c0,0.181 0.147,0.328 0.329,0.328l20.657,0c0.181,0 0.328,-0.147 0.328,-0.328l0,-19.439Z"
           style={{
             fill: 'none',
@@ -363,6 +384,9 @@ const SvgComponent: FC<{
           }}
         />
         <path
+          className="button edit"
+          onClick={() => onClick({ edit: true })}
+          ref={setButtonEdit}
           d="M106.885,78.442c0,-0.181 -0.147,-0.328 -0.328,-0.328l-20.657,0c-0.182,0 -0.329,0.147 -0.329,0.328l0,19.439c0,0.181 0.147,0.328 0.329,0.328l20.657,0c0.181,0 0.328,-0.147 0.328,-0.328l0,-19.439Z"
           style={{
             fill: 'none',
