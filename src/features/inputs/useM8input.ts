@@ -15,57 +15,57 @@ const INPUT_MAP_SETTINGS = 'inputMap'
 const inputMap: Record<string, number> = {}
 
 export const useM8Input = (connection?: ConnectedBus) => {
-  const { settings: settingsContextValues } = useSettingsContext()
-  const pressedKeyMask = useRef(0)
+    const { settings: settingsContextValues } = useSettingsContext()
+    const pressedKeyMask = useRef(0)
 
-  const handleInput = useCallback(
-    (ev: KeyboardEvent, isDown: boolean) => {
-      if (!ev || !ev.code) return
+    const handleInput = useCallback(
+        (ev: KeyboardEvent, isDown: boolean) => {
+            if (!ev || !ev.code) return
 
-      const M8Key = inputMap[ev.code] as unknown as number
+            const M8Key = inputMap[ev.code] as unknown as number
 
-      // exit if the key pressed isn't found in the input map
-      if (!M8Key) return
+            // exit if the key pressed isn't found in the input map
+            if (!M8Key) return
 
-      ev.preventDefault()
+            ev.preventDefault()
 
-dg      const before = pressedKeyMask.current
-      if (isDown) {
-        pressedKeyMask.current = before | M8Key
-      } else {
-        pressedKeyMask.current = before & ~M8Key
-      }
+            const before = pressedKeyMask.current
+            if (isDown) {
+                pressedKeyMask.current = before | M8Key
+            } else {
+                pressedKeyMask.current = before & ~M8Key
+            }
 
-      // Avoid unnecessary sends for key repeat
-      if (pressedKeyMask.current !== before) {
-        connection?.commands.sendKeys(pressedKeyMask.current)
-      }
-    },
-    [connection],
-  )
+            // Avoid unnecessary sends for key repeat
+            if (pressedKeyMask.current !== before) {
+                connection?.commands.sendKeys(pressedKeyMask.current)
+            }
+        },
+        [connection],
+    )
 
-  useEffect(() => {
-    // get config
-    Object.assign(inputMap, settingsContextValues[INPUT_MAP_SETTINGS] ?? defaultInputMap)
+    useEffect(() => {
+        // get config
+        Object.assign(inputMap, settingsContextValues[INPUT_MAP_SETTINGS] ?? defaultInputMap)
 
-    const handleKeyDown = (ev: KeyboardEvent) => {
-      // const dir = dirNames[ev.code as keyof typeof dirNames]
-      // if (dir) console.log('move', dir)
+        const handleKeyDown = (ev: KeyboardEvent) => {
+            // const dir = dirNames[ev.code as keyof typeof dirNames]
+            // if (dir) console.log('move', dir)
 
-      handleInput(ev, true)
-    }
-    const handleKeyUp = (ev: KeyboardEvent) => {
-      handleInput(ev, false)
-    }
+            handleInput(ev, true)
+        }
+        const handleKeyUp = (ev: KeyboardEvent) => {
+            handleInput(ev, false)
+        }
 
-    window.addEventListener('keydown', handleKeyDown)
-    window.addEventListener('keyup', handleKeyUp)
+        window.addEventListener('keydown', handleKeyDown)
+        window.addEventListener('keyup', handleKeyUp)
 
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown)
-      window.removeEventListener('keyup', handleKeyUp)
-    }
-  }, [handleInput, settingsContextValues])
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown)
+            window.removeEventListener('keyup', handleKeyUp)
+        }
+    }, [handleInput, settingsContextValues])
 }
 
 /*

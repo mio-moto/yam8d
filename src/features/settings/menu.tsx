@@ -23,6 +23,7 @@ export const Menu: FC = () => {
           </div>
         </div>
 
+        {/* kept for WebGL -> Canvas switch
         <div className="menu-item">
           <span className="title">Display mode</span>
           <div>
@@ -33,7 +34,7 @@ export const Menu: FC = () => {
               HTML
             </Button>
           </div>
-        </div>
+        </div> */}
 
         <div className="menu-item">
           <span className="title">Virtual midi keyboard</span>
