@@ -5,7 +5,7 @@ const vendorId = 0x16c0
 const productId = 0x048a
 // the device processes frame by frame ingress messages - which means each button press needs to wait for ~5ms currently
 // doubling the time is a good safe margin
-const waitTime = 20
+const waitTime = 30
 
 const usbWriter = (device: USBDevice) => (data: Uint8Array<ArrayBuffer>) => device.transferOut(3, data)
 const serialWriter = (writer: WritableStreamDefaultWriter<Uint8Array<ArrayBufferLike>>) => (data: Uint8Array<ArrayBuffer>) => writer.write(data)
