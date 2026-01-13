@@ -3,9 +3,11 @@
 // Released under the MIT licence, https://opensource.org/licenses/MIT
 
 layout(location = 0) in vec4 shape;
-layout(location = 1) in vec3 colour;
+layout(location = 1) in vec3 color;
 
-out vec3 colourV;
+uniform vec2 size;
+
+out vec3 colorV;
 
 const vec2 corners[] = vec2[](
     vec2(0, 0),
@@ -13,14 +15,13 @@ const vec2 corners[] = vec2[](
     vec2(1, 0),
     vec2(1, 1));
 
-const vec2 camScale = vec2(2.0 / 480.0, -2.0 / 320.0);
-const vec2 camOffset = vec2(-240.0, -160.0);
-
 void main() {
+    vec2 camScale = vec2(2.0 / size.x, -2.0 / size.y);
+    vec2 camOffset = vec2(-size.x / 2.0, -size.y / 2.0);
     vec2 pos = shape.xy;
     vec2 size = shape.zw;
     pos = ((corners[gl_VertexID] * size + pos) + camOffset) * camScale;
-
+    pos += vec2(0, camScale.y * -3.0);
     gl_Position = vec4(pos, 0.0, 1.0);
-    colourV = colour;
+    colorV = color;
 }

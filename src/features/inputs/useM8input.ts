@@ -29,7 +29,7 @@ export const useM8Input = (connection?: ConnectedBus) => {
 
       ev.preventDefault()
 
-      const before = pressedKeyMask.current
+dg      const before = pressedKeyMask.current
       if (isDown) {
         pressedKeyMask.current = before | M8Key
       } else {

@@ -1,12 +1,39 @@
 import React, { useCallback, useState } from 'react'
 import { defaultInputMap } from '../inputs/defaultInputMap'
+import { M8KeyMask } from '../connection/keys'
 import { defaultKeyMap } from '../virtualKeyboard/useVirtualKeyboard'
 
 const SETTINGS = 'M8settings'
 
+const defaultInputMap = {
+  ArrowUp: M8KeyMask.Up,
+  ArrowDown: M8KeyMask.Down,
+  ArrowLeft: M8KeyMask.Left,
+  ArrowRight: M8KeyMask.Right,
+  ShiftLeft: M8KeyMask.Shift,
+  Space: M8KeyMask.Play,
+  KeyZ: M8KeyMask.Opt,
+  KeyX: M8KeyMask.Edit,
+
+  Gamepad12: M8KeyMask.Up,
+  Gamepad64: M8KeyMask.Up,
+  Gamepad13: M8KeyMask.Down,
+  Gamepad65: M8KeyMask.Down,
+  Gamepad14: M8KeyMask.Left,
+  Gamepad66: M8KeyMask.Left,
+  Gamepad15: M8KeyMask.Right,
+  Gamepad67: M8KeyMask.Right,
+  Gamepad8: M8KeyMask.Shift,
+  Gamepad2: M8KeyMask.Shift,
+  Gamepad5: M8KeyMask.Shift,
+  Gamepad9: M8KeyMask.Play,
+  Gamepad3: M8KeyMask.Play,
+  Gamepad1: M8KeyMask.Opt,
+  Gamepad0: M8KeyMask.Edit,
+} as const
+
 export type Settings = {
   fullM8View: boolean
-  webGLRendering: boolean
   virtualKeyboard: boolean
   inputMap: typeof defaultInputMap
   keyMap: typeof defaultKeyMap
@@ -19,7 +46,6 @@ export type SettingsContextValue = {
 
 const defaultSettings: Settings = {
   fullM8View: true,
-  webGLRendering: true,
   virtualKeyboard: true,
 
   inputMap: defaultInputMap,

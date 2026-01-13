@@ -7,11 +7,11 @@ precision highp float;
 uniform sampler2D font;
 
 in vec2 fontCoord;
-in vec3 colourV;
+in vec3 colorV;
 
-out vec4 fragColour;
+out vec4 fragColor;
 
 void main() {
     vec4 fontTexel = texelFetch(font, ivec2(fontCoord), 0);
-    fragColour = vec4(colourV, fontTexel.r);
+    fragColor = vec4(colorV, fontTexel.r);
 }

@@ -8,8 +8,8 @@ uniform sampler2D src;
 
 in vec2 srcCoord;
 
-out vec4 fragColour;
+out vec4 fragColor;
 
 void main() {
-    fragColour = texelFetch(src, ivec2(srcCoord), 0);
+    fragColor = texelFetch(src, ivec2(srcCoord), 0);
 }

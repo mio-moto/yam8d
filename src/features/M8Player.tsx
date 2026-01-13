@@ -4,7 +4,6 @@ import { style } from '../app/style/style'
 import type { ConnectedBus } from './connection/connection'
 import { isDown, isEdit, isLeft, isOpt, isPlay, isRight, isShift, isUp, pressKeys } from './connection/keys'
 import type { KeyCommand } from './connection/protocol'
-import { M8PreText } from './rendering/M8PreText'
 import { M8Screen } from './rendering/M8Screen'
 
 const containerClass = css`
@@ -119,8 +118,7 @@ const SvgComponent: FC<{
   strokeColor: string
   bus?: ConnectedBus
   fullView?: boolean
-  WGLRendering?: boolean
-}> = ({ strokeColor, bus, fullView = true, WGLRendering = true, ...props }) => {
+}> = ({ strokeColor, bus, fullView = true, ...props }) => {
   const [buttonOpt, setButtonOpt] = useState<SVGPathElement | null>(null)
   const [buttonEdit, setButtonEdit] = useState<SVGPathElement | null>(null)
   const [buttonUp, setButtonUp] = useState<SVGPathElement | null>(null)
@@ -224,8 +222,7 @@ const SvgComponent: FC<{
   return (
     <div ref={parentRef} className={cx(containerClass, fullView && 'M8-full-view')}>
       <div ref={screenRef} className={screen}>
-        {WGLRendering && <M8Screen bus={bus} />}
-        {!WGLRendering && <M8PreText bus={bus} />}
+        <M8Screen bus={bus} />
       </div>
 
       <svg
@@ -437,7 +434,6 @@ const SvgComponent: FC<{
 export const M8Player: FC<{
   bus?: ConnectedBus
   fullView?: boolean
-  WGLRendering?: boolean
 }> = ({ bus, ...props }) => {
   return <SvgComponent {...props} strokeColor={style.themeColors.text.default} bus={bus} />
 }
