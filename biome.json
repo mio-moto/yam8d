@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.3.5/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.3.11/schema.json",
   "vcs": {
     "enabled": false,
     "clientKind": "git",
@@ -7,15 +7,17 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "experimentalScannerIgnores": [
-      "node_modules/**",
-      "dist/**"
+    "includes": [
+      "**",
+      "!!**/node_modules",
+      "!!**/dist"
     ]
   },
   "formatter": {
     "enabled": true,
     "indentStyle": "space",
     "lineWidth": 150,
+    "indentWidth": 2,
     "useEditorconfig": false
   },
   "linter": {

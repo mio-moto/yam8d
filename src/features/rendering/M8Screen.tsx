@@ -16,11 +16,6 @@ const makeScreenLayout = ({ model, fontMode }: SystemCommand): ScreenLayout => {
 export const M8Screen = ({ bus }: { bus?: ConnectedBus | null }) => {
   const innerRef = useRef<HTMLCanvasElement | null>(null)
 
-  // would have been cool but it seems that calling resetScreen breaks the connection
-  // useEffect(() => {
-  //   bus?.commands.resetScreen()
-  // }, [])
-
   useEffect(() => {
     if (!innerRef.current) {
       return
@@ -66,5 +61,5 @@ export const M8Screen = ({ bus }: { bus?: ConnectedBus | null }) => {
     }
   }, [bus])
 
-  return <canvas className="element" ref={innerRef} style={{ width: '100%' }}></canvas>
+  return <canvas className="element" ref={innerRef} style={{ width: '100%', imageRendering: 'pixelated' }}></canvas>
 }

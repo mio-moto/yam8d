@@ -215,38 +215,6 @@ const SvgComponent: FC<{
       // TODO : make toggle button on click
       // meanwhile send no key pressed
       bus?.commands.sendKeys(0)
-
-      /* this is unecessary because the bus onKey will be triggered and update the classes
-      if (keys.up) {
-        buttonUp?.classList.add('press')
-      }
-      if (keys.down) {
-        buttonDown?.classList.add('press')
-      }
-      if (keys.left) {
-        buttonLeft?.classList.add('press')
-      }
-      if (keys.right) {
-        buttonRight?.classList.add('press')
-      }
-      if (keys.opt) {
-        buttonOpt?.classList.add('press')
-      }
-      if (keys.edit) {
-        buttonEdit?.classList.add('press')
-      }
-      if (keys.play) {
-        buttonPlay?.classList.add('press')
-      }
-      if (keys.shift) {
-        buttonShift?.classList.add('press')
-      }
-      requestAnimationFrame(() => {
-
-        for (const button of [buttonUp, buttonDown, buttonLeft, buttonRight, buttonOpt, buttonEdit, buttonPlay, buttonShift]) {
-          button?.classList.remove('press')
-        }
-      })*/
     },
     [bus],
   )

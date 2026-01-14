@@ -1,108 +1,71 @@
 import { useCallback, useEffect, useRef } from 'react'
 import type { ConnectedBus } from '../connection/connection.ts'
-import { M8KeyMask } from '../connection/keys.ts'
 import { useSettingsContext } from '../settings/settings.tsx'
+import { defaultInputMap } from './defaultInputMap'
 
-
-export const defaultInputMap = {
-    ArrowUp: M8KeyMask.Up,
-    ArrowDown: M8KeyMask.Down,
-    ArrowLeft: M8KeyMask.Left,
-    ArrowRight: M8KeyMask.Right,
-    ShiftLeft: M8KeyMask.Shift,
-    Space: M8KeyMask.Play,
-    KeyZ: M8KeyMask.Opt,
-    KeyX: M8KeyMask.Edit,
-
-    Gamepad12: M8KeyMask.Up,
-    Gamepad64: M8KeyMask.Up,
-    Gamepad13: M8KeyMask.Down,
-    Gamepad65: M8KeyMask.Down,
-    Gamepad14: M8KeyMask.Left,
-    Gamepad66: M8KeyMask.Left,
-    Gamepad15: M8KeyMask.Right,
-    Gamepad67: M8KeyMask.Right,
-    Gamepad8: M8KeyMask.Shift,
-    Gamepad2: M8KeyMask.Shift,
-    Gamepad5: M8KeyMask.Shift,
-    Gamepad9: M8KeyMask.Play,
-    Gamepad3: M8KeyMask.Play,
-    Gamepad1: M8KeyMask.Opt,
-    Gamepad0: M8KeyMask.Edit
-} as const
-
-const dirNames = {
-    ArrowUp: 'Up',
-    ArrowDown: 'Down',
-    ArrowLeft: 'Left',
-    ArrowRight: 'Right',
-}
+// const dirNames = {
+//     ArrowUp: 'Up',
+//     ArrowDown: 'Down',
+//     ArrowLeft: 'Left',
+//     ArrowRight: 'Right',
+// }
 
 const INPUT_MAP_SETTINGS = 'inputMap'
 
 const inputMap: Record<string, number> = {}
 
 export const useM8Input = (connection?: ConnectedBus) => {
-
     const { settings: settingsContextValues } = useSettingsContext()
     const pressedKeyMask = useRef(0)
 
+    const handleInput = useCallback(
+        (ev: KeyboardEvent, isDown: boolean) => {
+            if (!ev || !ev.code) return
 
-    const handleInput = useCallback((ev: KeyboardEvent, isDown: boolean) => {
-        if (!ev || !ev.code) return
+            const M8Key = inputMap[ev.code] as unknown as number
 
-        const M8Key = inputMap[ev.code] as unknown as number
+            // exit if the key pressed isn't found in the input map
+            if (!M8Key) return
 
-        // exit if the key pressed isn't found in the input map
-        if (!M8Key) return
+            ev.preventDefault()
 
-        ev.preventDefault()
+            const before = pressedKeyMask.current
+            if (isDown) {
+                pressedKeyMask.current = before | M8Key
+            } else {
+                pressedKeyMask.current = before & ~M8Key
+            }
 
-        const before = pressedKeyMask.current
-        if (isDown) {
-            pressedKeyMask.current = before | M8Key
-        } else {
-            pressedKeyMask.current = before & ~(M8Key)
-        }
-
-        // Avoid unnecessary sends for key repeat
-        if (pressedKeyMask.current !== before) {
-            connection?.commands.sendKeys(pressedKeyMask.current)
-        }
-    }, [connection?.commands.sendKeys])
+            // Avoid unnecessary sends for key repeat
+            if (pressedKeyMask.current !== before) {
+                connection?.commands.sendKeys(pressedKeyMask.current)
+            }
+        },
+        [connection],
+    )
 
     useEffect(() => {
-
         // get config
-        Object.assign(
-            inputMap,
-            settingsContextValues[INPUT_MAP_SETTINGS] ?? defaultInputMap
-        );
-
+        Object.assign(inputMap, settingsContextValues[INPUT_MAP_SETTINGS] ?? defaultInputMap)
 
         const handleKeyDown = (ev: KeyboardEvent) => {
-            const dir = dirNames[ev.code as keyof typeof dirNames]
+            // const dir = dirNames[ev.code as keyof typeof dirNames]
+            // if (dir) console.log('move', dir)
 
-            if (dir) console.log('move', dir)
             handleInput(ev, true)
-        };
+        }
         const handleKeyUp = (ev: KeyboardEvent) => {
             handleInput(ev, false)
-        };
-
-
-        window.addEventListener("keydown", handleKeyDown)
-        window.addEventListener("keyup", handleKeyUp)
-
-        return () => {
-            window.removeEventListener("keydown", handleKeyDown)
-            window.removeEventListener("keyup", handleKeyUp)
         }
 
-    }, [handleInput, settingsContextValues[INPUT_MAP_SETTINGS]])
+        window.addEventListener('keydown', handleKeyDown)
+        window.addEventListener('keyup', handleKeyUp)
 
-
-
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown)
+            window.removeEventListener('keyup', handleKeyUp)
+        }
+    }, [handleInput, settingsContextValues])
 }
 
 /*

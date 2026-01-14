@@ -4,7 +4,6 @@ import { style } from '../app/style/style'
 import type { ConnectedBus } from './connection/connection'
 import { isDown, isEdit, isLeft, isOpt, isPlay, isRight, isShift, isUp, pressKeys } from './connection/keys'
 import type { KeyCommand } from './connection/protocol'
-import { M8PreText } from './rendering/M8PreText'
 import { M8Screen } from './rendering/M8Screen'
 
 const containerClass = css`
@@ -120,7 +119,7 @@ const SvgComponent: FC<{
   bus?: ConnectedBus
   fullView?: boolean
   WGLRendering?: boolean
-}> = ({ strokeColor, bus, fullView = true, WGLRendering = true, ...props }) => {
+}> = ({ strokeColor, bus, fullView = true, ...props }) => {
   const [buttonOpt, setButtonOpt] = useState<SVGPathElement | null>(null)
   const [buttonEdit, setButtonEdit] = useState<SVGPathElement | null>(null)
   const [buttonUp, setButtonUp] = useState<SVGPathElement | null>(null)
@@ -218,37 +217,6 @@ const SvgComponent: FC<{
       // meanwhile send no key pressed
       bus?.commands.sendKeys(0)
 
-      /* this is unecessary because the bus onKey will be triggered and update the classes
-      if (keys.up) {
-        buttonUp?.classList.add('press')
-      }
-      if (keys.down) {
-        buttonDown?.classList.add('press')
-      }
-      if (keys.left) {
-        buttonLeft?.classList.add('press')
-      }
-      if (keys.right) {
-        buttonRight?.classList.add('press')
-      }
-      if (keys.opt) {
-        buttonOpt?.classList.add('press')
-      }
-      if (keys.edit) {
-        buttonEdit?.classList.add('press')
-      }
-      if (keys.play) {
-        buttonPlay?.classList.add('press')
-      }
-      if (keys.shift) {
-        buttonShift?.classList.add('press')
-      }
-      requestAnimationFrame(() => {
-
-        for (const button of [buttonUp, buttonDown, buttonLeft, buttonRight, buttonOpt, buttonEdit, buttonPlay, buttonShift]) {
-          button?.classList.remove('press')
-        }
-      })*/
     },
     [bus],
   )
@@ -256,8 +224,7 @@ const SvgComponent: FC<{
   return (
     <div ref={parentRef} className={cx(containerClass, fullView && 'M8-full-view')}>
       <div ref={screenRef} className={screen}>
-        {WGLRendering && <M8Screen bus={bus} />}
-        {!WGLRendering && <M8PreText bus={bus} />}
+        <M8Screen bus={bus} />
       </div>
       <svg
         width="100%"
@@ -273,6 +240,7 @@ const SvgComponent: FC<{
           strokeLinejoin: 'round',
           strokeMiterlimit: 10,
         }}
+        {...props}
       >
         <rect
           x={0}

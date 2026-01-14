@@ -46,12 +46,14 @@ const parseCharacterCommand = (data: DataView, length: number) => {
   if (length !== 12) {
     throw new Error(`Invalid length (${length}) of char command data`)
   }
-  return {
+  const char = {
     character: String.fromCharCode(data.getUint8(1)),
     pos: { x: data.getUint16(2, littleEndian), y: data.getUint16(4, littleEndian) },
     foreground: { r: data.getUint8(6), g: data.getUint8(7), b: data.getUint8(8) },
     background: { r: data.getUint8(9), g: data.getUint8(10), b: data.getUint8(11) },
   }
+  console.log(char)
+  return char
 }
 
 export type WaveCommand = ReturnType<typeof parseWaveCommand>
@@ -72,7 +74,7 @@ const parseWaveCommand = (data: DataView, length: number) => {
 export type KeyCommand = ReturnType<typeof parseKeyCommand>
 const parseKeyCommand = (data: DataView, length: number) => {
   if (length !== 3) {
-    throw new Error(`Invalid length (${length}) of wave command data`)
+    throw new Error(`Invalid length (${length}) of key command data`)
   }
   return {
     keys: data.getUint8(1),
@@ -83,7 +85,7 @@ export type SystemCommand = ReturnType<typeof parseSystemCommand>
 const device = ['Headless', 'Beta M8', 'M8 Model:01', 'M8 Model:02'] as const
 const parseSystemCommand = (data: DataView, length: number) => {
   if (length !== 6) {
-    throw new Error(`Invalid length (${length}) of wave command data`)
+    throw new Error(`Invalid length (${length}) of system command data`)
   }
 
   return {
@@ -102,12 +104,8 @@ export const protocol = () => {
     wave: (data: WaveCommand) => void
     key: (data: KeyCommand) => void
     system: (data: SystemCommand) => void
-    any: (data: Uint8Array<ArrayBuffer>) => void
+    any: (data: Uint8Array<ArrayBufferLike>) => void
   }>()
-
-  const data = new DataView(new Uint8Array(1024).buffer)
-  let dataLength = 0
-  let status: 'read' | 'escape' | 'error' = 'read'
 
   const dispatch = (data: DataView, dataLength: number) => {
     try {
@@ -115,11 +113,9 @@ export const protocol = () => {
         return
       }
 
-      const buffer = new Uint8Array(dataLength - 1)
-      for (let i = 1; i < length; i += 1) {
-        buffer[i] = data.getUint8(i)
-      }
+      const buffer = new Uint8Array(data.buffer, data.byteOffset, dataLength)
       eventBus.emit('any', buffer)
+
       switch (data.getUint8(0)) {
         case 0xfe: {
           // draw rect
@@ -150,65 +146,8 @@ export const protocol = () => {
     } catch (_e) {}
   }
 
-  const readByte = (byte: number) => {
-    switch (byte) {
-      case 0xc0: // acknowledge?
-        dispatch(data, dataLength)
-        dataLength = 0
-        break
-      case 0xdb: // ?
-        status = 'escape'
-        break
-      default:
-        data.setUint8(dataLength++, byte)
-        break
-    }
-  }
-  const escapeByte = (byte: number) => {
-    switch (byte) {
-      case 0xdc: // padding?
-        data.setUint8(dataLength++, 0xc0)
-        status = 'read'
-        break
-      case 0xdd:
-        data.setUint8(dataLength++, 0xdb)
-        status = 'read'
-        break
-      default:
-        status = 'error'
-        console.warn(`Unexpected data byte received: ${byte.toString(16).padStart(2, '0')}`)
-        break
-    }
-  }
-  const errorByte = (byte: number) => {
-    switch (byte) {
-      case 0xc0:
-        status = 'read'
-        dataLength = 0
-        break
-    }
-  }
-
-  const parse = (data: DataView) => {
-    for (let i = 0; i < data.byteLength; i += 1) {
-      const byte = data.getUint8(i)
-      switch (status) {
-        case 'read':
-          readByte(byte)
-          break
-        case 'escape':
-          escapeByte(byte)
-          break
-        case 'error':
-          errorByte(byte)
-          break
-      }
-    }
-  }
-
   return {
     eventBus,
-    parse,
     dispatch,
     getSystemInfo: () => lastSystemInfo,
   }
