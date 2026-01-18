@@ -3,11 +3,11 @@ import { type FC, useCallback, useEffect, useLayoutEffect, useRef, useState } fr
 import { style } from '../app/style/style'
 import type { ConnectedBus } from './connection/connection'
 import { pressKeys } from './connection/keys'
-import type { KeyCommand } from './connection/protocol'
+import type { KeyCommand, SystemCommand } from './connection/protocol'
 import { useViewNavigator } from './macros/useViewNavigator'
 import { M8Screen } from './rendering/M8Screen'
 import { registerViewExtractor } from './state/viewExtractor'
-import { Model02 } from './rendering/M8Body'
+import { M8Body } from './rendering/M8Body'
 import { useBackgroundColor } from './state/viewStore'
 import { rgbToHex } from '../utils/colorTools'
 
@@ -123,27 +123,27 @@ const screen = css`
   display:flex
 `
 
-const SvgComponent: FC<{
+const FullM8Player: FC<{
     strokeColor: string
     bus?: ConnectedBus
     fullView?: boolean
 }> = ({ strokeColor, bus, fullView = true }) => {
+    const [model, setModel] = useState<1 | 2>(2)
 
-    const [keysPressed, setKeysPressed] = useState(0)
-
-    const screenEdgeRef = useRef<SVGPathElement | null>(null)
+    const screenEdgeRef = useRef<SVGRectElement | null>(null)
+    // screen ref
+    const screenRef = useRef<HTMLDivElement | null>(null)
+    // M8 body ref (as parent for the screen)
+    const parentRef = useRef<HTMLDivElement | null>(null)
 
     const [bgColor] = useBackgroundColor()
     const screenColor = rgbToHex(bgColor ?? { r: 0, g: 0, b: 0 })
 
-    // screen ref
-    const screenRef = useRef<HTMLDivElement | null>(null)
 
-    // M8 body ref (as parent for the screen)
-    const parentRef = useRef<HTMLDivElement | null>(null)
-
+    const [keysPressed, setKeysPressed] = useState(0)
     const { navigateTo } = useViewNavigator(bus)
 
+    // biome-ignore lint/correctness/useExhaustiveDependencies: <on model change to get correct refs>
     useLayoutEffect(() => {
         const screenEdge = screenEdgeRef.current
         const screen = screenRef.current
@@ -153,7 +153,6 @@ const SvgComponent: FC<{
 
         const updatePosition = () => {
             const screenEdgeBox = screenEdge.getBoundingClientRect()
-            //const screenBox = screen.getBoundingClientRect()
             const parentBox = parent.getBoundingClientRect()
 
             const top = screenEdgeBox.top - parentBox.top + 1
@@ -179,17 +178,18 @@ const SvgComponent: FC<{
         return () => {
             resizeObs.disconnect()
         }
-    }, [])
+    }, [model])
 
     const onScreenClick = useCallback(
         (ev: React.MouseEvent<HTMLElement>) => {
-            const screen = ev.target as HTMLElement //screenRef.current
+            const screen = ev.target as HTMLElement
             if (!screen) return
             const rect = screen.getBoundingClientRect()
-            // Map to 40x24 grid using element-relative fractions
+
+            // Map to 480x320 grid using element-relative fractions
             const gx = Math.round(((ev.clientX - rect.left) / rect.width) * 480)
             const gy = Math.round(((ev.clientY - rect.top) / rect.height) * 320)
-            console.log('svg click → grid', { gx, gy })
+            console.log('screen click → grid', { gx, gy })
             navigateTo({ x: gx, y: gy })
             ev.stopPropagation()
             ev.preventDefault()
@@ -202,13 +202,18 @@ const SvgComponent: FC<{
             return
         }
 
-
         const onKey = (keyCommand: KeyCommand) => {
             const key = keyCommand.keys
-
             setKeysPressed(key)
-
         }
+
+        const onSystemCommand = (sys: SystemCommand) => {
+            if (sys) {
+                setModel(sys.model === 'M8 Model:02' ? 2 : 1)
+            }
+        }
+
+        bus.protocol.eventBus.on('system', onSystemCommand)
 
         bus.protocol.eventBus.on('key', onKey)
 
@@ -237,13 +242,12 @@ const SvgComponent: FC<{
             // meanwhile send no key pressed
             bus?.commands.sendKeys(0)
         },
-        [bus],
-    )
+        [bus])
 
     return (
         <div ref={parentRef} className={cx(containerClass, fullView && 'M8-full-view')}>
 
-            <Model02 strokeColor={strokeColor} screenColor={screenColor} onClick={onClick} keysPressed={keysPressed} screenEdgeRef={screenEdgeRef} />
+            <M8Body model={model} strokeColor={strokeColor} screenColor={screenColor} onClick={onClick} keysPressed={keysPressed} screenEdgeRef={screenEdgeRef} />
 
             <div ref={screenRef} className={screen} onClick={onScreenClick}>
                 <M8Screen bus={bus} onClick={onScreenClick} />
@@ -253,8 +257,8 @@ const SvgComponent: FC<{
 }
 
 export const M8Player: FC<{
-    bus?: ConnectedBus
+    bus?: ConnectedBus,
     fullView?: boolean
-}> = ({ bus, ...props }) => {
-    return <SvgComponent {...props} strokeColor={style.themeColors.text.default} bus={bus} />
+}> = ({ bus, fullView, ...props }) => {
+    return <FullM8Player {...props} strokeColor={style.themeColors.text.default} bus={bus} fullView={fullView} />
 }

@@ -5,10 +5,10 @@ import { defaultKeyMap } from '../virtualKeyboard/useVirtualKeyboard'
 const SETTINGS = 'M8settings'
 
 export type Settings = {
-  fullM8View: boolean
-  virtualKeyboard: boolean
-  inputMap: typeof defaultInputMap
-  keyMap: typeof defaultKeyMap
+    fullM8View: boolean
+    virtualKeyboard: boolean
+    inputMap: typeof defaultInputMap
+    keyMap: typeof defaultKeyMap
 }
 
 export type SettingsContextValue = {
@@ -17,8 +17,8 @@ export type SettingsContextValue = {
 }
 
 const defaultSettings: Settings = {
-  fullM8View: true,
-  virtualKeyboard: true,
+    fullM8View: true,
+    virtualKeyboard: true,
 
     inputMap: defaultInputMap,
     keyMap: defaultKeyMap,
@@ -30,8 +30,8 @@ const storedSettings: Partial<Settings> = JSON.parse(localStorage[SETTINGS] ?? '
 const initialSettings: Settings = { ...defaultSettings, ...storedSettings }
 
 const SettingsContext = React.createContext<SettingsContextValue>({
-  settings: defaultSettings,
-  updateSettingValue: () => { },
+    settings: defaultSettings,
+    updateSettingValue: () => { },
 })
 
 export const SettingsProvider = ({ children }: { children?: React.ReactNode }) => {
