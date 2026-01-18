@@ -1,24 +1,24 @@
 /* geo-regular - latin */
 @font-face {
-  font-display: block;
-  font-family: "Geo";
-  font-style: normal;
-  font-weight: 400;
-  src: url("./font/geo-v21-latin-regular.woff2") format("woff2");
+    font-display: block;
+    font-family: "Geo";
+    font-style: normal;
+    font-weight: 400;
+    src: url("./font/geo-v21-latin-regular.woff2") format("woff2");
 }
 
 @font-face {
-  font-display: block;
-  font-family: "Player";
-  font-style: normal;
-  font-weight: 400;
-  src: url("./font/PlayerSansMono8x8-Classic.woff2") format("woff2");
+    font-display: block;
+    font-family: "Player";
+    font-style: normal;
+    font-weight: 400;
+    src: url("./font/PlayerSansMono8x8-Classic.woff2") format("woff2");
 }
 
 @font-face {
-  font-display: block;
-  font-family: "Kode";
-  font-style: normal;
-  font-weight: 400;
-  src: url("./font/KodeMono-SemiBold.ttf");
+    font-display: block;
+    font-family: "Kode";
+    font-style: normal;
+    font-weight: 400;
+    src: url("./font/KodeMono-SemiBold.ttf");
 }

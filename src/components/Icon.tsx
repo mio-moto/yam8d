@@ -49,29 +49,29 @@ const iconClass = css`
 `
 
 const sizeToClass: Record<IconSize, string> = {
-  default: 'size-default',
-  xxs: 'size-xxs',
-  xs: 'size-xs',
-  s: 'size-s',
-  m: 'size-m',
-  l: 'size-l',
-  xl: 'size-xl',
-  xxl: 'size-xxl',
+    default: 'size-default',
+    xxs: 'size-xxs',
+    xs: 'size-xs',
+    s: 'size-s',
+    m: 'size-m',
+    l: 'size-l',
+    xl: 'size-xl',
+    xxl: 'size-xxl',
 } as const
 
 export type IconSize = 'xxs' | 'xs' | 's' | 'm' | 'l' | 'xl' | 'xxl' | 'default'
 
 export const Icon: FC<Omit<HTMLProps<HTMLDivElement>, 'size'> & { icon?: string; size?: IconSize }> = forwardRef(function Icon(
-  { icon, size = 'default' as keyof typeof sizeToClass, style, className, ...props },
-  ref,
+    { icon, size = 'default' as keyof typeof sizeToClass, style, className, ...props },
+    ref,
 ) {
-  const combinedStyle = useMemo(
-    () =>
-      ({
-        ...style,
-        '--mask-image': `url(${icon})`,
-      }) as CSSProperties,
-    [style, icon],
-  )
-  return <div {...props} ref={ref} className={cx(iconClass, sizeToClass[size], 'icon', className)} style={combinedStyle} />
+    const combinedStyle = useMemo(
+        () =>
+            ({
+                ...style,
+                '--mask-image': `url(${icon})`,
+            }) as CSSProperties,
+        [style, icon],
+    )
+    return <div {...props} ref={ref} className={cx(iconClass, sizeToClass[size], 'icon', className)} style={combinedStyle} />
 })

@@ -4,10 +4,10 @@
 type NotCss<T> = T & { toString: () => never }
 
 export const notCss = <T>(object: T): NotCss<T> => {
-  return {
-    ...object,
-    toString: () => {
-      throw new Error('Cannot expanded into CSS.')
-    },
-  }
+    return {
+        ...object,
+        toString: () => {
+            throw new Error('Cannot expanded into CSS.')
+        },
+    }
 }

@@ -3,9 +3,11 @@ import './App.css'
 import { type FC, useCallback, useState } from 'react'
 import { style } from './app/style/style'
 import { Button } from './components/Button'
+// import { DebugMenu, DebugPortalContextProvider } from './components/DebugMenu'
 import type { ConnectedBus } from './features/connection/connection'
 import { device } from './features/connection/device'
 import type { SystemCommand } from './features/connection/protocol'
+// import { StatusPanel } from './features/debug/StatusPanel'
 import { useM8Input } from './features/inputs/useM8input'
 import { M801Player } from './features/M8-01Player'
 import { M8Player } from './features/M8Player'
@@ -13,19 +15,20 @@ import { useMacroInput } from './features/macros/useMacroInput'
 import { Menu } from './features/settings/menu'
 import { useSettingsContext } from './features/settings/settings'
 import { VirtualKeyboard } from './features/virtualKeyboard/VirtualKeyboard'
+import { StatusPanel } from './features/debug/StatusPanel'
 
 const appClass = css`
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  justify-content: stretch;
-  align-items: stretch;
+  // display: flex;
+  // flex-direction: column;
+  // flex: 1;
+  // justify-content: stretch;
+  // align-items: stretch;
 
-  gap: 16px;
+  // gap: 16px;
 
-  > ._buttons {
-    display: flex;
-  }
+  // > ._buttons {
+  //   display: flex;
+  // }
 `
 
 export const App: FC = () => {
@@ -37,23 +40,23 @@ export const App: FC = () => {
   const tryConnect = useCallback(() => {
     const res = device()
 
-    ;(async () => {
-      if (!res.connection.browserSupport) {
-        console.error('No usb / serial support detected.')
-        return
-      }
-      const bus = await res.connection.connect()
-
-      setConnectedBus(bus)
-      const onSystemCommand = (sys: SystemCommand | undefined) => {
-        if (sys) {
-          setModel(sys.model === 'M8 Model:02' ? 2 : 1)
+      ; (async () => {
+        if (!res.connection.browserSupport) {
+          console.error('No usb / serial support detected.')
+          return
         }
-      }
-      bus.protocol.eventBus.on('system', onSystemCommand)
-      onSystemCommand(bus.protocol.getSystemInfo())
-      await res.audio.connect()
-    })()
+        const bus = await res.connection.connect()
+
+        setConnectedBus(bus)
+        const onSystemCommand = (sys: SystemCommand | undefined) => {
+          if (sys) {
+            setModel(sys.model === 'M8 Model:02' ? 2 : 1)
+          }
+        }
+        bus.protocol.eventBus.on('system', onSystemCommand)
+        onSystemCommand(bus.protocol.getSystemInfo())
+        await res.audio.connect()
+      })()
   }, [])
 
   useM8Input(connectedBus)
@@ -70,6 +73,7 @@ export const App: FC = () => {
           {model === 2 && <M8Player bus={connectedBus} fullView={settings.fullM8View} />}
         </>
       )}
+      <StatusPanel />
     </div>
   )
 }

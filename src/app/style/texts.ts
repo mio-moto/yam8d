@@ -5,11 +5,11 @@ import { notCss } from './util'
  * @example const myStyleClass = css`font-size: ${style.fontSize.m}`
  */
 export const fontSizeValues = notCss({
-  s: '20px',
-  m: '24px',
-  l: '30px',
-  xl: '42px',
-  xxl: '128px',
+    s: '20px',
+    m: '24px',
+    l: '30px',
+    xl: '42px',
+    xxl: '128px',
 } as const)
 
 /**
@@ -17,13 +17,13 @@ export const fontSizeValues = notCss({
  * @example const myStyleClass = css`line-height: ${style.lineHeight.m}`
  */
 export const lineHeightValues = notCss({
-  xxs: '120%',
-  xs: '110%',
-  s: '110%',
-  m: '110%',
-  l: '100%',
-  xl: '100%',
-  xxl: '100%',
+    xxs: '120%',
+    xs: '110%',
+    s: '110%',
+    m: '110%',
+    l: '100%',
+    xl: '100%',
+    xxl: '100%',
 } as const)
 
 /**
@@ -31,7 +31,7 @@ export const lineHeightValues = notCss({
  * @example const myStyleClass = css`font-weight: ${style.fontWeight.regular}`
  */
 export const fontWeightValues = notCss({
-  regular: 400,
+    regular: 400,
 } as const)
 
 /**
@@ -39,7 +39,7 @@ export const fontWeightValues = notCss({
  * @example const myStyleClass = css`font-stretch: ${style.fontStretch.regular}`
  */
 export const fontStretchValues = notCss({
-  condensed: 'condensed',
-  normal: 'normal',
-  expanded: '125%',
+    condensed: 'condensed',
+    normal: 'normal',
+    expanded: '125%',
 } as const)

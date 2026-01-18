@@ -12,16 +12,16 @@ export type Settings = {
 }
 
 export type SettingsContextValue = {
-  settings: Settings
-  updateSettingValue: <K extends keyof Settings>(settingName: K, value: Settings[K]) => void
+    settings: Settings
+    updateSettingValue: <K extends keyof Settings>(settingName: K, value: Settings[K]) => void
 }
 
 const defaultSettings: Settings = {
   fullM8View: true,
   virtualKeyboard: true,
 
-  inputMap: defaultInputMap,
-  keyMap: defaultKeyMap,
+    inputMap: defaultInputMap,
+    keyMap: defaultKeyMap,
 }
 
 if (!localStorage[SETTINGS]) localStorage[SETTINGS] = JSON.stringify(defaultSettings)
@@ -35,20 +35,20 @@ const SettingsContext = React.createContext<SettingsContextValue>({
 })
 
 export const SettingsProvider = ({ children }: { children?: React.ReactNode }) => {
-  const [settingsContextValues, setSettingsContextValues] = useState<Settings>(initialSettings)
-  const updateSettingValue = useCallback(
-    <K extends keyof Settings>(settingName: K, value: Settings[K]) => {
-      const newSettingsValues: Settings = {
-        ...settingsContextValues,
-        [settingName]: value,
-      }
-      localStorage[SETTINGS] = JSON.stringify(newSettingsValues)
-      setSettingsContextValues(newSettingsValues)
-    },
-    [settingsContextValues],
-  )
+    const [settingsContextValues, setSettingsContextValues] = useState<Settings>(initialSettings)
+    const updateSettingValue = useCallback(
+        <K extends keyof Settings>(settingName: K, value: Settings[K]) => {
+            const newSettingsValues: Settings = {
+                ...settingsContextValues,
+                [settingName]: value,
+            }
+            localStorage[SETTINGS] = JSON.stringify(newSettingsValues)
+            setSettingsContextValues(newSettingsValues)
+        },
+        [settingsContextValues],
+    )
 
-  return <SettingsContext.Provider value={{ settings: settingsContextValues, updateSettingValue }}>{children}</SettingsContext.Provider>
+    return <SettingsContext.Provider value={{ settings: settingsContextValues, updateSettingValue }}>{children}</SettingsContext.Provider>
 }
 
 /**
@@ -59,9 +59,9 @@ export const SettingsProvider = ({ children }: { children?: React.ReactNode }) =
  * @returns the settingsContext
  */
 export const useSettingsContext = (): SettingsContextValue => {
-  const context = React.useContext(SettingsContext)
-  if (context === undefined || context === null) {
-    throw new Error(`useSettingsContext must be called within SettingsProvider`)
-  }
-  return context
+    const context = React.useContext(SettingsContext)
+    if (context === undefined || context === null) {
+        throw new Error(`useSettingsContext must be called within SettingsProvider`)
+    }
+    return context
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type MouseEventHandler } from 'react'
 import type { ConnectedBus } from '../connection/connection'
 import type { CharacterCommand, RectCommand, SystemCommand, WaveCommand } from '../connection/protocol'
 import { renderer, type ScreenLayout } from './renderer'
@@ -10,10 +10,7 @@ const makeScreenLayout = ({ model, fontMode }: SystemCommand): ScreenLayout => {
   return (fontMode + 3) as ScreenLayout
 }
 
-// kronsilds: I split the M8Screen in 2 rendering:
-// this one if for WebGL in canvas
-// and the other one is for pure html using PRE
-export const M8Screen = ({ bus }: { bus?: ConnectedBus | null }) => {
+export const M8Screen = ({ bus, onClick }: { bus?: ConnectedBus | null, onClick?: MouseEventHandler<HTMLCanvasElement> | undefined | null }) => {
   const innerRef = useRef<HTMLCanvasElement | null>(null)
 
   useEffect(() => {
@@ -61,5 +58,14 @@ export const M8Screen = ({ bus }: { bus?: ConnectedBus | null }) => {
     }
   }, [bus])
 
-  return <canvas className="element" ref={innerRef} style={{ width: '100%', imageRendering: 'pixelated' }}></canvas>
+  return <canvas className="element"
+    onClick={onClick ?? undefined}
+    ref={innerRef}
+    style={{
+      width: '100%',
+      imageRendering: 'pixelated',
+      height: 'auto',
+      margin: 'auto',
+      position: 'relative'
+    }}></canvas>
 }

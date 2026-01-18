@@ -79,7 +79,7 @@ const screenLayout2Config = {
 } as const satisfies ScreenConfig
 // M8:02 small font
 const screenLayout3Config = {
-  rectOffset: -2,
+  rectOffset: 1,
   programType: 2,
   font: {
     url: Font3,

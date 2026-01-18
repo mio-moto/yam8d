@@ -6,21 +6,21 @@ import { SettingsProvider } from './features/settings/settings.tsx'
 
 const element = document.getElementById('root')
 if (!element) {
-  throw new Error('Application error.')
+    throw new Error('Application error.')
 }
 
 const useStrict = !import.meta.env.VITE_BUILD_WITHOUT_STRICT
 
 createRoot(element).render(
-  useStrict ? (
-    <StrictMode>
-      <SettingsProvider>
-        <App />
-      </SettingsProvider>
-    </StrictMode>
-  ) : (
-    <SettingsProvider>
-      <App />
-    </SettingsProvider>
-  ),
+    useStrict ? (
+        <StrictMode>
+            <SettingsProvider>
+                <App />
+            </SettingsProvider>
+        </StrictMode>
+    ) : (
+        <SettingsProvider>
+            <App />
+        </SettingsProvider>
+    ),
 )

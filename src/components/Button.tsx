@@ -39,7 +39,7 @@ export const buttonClass = css`
 `
 
 export const Button: FC<
-  HTMLProps<HTMLButtonElement> & { type?: 'submit' | 'button' | 'reset'; kind?: 'primary' | 'secondary' | 'regular'; selected?: boolean }
+    HTMLProps<HTMLButtonElement> & { type?: 'submit' | 'button' | 'reset'; kind?: 'primary' | 'secondary' | 'regular'; selected?: boolean }
 > = forwardRef(function Button({ className, type, kind, selected, ...props }, ref) {
-  return <button type={type} ref={ref} {...props} className={cx(buttonClass, kind, selected && 'selected', className)} />
+    return <button type={type} ref={ref} {...props} className={cx(buttonClass, kind, selected && 'selected', className)} />
 })

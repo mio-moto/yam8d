@@ -6,31 +6,31 @@ import { style } from '../app/style/style'
 import { Icon } from '../components/Icon'
 
 export const DebugPortalContext = createContext<{
-  debugElementsRoot: HTMLElement | null
-  setDebugElementsRoot: React.Dispatch<React.SetStateAction<HTMLElement | null>>
+    debugElementsRoot: HTMLElement | null
+    setDebugElementsRoot: React.Dispatch<React.SetStateAction<HTMLElement | null>>
 }>({
-  debugElementsRoot: null,
-  setDebugElementsRoot: () => {
-    return
-  },
+    debugElementsRoot: null,
+    setDebugElementsRoot: () => {
+        return
+    },
 })
 
 export const DebugPortalContextProvider: FC<{ children?: ReactNode }> = ({ children }) => {
-  const [debugElementsRoot, setDebugElementsRoot] = useState<HTMLElement | null>(null)
-  const contextValue = useMemo(
-    () => ({
-      debugElementsRoot,
-      setDebugElementsRoot,
-    }),
-    [debugElementsRoot],
-  )
+    const [debugElementsRoot, setDebugElementsRoot] = useState<HTMLElement | null>(null)
+    const contextValue = useMemo(
+        () => ({
+            debugElementsRoot,
+            setDebugElementsRoot,
+        }),
+        [debugElementsRoot],
+    )
 
-  return <DebugPortalContext.Provider value={contextValue}>{children}</DebugPortalContext.Provider>
+    return <DebugPortalContext.Provider value={contextValue}>{children}</DebugPortalContext.Provider>
 }
 
 export const Debug: FC<{ children?: ReactNode }> = ({ children }) => {
-  const { debugElementsRoot } = useContext(DebugPortalContext)
-  return debugElementsRoot ? createPortal(children, debugElementsRoot) : null
+    const { debugElementsRoot } = useContext(DebugPortalContext)
+    return debugElementsRoot ? createPortal(children, debugElementsRoot) : null
 }
 
 const debugMenuClass = css`
@@ -70,17 +70,17 @@ const debugMenuClass = css`
 `
 
 export const DebugMenu: FC = () => {
-  const [open, setOpen] = useState(false)
-  const debugControlContext = useContext(DebugPortalContext)
+    const [open, setOpen] = useState(false)
+    const debugControlContext = useContext(DebugPortalContext)
 
-  return (
-    <dialog open className={cx(debugMenuClass, open && 'open')} onClick={() => setOpen(!open)}>
-      {!open && <Icon size="l" />}
-      {open && (
-        <section className="controls">
-          <div ref={debugControlContext.setDebugElementsRoot} />
-        </section>
-      )}
-    </dialog>
-  )
+    return (
+        <dialog open className={cx(debugMenuClass, open && 'open')} onClick={() => setOpen(!open)}>
+            {!open && <Icon size="l" />}
+            {open && (
+                <section className="controls">
+                    <div ref={debugControlContext.setDebugElementsRoot} />
+                </section>
+            )}
+        </dialog>
+    )
 }

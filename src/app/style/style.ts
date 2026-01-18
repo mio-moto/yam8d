@@ -8,8 +8,8 @@ import './font.css'
 import './prescreen.css'
 
 export const style = notCss({
-  colors,
-  themeColors,
+    colors,
+    themeColors,
 })
 
 export const globalStyle = css`

@@ -6,59 +6,59 @@ const LOG_PATH = path.resolve(process.cwd(), 'linkBetweenM8Pages.log')
 const OUT_PATH = path.resolve(process.cwd(), 'src/features/macros/m8Graph.ts')
 
 if (!fs.existsSync(LOG_PATH)) {
-  console.error('Log file not found:', LOG_PATH)
-  process.exit(1)
+    console.error('Log file not found:', LOG_PATH)
+    process.exit(1)
 }
 
 const lines = fs.readFileSync(LOG_PATH, 'utf-8').split(/\r?\n/)
 
 type Dir = 'up' | 'down' | 'left' | 'right'
 const dirAliases: Record<string, Dir> = {
-  up: 'up',
-  Up: 'up',
-  down: 'down',
-  Down: 'down',
-  left: 'left',
-  Left: 'left',
-  right: 'right',
-  Right: 'right',
+    up: 'up',
+    Up: 'up',
+    down: 'down',
+    Down: 'down',
+    left: 'left',
+    Left: 'left',
+    right: 'right',
+    Right: 'right',
 }
 
 const edgeSet = new Set<string>()
 function addEdge(a: string, d: Dir, b: string) {
-  const from = a.trim()
-  const to = b.trim()
-  if (!from || !to) return
-  edgeSet.add(`${from}\t${d}\t${to}`)
+    const from = a.trim()
+    const to = b.trim()
+    if (!from || !to) return
+    edgeSet.add(`${from}\t${d}\t${to}`)
 }
 
 let lastPage: string | null = null
 for (let i = 0; i < lines.length; i++) {
-  const line = lines[i].trim()
-  if (!line) continue
-  const mPage = line.match(/page is\s+(.+)$/i)
-  if (mPage) {
-    lastPage = mPage[1].trim()
-    continue
-  }
-  const mMove = line.match(/move\s+(Up|Down|Left|Right)$/)
-  if (mMove && lastPage) {
-    const dir = dirAliases[mMove[1]]
-    const nextLine = lines[i + 1]?.trim() ?? ''
-    const mNext = nextLine.match(/page is\s+(.+)$/i)
-    if (dir && mNext) {
-      addEdge(lastPage, dir, mNext[1])
-      // advance i to skip the next page line
-      i += 1
-      lastPage = mNext[1]
+    const line = lines[i].trim()
+    if (!line) continue
+    const mPage = line.match(/page is\s+(.+)$/i)
+    if (mPage) {
+        lastPage = mPage[1].trim()
+        continue
     }
-  }
+    const mMove = line.match(/move\s+(Up|Down|Left|Right)$/)
+    if (mMove && lastPage) {
+        const dir = dirAliases[mMove[1]]
+        const nextLine = lines[i + 1]?.trim() ?? ''
+        const mNext = nextLine.match(/page is\s+(.+)$/i)
+        if (dir && mNext) {
+            addEdge(lastPage, dir, mNext[1])
+            // advance i to skip the next page line
+            i += 1
+            lastPage = mNext[1]
+        }
+    }
 }
 
 const edges: Array<{ from: string; dir: Dir; to: string }> = []
 for (const row of edgeSet) {
-  const [from, dir, to] = row.split('\t')
-  edges.push({ from, dir: dir as Dir, to })
+    const [from, dir, to] = row.split('\t')
+    edges.push({ from, dir: dir as Dir, to })
 }
 edges.sort((a, b) => a.from.localeCompare(b.from) || a.dir.localeCompare(b.dir) || a.to.localeCompare(b.to))
 
@@ -67,15 +67,15 @@ const body = `export type Direction = 'up'|'down'|'left'|'right'\nexport interfa
 
 const groups = new Map<string, Array<{ to: string; dir: Dir }>>()
 for (const e of edges) {
-  const arr = groups.get(e.from) ?? []
-  if (!arr.some((x) => x.to === e.to && x.dir === e.dir)) arr.push({ to: e.to, dir: e.dir })
-  groups.set(e.from, arr)
+    const arr = groups.get(e.from) ?? []
+    if (!arr.some((x) => x.to === e.to && x.dir === e.dir)) arr.push({ to: e.to, dir: e.dir })
+    groups.set(e.from, arr)
 }
 
 let out = header + body
 for (const [from, arr] of Array.from(groups.entries()).sort((a, b) => a[0].localeCompare(b[0]))) {
-  const items = arr.map((x) => `{ to: ${JSON.stringify(x.to)}, dir: ${JSON.stringify(x.dir)} }`).join(', ')
-  out += `  ${JSON.stringify(from)}: [ ${items} ],\n`
+    const items = arr.map((x) => `{ to: ${JSON.stringify(x.to)}, dir: ${JSON.stringify(x.dir)} }`).join(', ')
+    out += `  ${JSON.stringify(from)}: [ ${items} ],\n`
 }
 out += `}\n`
 

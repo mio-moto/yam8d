@@ -28,5 +28,5 @@ const inputClass = css`
 `
 
 export const Input: FC<HTMLProps<HTMLInputElement>> = ({ className, value, ...props }) => (
-  <input {...props} value={value} className={cx(inputClass, value && 'with-value', className)} />
+    <input {...props} value={value} className={cx(inputClass, value && 'with-value', className)} />
 )

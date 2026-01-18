@@ -10,5 +10,5 @@ const modalClass = css`
 `
 
 export const Modal: FC<HTMLProps<HTMLDialogElement> & { closedby?: 'any' | 'none' | 'closerequest' }> = ({ className, ...props }) => {
-  return <dialog className={cx(modalClass, className)} {...props} />
+    return <dialog className={cx(modalClass, className)} {...props} />
 }

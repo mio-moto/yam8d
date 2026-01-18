@@ -1,182 +1,150 @@
 import { useCallback, useEffect, useRef } from 'react'
-import { aStar, type Graph } from '../../utils/astar'
 import type { ConnectedBus } from '../connection/connection.ts'
+import { useViewName } from '../state/viewStore'
+// Runtime graph will be loaded from public JSON or discovered by automaton
+import { getLoadedGraph, loadM8GraphJson, loadViewList } from './m8GraphLoader'
+import { getLatestDiscoveredGraph } from './autoViewGraph'
+import { useMacroRunner } from './macroRunner'
+import { computePagePath, toKeyMasks } from './navAStar'
 import { M8KeyMask } from '../connection/keys.ts'
-import type { CharacterCommand, KeyCommand } from '../connection/protocol.ts'
-import { type Direction, M8_GRAPH } from './m8Graph'
 
-export function getM8GraphAsMap(): Graph {
-    const map: Graph = new Map()
-    for (const [k, v] of Object.entries(M8_GRAPH)) {
-        map.set(k, v.slice())
-    }
-    return map
+export function getM8GraphAsMap() {
+    // Prefer JSON loaded graph
+    const loaded = getLoadedGraph()
+    if (loaded) return loaded
+    // Fallback to automaton's latest discovery
+    const discovered = getLatestDiscoveredGraph()
+    if (discovered) return discovered
+    // No graph yet
+    return new Map<string, { to: string; dir: 'up' | 'down' | 'left' | 'right' }[]>()
 }
 
-// TODO: separate view astar navigation from macro key queues.
-// TODO: generalise astar navigaton
-
 export const useMacroInput = (connection?: ConnectedBus) => {
-    const macro = useRef<number[]>([0])
-    // TODO : the resolution is M8 Model dependent
-    const SCREEN_W = 480
-    const SCREEN_H = 320
-    // Preallocate a fixed-size buffer
-    const pageRaw = useRef<string[]>(Array(SCREEN_W * SCREEN_H).fill(''))
-    const pageName = useRef<string>('')
+    const runner = useMacroRunner(connection)
+    const [viewName] = useViewName()
+    const pendingTarget = useRef<string>('')
+    const viewSetRef = useRef<Set<string>>(new Set())
 
-    const stability = useRef<{ version: number; timer: ReturnType<typeof setTimeout> | null }>({ version: 0, timer: null })
-
-    // TODO : the line height is M8 Model dependent
-    const PAGENAME_ROW_INDEX = 3 * 14 // name on third row (0-based) * 14px height
-    const MINIMAP_ROW_MIN = 18 * 14 // minimap starts on 18th row
-    const MINIMAP_COL_MIN = 34 * 12 // and 34th character
-    const STABILIZE_MS = 100
+    const resolveTarget = useCallback((name: string) => {
+        const goal = (name || '').toLowerCase()
+        if (viewSetRef.current.has(goal)) return goal
+        // try case-insensitive match fallback
+        for (const v of viewSetRef.current) {
+            if (v.toLowerCase() === goal) return v
+        }
+        console.warn('Target not in viewlist', { goal })
+        return goal
+    }, [])
 
     const planAndSendPath = useCallback(
         (targetPage: string) => {
-            const start = (pageName.current || '').toLowerCase()
-            const goal = (targetPage || '').toLowerCase()
+
+            const start = viewName
+
+            const goal = resolveTarget(targetPage)
+
             if (!start || !goal) return
 
-            const graph: Graph = getM8GraphAsMap()
-            if (!graph.has(start) || !graph.has(goal)) {
-                console.warn('Unknown start/goal in graph', { start, goal })
+            const graph = getM8GraphAsMap()
+
+            if (!graph.has(goal)) {
+                console.warn('Unknown goal in graph', { goal })
                 return
             }
-            const res = aStar(graph, start, goal)
+
+            // Fallback: navigate shift+left to reach a known start
+            if (!graph.has(start)) {
+                pendingTarget.current = goal
+                runner.start([M8KeyMask.Shift | M8KeyMask.Left])
+            }
+
+            const res = computePagePath(graph, start, goal)
             if (!res) {
                 console.warn('No path found', { start, goal })
                 return
             }
 
-            const s = M8KeyMask.Shift
-            const dirToMask: Record<Direction, number> = {
-                up: M8KeyMask.Shift | M8KeyMask.Up,
-                down: M8KeyMask.Shift | M8KeyMask.Down,
-                left: M8KeyMask.Shift | M8KeyMask.Left,
-                right: M8KeyMask.Shift | M8KeyMask.Right,
-            }
-
-            // Build macro: keep Shift held, pulse directions, then release
-            const seq: number[] = [s]
-            for (const d of res.directions) {
-                seq.push(dirToMask[d], s)
-            }
-            //final release
-            seq.push(0)
-            macro.current = seq
-            // Kick off macro execution
-            connection?.commands.sendKeys(macro.current.shift() as number)
+            const seq = toKeyMasks(res.directions, { shift: true })
+            console.log('Macro plan', { start, goal, steps: res.directions.length, seqLen: seq.length })
+            runner.cancel('new page path')
+            runner.start(seq)
         },
-        [connection],
+        [runner, viewName, resolveTarget],
     )
+    // biome-ignore lint/correctness/useExhaustiveDependencies: <title or minimap should trigger>
+    useEffect(() => {
+        // Try loading runtime graph JSON once and viewlist
+        loadM8GraphJson().catch(() => void 0)
+        loadViewList().then((set) => {
+            if (set?.size) viewSetRef.current = set
+        }).catch(() => void 0)
+        if (pendingTarget.current) planAndSendPath(pendingTarget.current)
+        pendingTarget.current = ''
+    }, [planAndSendPath, viewName])
 
     const handleInput = useCallback(
-        (ev: KeyboardEvent, _isDown: boolean) => {
+        (ev: KeyboardEvent) => {
             if (!ev || !ev.code) return
             if (ev.repeat) return
 
+            // Any key should preempt current macro
+            runner.cancel('preempted by keyboard')
+
+            //console.log('useMacroInput keydown', ev.code)
             switch (ev.code) {
                 case 'F1':
-                    planAndSendPath('songpsvpit')
+                    planAndSendPath('songpsvcpit')
                     ev.preventDefault()
                     break
-
                 case 'F2':
                     planAndSendPath('chainspcvpit')
                     ev.preventDefault()
                     break
-
                 case 'F3':
-                    planAndSendPath('phrasesgpvit')
+                    planAndSendPath('phrasescgpvit')
                     ev.preventDefault()
                     break
-
                 case 'F4':
-                    planAndSendPath('tablespimtv')
+                    planAndSendPath('tablescpimtv')
                     ev.preventDefault()
                     break
-
                 case 'F5':
-                    planAndSendPath('instrumentpoolsppmivit')
+                    planAndSendPath('instrumentpoolscppmivit')
                     ev.preventDefault()
                     break
-
                 case 'F6':
-                    planAndSendPath('inst.spmivt')
+                    planAndSendPath('instscpmivt')
                     ev.preventDefault()
                     break
-
                 case 'F7':
-                    planAndSendPath('mixersgpvxit')
+                    planAndSendPath('mixerscgpvxit')
                     ev.preventDefault()
                     break
-
                 case 'F8':
-                    planAndSendPath('effectsettingssgpvxit')
+                    planAndSendPath('effectsettingsscgpvxit')
                     ev.preventDefault()
                     break
-
                 case 'F9':
                     planAndSendPath('projectspcvpit')
                     ev.preventDefault()
                     break
-
                 default:
                     break
             }
         },
-        [planAndSendPath],
+        [planAndSendPath, runner],
     )
 
     useEffect(() => {
-        const textHandler = (data: CharacterCommand) => {
-            // TODO: not that much happy with my pagename extraction. Should have a better convention like viewTitle.minimap
-            if (data.pos.y === PAGENAME_ROW_INDEX || (data.pos.y >= MINIMAP_ROW_MIN && data.pos.x >= MINIMAP_COL_MIN)) {
-                const x = data.pos.x
-                const y = data.pos.y
-                // index col first to have a vertical read of minimap
-                const idx = y + x * SCREEN_H
-                pageRaw.current[idx] = data.character
-
-                const v = ++stability.current.version
-                if (stability.current.timer) clearTimeout(stability.current.timer)
-                stability.current.timer = setTimeout(() => {
-                    if (stability.current.version === v) {
-                        const raw = pageRaw.current.join('')
-                        // oops, this regex remove the c in the minimap
-                        const cleaned = raw.replace(/\s([0-9a-fA-F]+|[0-9a-fA-F]{2})\b/g, '').replace(/[ *]/g, '')
-                        const page = cleaned.toLowerCase()
-                        pageName.current = page
-                        // I used this log to generate the M8Graph
-                        console.log('page is', pageName.current)
-                    }
-                }, STABILIZE_MS)
-            }
-        }
-
-        const keyHandler = (_data: KeyCommand) => {
-            if (macro.current.length > 0) connection?.commands.sendKeys(macro.current.shift() as number)
-        }
-
         const handleKeyDown = (ev: KeyboardEvent) => {
-            handleInput(ev, true)
+            handleInput(ev)
         }
+        //console.log('useMacroInput mounted: listening for keydown')
         window.addEventListener('keydown', handleKeyDown)
 
-        connection?.protocol.eventBus.on('text', textHandler)
-        connection?.protocol.eventBus.on('key', keyHandler)
-
         return () => {
-            connection?.protocol.eventBus.off('text', textHandler)
-            connection?.protocol.eventBus.off('key', keyHandler)
             window.removeEventListener('keydown', handleKeyDown)
-
-            if (stability.current.timer) {
-                clearTimeout(stability.current.timer)
-                stability.current.timer = null
-            }
+            //console.log('useMacroInput cleanup: removed listeners')
         }
-    }, [connection, handleInput])
+    }, [handleInput])
 }

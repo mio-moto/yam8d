@@ -50,18 +50,18 @@ font-stretch: condensed;
 ` as const
 
 export const bodyFragments = notCss({
-  s: notCss({
-    regular: bodySRegular,
-    condensed: bodySCondensed,
-  } as const),
-  m: notCss({
-    regular: bodyMRegular,
-    condensed: bodyMCondensed,
-  } as const),
-  l: notCss({
-    regular: bodyLRegular,
-    condensed: bodyLCondensed,
-  }),
+    s: notCss({
+        regular: bodySRegular,
+        condensed: bodySCondensed,
+    } as const),
+    m: notCss({
+        regular: bodyMRegular,
+        condensed: bodyMCondensed,
+    } as const),
+    l: notCss({
+        regular: bodyLRegular,
+        condensed: bodyLCondensed,
+    }),
 } as const)
 
 /* heading M */
@@ -94,10 +94,10 @@ font-weight: ${fontWeightValues.regular};
 font-stretch: condensed;` as const
 
 export const headingFragments = notCss({
-  m: headingMFragment,
-  l: headingLFragment,
-  xl: headingXLFragment,
-  xxl: headingXXLFragment,
+    m: headingMFragment,
+    l: headingLFragment,
+    xl: headingXLFragment,
+    xxl: headingXXLFragment,
 })
 
 /* Button M/L */
@@ -117,12 +117,12 @@ font-stretch: condensed;
 `
 
 export const buttonFragments = notCss({
-  regular: buttonMFragment,
-  l: buttonLFragment,
+    regular: buttonMFragment,
+    l: buttonLFragment,
 } as const)
 
 export const textStyleFragments = notCss({
-  body: bodyFragments,
-  heading: headingFragments,
-  button: buttonFragments,
+    body: bodyFragments,
+    heading: headingFragments,
+    button: buttonFragments,
 })
