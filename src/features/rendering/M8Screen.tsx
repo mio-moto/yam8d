@@ -4,10 +4,10 @@ import type { CharacterCommand, RectCommand, SystemCommand, WaveCommand } from '
 import { renderer, type ScreenLayout } from './renderer'
 
 const makeScreenLayout = ({ model, fontMode }: SystemCommand): ScreenLayout => {
-  if (model === 'M8 Model:01') {
-    return (fontMode + 1) as ScreenLayout
+  if (model === 'M8 Model:02') {
+    return (fontMode + 3) as ScreenLayout
   }
-  return (fontMode + 3) as ScreenLayout
+  return (fontMode + 1) as ScreenLayout
 }
 
 export const M8Screen = ({ bus, onClick }: { bus?: ConnectedBus | null, onClick?: MouseEventHandler<HTMLCanvasElement> | undefined | null }) => {
@@ -63,7 +63,7 @@ export const M8Screen = ({ bus, onClick }: { bus?: ConnectedBus | null, onClick?
     ref={innerRef}
     style={{
       width: '100%',
-      imageRendering: 'pixelated',
+      imageRendering: 'auto',
       height: 'auto',
       margin: 'auto',
       position: 'relative'

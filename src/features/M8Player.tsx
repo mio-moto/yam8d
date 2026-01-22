@@ -27,7 +27,7 @@ const containerClass = css`
   isolation: isolate;
 
   /* these are for animation */
-  max-height:300vh; /* fake height just to have a final value */
+  max-height: 300vh; /* fake height just to have a final value */
   transition: max-height 400ms ease; /* to animate on max-height change */
 
   padding: 0 32px;
@@ -55,7 +55,6 @@ const containerClass = css`
   > svg {
     max-height: 100vw;
     shape-rendering: geometricprecision; /* i've change it because optimizeQuality doesn't exist */
-  
 
     .button {
       fill: ${style.themeColors.text.disabled} !important;
@@ -72,7 +71,7 @@ const containerClass = css`
       }
 
       &.opt {
-        fill:  ${style.colors.teal.primary} !important;
+        fill: ${style.colors.teal.primary} !important;
       }
       &.edit {
         fill: ${style.colors.ochre.primary} !important;
@@ -99,28 +98,28 @@ const containerClass = css`
 
     .screen-background {
       z-index: -2;
-    //   fill-opacity: 0 !important;
+      //   fill-opacity: 0 !important;
     }
 
-    .logo, .button-outline {
+    .logo,
+    .button-outline {
       opacity: 0;
     }
 
     .M8-full-view {
-      max-height:88vh;
+      max-height: 88vh;
     }
     :not(.M8-full-view) {
-      max-height:300vh;
+      max-height: 300vh;
     }
-
   }
 `
 
 const screen = css`
-//   z-index: -1;
-//   left:-1px;
+  //   z-index: -1;
+  //   left:-1px;
   container-type: inline-size;
-  display:flex
+  display: flex;
 `
 
 const FullM8Player: FC<{
@@ -138,7 +137,6 @@ const FullM8Player: FC<{
 
     const [bgColor] = useBackgroundColor()
     const screenColor = rgbToHex(bgColor ?? { r: 0, g: 0, b: 0 })
-
 
     const [keysPressed, setKeysPressed] = useState(0)
     const { navigateTo } = useViewNavigator(bus)
@@ -184,17 +182,25 @@ const FullM8Player: FC<{
         (ev: React.MouseEvent<HTMLElement>) => {
             const screen = ev.target as HTMLElement
             if (!screen) return
-            const rect = screen.getBoundingClientRect()
+            const screenRect = screen.getBoundingClientRect()
+
+            // TODO : get screen size from centralized place
+            let sw = 480
+            let sh = 320
+            if (model === 1) {
+                sw = 320
+                sh = 240
+            }
 
             // Map to 480x320 grid using element-relative fractions
-            const gx = Math.round(((ev.clientX - rect.left) / rect.width) * 480)
-            const gy = Math.round(((ev.clientY - rect.top) / rect.height) * 320)
+            const gx = Math.round(((ev.clientX - screenRect.left) / screenRect.width) * sw)
+            const gy = Math.round(((ev.clientY - screenRect.top) / screenRect.height) * sh)
             console.log('screen click → grid', { gx, gy })
             navigateTo({ x: gx, y: gy })
             ev.stopPropagation()
             ev.preventDefault()
         },
-        [navigateTo],
+        [navigateTo, model],
     )
 
     useEffect(() => {
@@ -242,12 +248,19 @@ const FullM8Player: FC<{
             // meanwhile send no key pressed
             bus?.commands.sendKeys(0)
         },
-        [bus])
+        [bus],
+    )
 
     return (
         <div ref={parentRef} className={cx(containerClass, fullView && 'M8-full-view')}>
-
-            <M8Body model={model} strokeColor={strokeColor} screenColor={screenColor} onClick={onClick} keysPressed={keysPressed} screenEdgeRef={screenEdgeRef} />
+            <M8Body
+                model={model}
+                strokeColor={strokeColor}
+                screenColor={screenColor}
+                onClick={onClick}
+                keysPressed={keysPressed}
+                screenEdgeRef={screenEdgeRef}
+            />
 
             <div ref={screenRef} className={screen} onClick={onScreenClick}>
                 <M8Screen bus={bus} onClick={onScreenClick} />
@@ -257,7 +270,7 @@ const FullM8Player: FC<{
 }
 
 export const M8Player: FC<{
-    bus?: ConnectedBus,
+    bus?: ConnectedBus
     fullView?: boolean
 }> = ({ bus, fullView, ...props }) => {
     return <FullM8Player {...props} strokeColor={style.themeColors.text.default} bus={bus} fullView={fullView} />
