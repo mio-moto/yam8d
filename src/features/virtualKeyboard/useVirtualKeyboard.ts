@@ -125,5 +125,5 @@ export const useVirtualKeyboard = (connection?: ConnectedBus) => {
         }
     }, [settingsContextValues, handleKey])
 
-    return { octave: octave, velocity: velocity }
+    return { octave: octave, velocity: velocity, setOctave: setOctave }
 }

@@ -8,7 +8,7 @@ export const VirtualKeyboard: FC<{
     strokeColor: string
     bus?: ConnectedBus
 }> = ({ strokeColor, bus, ...props }) => {
-    const { octave, velocity } = useVirtualKeyboard(bus)
+    const { octave, velocity, setOctave } = useVirtualKeyboard(bus)
     const dimStrokeColor = dimHexColor(strokeColor, 0.4)
     const velFill = Math.round((velocity / 127) * 32)
 
@@ -26,7 +26,16 @@ export const VirtualKeyboard: FC<{
             </div>
             {(() => {
                 const octaveIds = Array.from({ length: 10 }, (_, i) => `octave-${i}`)
-                return octaveIds.map((id, i) => <Piano key={id} strokeColor={i === octave ? strokeColor : dimStrokeColor} />)
+                return octaveIds.map((id, i) => (
+                    <div
+                        key={id}
+                        className="piano-wrapper"
+                        onClick={() => setOctave(i)}
+                        title={`Octave ${i}`}
+                    >
+                        <Piano strokeColor={i === octave ? strokeColor : dimStrokeColor} />
+                    </div>
+                ))
             })()}
         </div>
     )

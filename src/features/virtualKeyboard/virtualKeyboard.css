@@ -31,3 +31,16 @@
 .velocity-fill {
     width: 100%;
 }
+
+.piano-wrapper {
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+}
+
+.piano-wrapper:hover {
+    opacity: 0.8;
+}
+
+.piano-wrapper:active {
+    opacity: 0.6;
+}
