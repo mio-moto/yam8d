@@ -70,7 +70,7 @@ export const App: FC = () => {
           {<M8Player bus={connectedBus} fullView={settings.fullM8View} />}
         </>
       )}
-      <StatusPanel />
+      <StatusPanel bus={connectedBus} />
     </div>
   )
 }

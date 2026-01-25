@@ -42,10 +42,12 @@ export const useAutoViewGraph = (connection?: ConnectedBus) => {
         currentCursorRectRef.current = cursorRect || null
     }, [cursorRect])
 
+    // Local extension to include recorded key frames per edge
+    type EdgeWithKeys = Edge & { keys?: number[] }
     // Graph data
-    const graphRef = useRef<Map<string, Edge[]>>(new Map())
+    const graphRef = useRef<Map<string, EdgeWithKeys[]>>(new Map())
     // Per-view cursor graphs: viewTitle -> (cursorKey -> edges)
-    const cursorGraphsRef = useRef<Map<string, Map<string, Edge[]>>>(new Map())
+    const cursorGraphsRef = useRef<Map<string, Map<string, EdgeWithKeys[]>>>(new Map())
     const dirStatesRef = useRef<Map<string, Record<Direction, DirState>>>(new Map())
     // Cursor dir states per node (only within current view during exploration)
     const cursorDirStatesRef = useRef<Map<string, Record<Direction, DirState>>>(new Map())
@@ -210,7 +212,7 @@ export const useAutoViewGraph = (connection?: ConnectedBus) => {
         return cursorDirStatesRef.current.get(k) as Record<Direction, DirState>
     }
 
-    const addEdge = (from: string, to: string, dir: Direction) => {
+    const addEdge = (from: string, to: string, dir: Direction, keys?: number[]) => {
         // Optional: only record edges to known views when list is available
         if (expectedViewsRef.current.size && !expectedViewsRef.current.has(to)) {
             console.warn('Explore skip edge to unknown view', { from, to, dir })
@@ -220,7 +222,7 @@ export const useAutoViewGraph = (connection?: ConnectedBus) => {
         const list = g.get(from) ?? []
         // de-duplicate
         if (!list.find((e) => e.to === to && e.dir === dir)) {
-            list.push({ to, dir })
+            list.push({ to, dir, keys })
             g.set(from, list)
             // Recompute edge count as sum of adjacency sizes
             let edgeCount = 0
@@ -230,12 +232,12 @@ export const useAutoViewGraph = (connection?: ConnectedBus) => {
         }
     }
 
-    const addCursorEdge = (view: string, from: string, to: string, dir: Direction) => {
+    const addCursorEdge = (view: string, from: string, to: string, dir: Direction, keys?: number[]) => {
         const g = cursorGraphsRef.current
-        const vg = g.get(view) ?? new Map<string, Edge[]>()
+        const vg = g.get(view) ?? new Map<string, EdgeWithKeys[]>()
         const list = vg.get(from) ?? []
         if (!list.find((e) => e.to === to && e.dir === dir)) {
-            list.push({ to, dir })
+            list.push({ to, dir, keys })
             vg.set(from, list)
             g.set(view, vg)
             // recompute edge count for status from current view only
@@ -246,7 +248,7 @@ export const useAutoViewGraph = (connection?: ConnectedBus) => {
         }
     }
 
-    const tryDirection = async (origin: string, dir: Direction): Promise<{ changed: boolean; newKey?: string }> => {
+    const tryDirection = async (origin: string, dir: Direction): Promise<{ changed: boolean; newKey?: string; keysSent?: number[] }> => {
         moveBudgetRef.current -= 1
         if (moveBudgetRef.current <= 0) {
             errorsRef.current.push('Move budget exhausted')
@@ -263,12 +265,12 @@ export const useAutoViewGraph = (connection?: ConnectedBus) => {
         const changedKey = await waitForPageChange(origin, caps.settleMs)
         if (changedKey && changedKey !== origin) {
             // Only return the discovered key; edge recording happens after confirming symmetric backtrack.
-            return { changed: true, newKey: changedKey }
+            return { changed: true, newKey: changedKey, keysSent: seq }
         }
         return { changed: false }
     }
 
-    const tryCursorDirection = async (originKey: string, dir: Direction): Promise<{ changed: boolean; newKey?: string }> => {
+    const tryCursorDirection = async (originKey: string, dir: Direction): Promise<{ changed: boolean; newKey?: string; keysSent?: number[] }> => {
         moveBudgetRef.current -= 1
         if (moveBudgetRef.current <= 0) {
             errorsRef.current.push('Move budget exhausted')
@@ -284,7 +286,7 @@ export const useAutoViewGraph = (connection?: ConnectedBus) => {
         await sleep(40)
         const changedKey = await waitForCursorChange(originKey, Math.max(40, caps.settleMs))
         if (changedKey && changedKey !== originKey) {
-            return { changed: true, newKey: changedKey }
+            return { changed: true, newKey: changedKey, keysSent: seq }
         }
         return { changed: false }
     }
@@ -348,7 +350,7 @@ export const useAutoViewGraph = (connection?: ConnectedBus) => {
             const st = states[dir]
             if (st.state === 'recorded' || st.state === 'deadend' || st.state === 'asymmetric') continue
             // RAY: go as far as we can in this direction, marking exploratory edges
-            const ray: Array<{ from: string; to: string; dir: Direction }> = []
+            const ray: Array<{ from: string; to: string; dir: Direction; keys?: number[] }> = []
             let current = origin
             while (!stopFlagRef.current) {
                 // Skip retrying directions already marked as deadend at this node
@@ -361,6 +363,7 @@ export const useAutoViewGraph = (connection?: ConnectedBus) => {
                     if (res.changed) {
                         changed = true
                         newKey = res.newKey as string
+                        ray.push({ from: current, to: newKey, dir, keys: res.keysSent })
                         break
                     }
                 }
@@ -371,7 +374,7 @@ export const useAutoViewGraph = (connection?: ConnectedBus) => {
                 }
                 ensureDirStates(current)[dir] = { state: 'exploratory', to: newKey }
                 ensureDirStates(newKey) // init states for landed view
-                ray.push({ from: current, to: newKey, dir })
+                // edge already recorded in ray when changed
                 if (!visitedRef.current.has(newKey)) {
                     visitedRef.current.add(newKey)
                     updateStatus({ visitedCount: visitedRef.current.size, currentPageKey: newKey })
@@ -387,8 +390,8 @@ export const useAutoViewGraph = (connection?: ConnectedBus) => {
                 const res = await backtrackOpposite(step.from, dir)
                 if (res.ok) {
                     // Confirmed symmetric; record both dirs
-                    addEdge(step.from, step.to, dir)
-                    addEdge(step.to, step.from, opposite[dir])
+                    addEdge(step.from, step.to, dir, step.keys)
+                    addEdge(step.to, step.from, opposite[dir], toKeyMasks([opposite[dir]], { shift: true }))
                     ensureDirStates(step.from)[dir] = { state: 'recorded', to: step.to }
                     ensureDirStates(step.to)[opposite[dir]] = { state: 'recorded', to: step.from }
                     updateStatus({ currentPageKey: step.from })
@@ -415,7 +418,7 @@ export const useAutoViewGraph = (connection?: ConnectedBus) => {
             const states = ensureCursorDirStates(originKey)
             const st = states[dir]
             if (st.state === 'recorded' || st.state === 'deadend' || st.state === 'asymmetric') continue
-            const ray: Array<{ from: string; to: string; dir: Direction }> = []
+            const ray: Array<{ from: string; to: string; dir: Direction; keys?: number[] }> = []
             let current = originKey
             while (!stopFlagRef.current) {
                 const currState = ensureCursorDirStates(current)[dir]
@@ -427,6 +430,7 @@ export const useAutoViewGraph = (connection?: ConnectedBus) => {
                     if (res.changed) {
                         changed = true
                         newKey = res.newKey as string
+                        ray.push({ from: current, to: newKey, dir, keys: res.keysSent })
                         break
                     }
                 }
@@ -436,7 +440,7 @@ export const useAutoViewGraph = (connection?: ConnectedBus) => {
                 }
                 ensureCursorDirStates(current)[dir] = { state: 'exploratory', to: newKey }
                 ensureCursorDirStates(newKey)
-                ray.push({ from: current, to: newKey, dir })
+                // edge already recorded in ray when changed
                 updateStatus({ currentPageKey: currentPageRef.current, currentViewTitle: view })
                 current = newKey
             }
@@ -445,8 +449,8 @@ export const useAutoViewGraph = (connection?: ConnectedBus) => {
                 const step = ray[i]
                 const res = await backtrackOppositeCursor(step.from, dir)
                 if (res.ok) {
-                    addCursorEdge(view, step.from, step.to, dir)
-                    addCursorEdge(view, step.to, step.from, opposite[dir])
+                    addCursorEdge(view, step.from, step.to, dir, step.keys)
+                    addCursorEdge(view, step.to, step.from, opposite[dir], toKeyMasks([opposite[dir]], { shift: false }))
                     ensureCursorDirStates(step.from)[dir] = { state: 'recorded', to: step.to }
                     ensureCursorDirStates(step.to)[opposite[dir]] = { state: 'recorded', to: step.from }
                 } else {
@@ -516,7 +520,7 @@ export const useAutoViewGraph = (connection?: ConnectedBus) => {
     const navigateRecordedPath = async (fromKey: string, toKey: string) => {
         const res = computePagePath(graphRef.current, fromKey.toLowerCase(), toKey.toLowerCase())
         if (!res) return false
-        const seq = toKeyMasks(res.directions, { shift: true })
+        const seq = res.frames?.length ? res.frames : toKeyMasks(res.directions, { shift: true })
         await sendSequenceDirect(seq)
         const timeoutAt = Date.now() + Math.max(caps.settleMs, res.directions.length * caps.settleMs)
         while (Date.now() < timeoutAt) {
@@ -532,7 +536,7 @@ export const useAutoViewGraph = (connection?: ConnectedBus) => {
         if (!vg) return false
         const res = computePagePath(vg, fromKey, toKey)
         if (!res) return false
-        const seq = toKeyMasks(res.directions, { shift: false })
+        const seq = res.frames?.length ? res.frames : toKeyMasks(res.directions, { shift: false })
         await sendSequenceDirect(seq)
         const timeoutAt = Date.now() + Math.max(Math.max(40, caps.settleMs), res.directions.length * Math.max(40, caps.settleMs))
         while (Date.now() < timeoutAt) {
@@ -690,50 +694,21 @@ export const useAutoViewGraph = (connection?: ConnectedBus) => {
         return cursorGraphsRef.current
     }, [])
 
-    // biome-ignore lint/correctness/useExhaustiveDependencies: <internal helpers are stable enough>
     const downloadJson = useCallback(() => {
         const opposite: Record<Direction, Direction> = { up: 'down', down: 'up', left: 'right', right: 'left' }
-        if (status.mode === 'cursor') {
-            const vt = getViewTitle() || 'unknown-view'
-            const vg = cursorGraphsRef.current.get(vt) ?? new Map<string, Edge[]>()
-            const obj: Record<string, Edge[]> = {}
-            for (const [from, edges] of vg.entries()) {
-                const keep: Edge[] = []
-                for (const e of edges) {
-                    const revs = vg.get(e.to) || []
-                    if (revs.find((r) => r.to === from && r.dir === opposite[e.dir])) {
-                        keep.push({ to: e.to, dir: e.dir })
-                    }
-                }
-                if (keep.length) obj[from] = keep
-            }
-            const payload = { viewTitle: vt, graphs: Object.fromEntries([[vt, obj]]) }
-            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
-            const url = URL.createObjectURL(blob)
-            const a = document.createElement('a')
-            const sanitize = (s: string) => s.replace(/[^a-z0-9\-_]+/gi, '_')
-            a.href = url
-            a.download = `cursorGraph.${sanitize(vt)}.json`
-            document.body.appendChild(a)
-            a.click()
-            a.remove()
-            URL.revokeObjectURL(url)
-            return
-        }
-        // default: view graph
-        const obj: Record<string, Edge[]> = {}
+        // Always export the view exploration graph, including keys
+        const obj: Record<string, { to: string; dir: Direction; keys?: number[] }[]> = {}
         for (const [from, edges] of graphRef.current.entries()) {
-            const keep: Edge[] = []
+            const keep: { to: string; dir: Direction; keys?: number[] }[] = []
             for (const e of edges) {
                 const revs = graphRef.current.get(e.to) || []
                 if (revs.find((r) => r.to === from && r.dir === opposite[e.dir])) {
-                    keep.push({ to: e.to, dir: e.dir })
+                    keep.push({ to: e.to, dir: e.dir, keys: e.keys })
                 }
             }
             if (keep.length) obj[from] = keep
         }
-        const payload = { viewTitle: getViewTitle(), graphs: Object.fromEntries([[getViewTitle() ?? 'unknown-view', obj]]) }
-        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+        const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' })
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url
@@ -742,7 +717,7 @@ export const useAutoViewGraph = (connection?: ConnectedBus) => {
         a.click()
         a.remove()
         URL.revokeObjectURL(url)
-    }, [status.mode])
+    }, [])
 
     // Export all cursor graphs in a single combined JSON file
     const downloadAllCursorJson = useCallback(() => {

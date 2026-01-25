@@ -1,214 +1,308 @@
 {
-  "instmodsscpimtv": [
-    {
-      "to": "tablescpimtv",
-      "dir": "down"
-    }
-  ],
-  "instrumentpoolscppmivit": [
-    {
-      "to": "instmodsscppmivt",
-      "dir": "down"
-    }
-  ],
-  "tablescpimtv": [
-    {
-      "to": "instmodsscpimtv",
-      "dir": "up"
-    },
-    {
-      "to": "mixerscpimtvx",
-      "dir": "down"
-    },
-    {
-      "to": "instscpmivt",
-      "dir": "left"
-    }
-  ],
-  "mixerscpimtvx": [
-    {
-      "to": "effectsettingsscpimtvx",
-      "dir": "down"
-    },
-    {
-      "to": "tablescpimtv",
-      "dir": "up"
-    }
-  ],
-  "effectsettingsscpimtvx": [
-    {
-      "to": "mixerscpimtvx",
-      "dir": "up"
-    }
-  ],
-  "chainspcvpit": [
-    {
-      "to": "songpsvcpit",
-      "dir": "left"
-    },
-    {
-      "to": "phrasescgpvit",
-      "dir": "right"
-    },
-    {
-      "to": "projectspcvpit",
-      "dir": "up"
-    },
-    {
-      "to": "mixerspcvxpit",
-      "dir": "down"
-    }
-  ],
-  "songpsvcpit": [
-    {
-      "to": "chainspcvpit",
-      "dir": "right"
-    },
-    {
-      "to": "projectpsvcpit",
-      "dir": "up"
-    },
-    {
-      "to": "mixerpsvxcpit",
-      "dir": "down"
-    }
-  ],
-  "phrasescgpvit": [
-    {
-      "to": "chainspcvpit",
-      "dir": "left"
-    },
-    {
-      "to": "instscpmivt",
-      "dir": "right"
-    },
-    {
-      "to": "groovescsgpvit",
-      "dir": "up"
-    },
-    {
-      "to": "mixerscgpvxit",
-      "dir": "down"
-    }
-  ],
-  "instscpmivt": [
-    {
-      "to": "phrasescgpvit",
-      "dir": "left"
-    },
-    {
-      "to": "tablescpimtv",
-      "dir": "right"
-    },
-    {
-      "to": "instmodsscppmivt",
-      "dir": "up"
-    },
-    {
-      "to": "mixerscpmivxt",
-      "dir": "down"
-    }
-  ],
-  "instmodsscppmivt": [
-    {
-      "to": "instrumentpoolscppmivit",
-      "dir": "up"
-    },
-    {
-      "to": "instscpmivt",
-      "dir": "down"
-    }
-  ],
-  "mixerscpmivxt": [
-    {
-      "to": "effectsettingsscpmivxt",
-      "dir": "down"
-    },
-    {
-      "to": "instscpmivt",
-      "dir": "up"
-    }
-  ],
-  "effectsettingsscpmivxt": [
-    {
-      "to": "mixerscpmivxt",
-      "dir": "up"
-    }
-  ],
-  "groovescsgpvit": [
-    {
-      "to": "scalescsgpvit",
-      "dir": "up"
-    },
-    {
-      "to": "phrasescgpvit",
-      "dir": "down"
-    }
-  ],
-  "scalescsgpvit": [
-    {
-      "to": "groovescsgpvit",
-      "dir": "down"
-    }
-  ],
-  "mixerscgpvxit": [
-    {
-      "to": "effectsettingsscgpvxit",
-      "dir": "down"
-    },
-    {
-      "to": "phrasescgpvit",
-      "dir": "up"
-    }
-  ],
-  "effectsettingsscgpvxit": [
-    {
-      "to": "mixerscgpvxit",
-      "dir": "up"
-    }
-  ],
-  "projectspcvpit": [
-    {
-      "to": "chainspcvpit",
-      "dir": "down"
-    }
-  ],
-  "mixerspcvxpit": [
-    {
-      "to": "effectsettingsspcvxpit",
-      "dir": "down"
-    },
-    {
-      "to": "chainspcvpit",
-      "dir": "up"
-    }
-  ],
-  "effectsettingsspcvxpit": [
-    {
-      "to": "mixerspcvxpit",
-      "dir": "up"
-    }
-  ],
-  "projectpsvcpit": [
-    {
-      "to": "songpsvcpit",
-      "dir": "down"
-    }
-  ],
-  "mixerpsvxcpit": [
-    {
-      "to": "effectsettingspsvxcpit",
-      "dir": "down"
-    },
-    {
-      "to": "songpsvcpit",
-      "dir": "up"
-    }
-  ],
-  "effectsettingspsvxcpit": [
-    {
-      "to": "mixerpsvxcpit",
-      "dir": "up"
-    }
-  ]
+    "song": [
+        {
+            "to": "project",
+            "dir": "up",
+            "keys": [
+                80,
+                0
+            ]
+        },
+        {
+            "to": "mixer",
+            "dir": "down",
+            "keys": [
+                48,
+                0
+            ],
+            "weight": 10
+        },
+        {
+            "to": "chain",
+            "dir": "right",
+            "keys": [
+                20,
+                0
+            ]
+        }
+    ],
+    "project": [
+        {
+            "to": "song",
+            "dir": "down",
+            "keys": [
+                48,
+                0
+            ]
+        },
+        {
+            "to": "chain",
+            "dir": "down",
+            "keys": [
+                48,
+                0
+            ]
+        }
+    ],
+    "mixer": [
+        {
+            "to": "effectsettings",
+            "dir": "down",
+            "keys": [
+                48,
+                0
+            ]
+        },
+        {
+            "to": "song",
+            "dir": "up",
+            "keys": [
+                80,
+                0
+            ],
+            "weight": 10
+        },
+        {
+            "to": "chain",
+            "dir": "up",
+            "keys": [
+                80,
+                0
+            ],
+            "weight": 10
+        },
+        {
+            "to": "phrase",
+            "dir": "up",
+            "keys": [
+                80,
+                0
+            ],
+            "weight": 10
+        },
+        {
+            "to": "inst",
+            "dir": "up",
+            "keys": [
+                80,
+                0
+            ],
+            "weight": 10
+        },
+        {
+            "to": "table",
+            "dir": "up",
+            "keys": [
+                80,
+                0
+            ],
+            "weight": 10
+        }
+    ],
+    "effectsettings": [
+        {
+            "to": "mixer",
+            "dir": "up",
+            "keys": [
+                80,
+                0
+            ]
+        }
+    ],
+    "inst": [
+        {
+            "to": "table",
+            "dir": "right",
+            "keys": [
+                20,
+                0
+            ]
+        },
+        {
+            "to": "phrase",
+            "dir": "left",
+            "keys": [
+                144,
+                0
+            ]
+        },
+        {
+            "to": "instmods",
+            "dir": "up",
+            "keys": [
+                80,
+                0
+            ]
+        },
+        {
+            "to": "mixer",
+            "dir": "down",
+            "keys": [
+                48,
+                0
+            ],
+            "weight": 10
+        }
+    ],
+    "table": [
+        {
+            "to": "inst",
+            "dir": "left",
+            "keys": [
+                144,
+                0
+            ]
+        },
+        {
+            "to": "instmods",
+            "dir": "up",
+            "keys": [
+                80,
+                0
+            ]
+        },
+        {
+            "to": "mixer",
+            "dir": "down",
+            "keys": [
+                48,
+                0
+            ],
+            "weight": 10
+        }
+    ],
+    "phrase": [
+        {
+            "to": "inst",
+            "dir": "right",
+            "keys": [
+                20,
+                0
+            ]
+        },
+        {
+            "to": "chain",
+            "dir": "left",
+            "keys": [
+                144,
+                0
+            ]
+        },
+        {
+            "to": "groove",
+            "dir": "up",
+            "keys": [
+                80,
+                0
+            ]
+        },
+        {
+            "to": "mixer",
+            "dir": "down",
+            "keys": [
+                48,
+                0
+            ],
+            "weight": 10
+        }
+    ],
+    "chain": [
+        {
+            "to": "phrase",
+            "dir": "right",
+            "keys": [
+                20,
+                0
+            ]
+        },
+        {
+            "to": "song",
+            "dir": "left",
+            "keys": [
+                144,
+                0
+            ]
+        },
+        {
+            "to": "project",
+            "dir": "up",
+            "keys": [
+                80,
+                0
+            ]
+        },
+        {
+            "to": "mixer",
+            "dir": "down",
+            "keys": [
+                48,
+                0
+            ],
+            "weight": 10
+        }
+    ],
+    "groove": [
+        {
+            "to": "scale",
+            "dir": "up",
+            "keys": [
+                80,
+                0
+            ]
+        },
+        {
+            "to": "phrase",
+            "dir": "down",
+            "keys": [
+                48,
+                0
+            ]
+        }
+    ],
+    "scale": [
+        {
+            "to": "groove",
+            "dir": "down",
+            "keys": [
+                48,
+                0
+            ]
+        }
+    ],
+    "instmods": [
+        {
+            "to": "instrumentpool",
+            "dir": "up",
+            "keys": [
+                80,
+                0
+            ]
+        },
+        {
+            "to": "inst",
+            "dir": "down",
+            "keys": [
+                48,
+                0
+            ]
+        },
+        {
+            "to": "table",
+            "dir": "down",
+            "keys": [
+                48,
+                0
+            ]
+        }
+    ],
+    "instrumentpool": [
+        {
+            "to": "instmods",
+            "dir": "down",
+            "keys": [
+                48,
+                0
+            ]
+        }
+    ]
 }

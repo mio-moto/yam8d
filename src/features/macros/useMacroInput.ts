@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef } from 'react'
 import type { ConnectedBus } from '../connection/connection.ts'
-import { useViewName } from '../state/viewStore'
+import { useMacroStatus, useViewName } from '../state/viewStore'
 // Runtime graph will be loaded from public JSON or discovered by automaton
-import { getLoadedGraph, loadM8GraphJson, loadViewList } from './m8GraphLoader'
+import { getLoadedEdgeKeys, getLoadedGraph, loadM8GraphJson, loadViewList } from './m8GraphLoader'
 import { getLatestDiscoveredGraph } from './autoViewGraph'
 import { useMacroRunner } from './macroRunner'
 import { computePagePath, toKeyMasks } from './navAStar'
@@ -22,8 +22,13 @@ export function getM8GraphAsMap() {
 export const useMacroInput = (connection?: ConnectedBus) => {
     const runner = useMacroRunner(connection)
     const [viewName] = useViewName()
+    const [macroStatus] = useMacroStatus()
     const pendingTarget = useRef<string>('')
     const viewSetRef = useRef<Set<string>>(new Set())
+    const retryRef = useRef<boolean>(false)
+    const navigationGoal = useRef<string | null>(null)
+    const navigationSteps = useRef<number>(0)
+    const maxNavigationSteps = 20 // Safety limit to prevent infinite loops
 
     const resolveTarget = useCallback((name: string) => {
         const goal = (name || '').toLowerCase()
@@ -36,41 +41,148 @@ export const useMacroInput = (connection?: ConnectedBus) => {
         return goal
     }, [])
 
-    const planAndSendPath = useCallback(
-        (targetPage: string) => {
+    // Infer the normalized title from a node id by longest prefix match from view list
+    const titleOfNode = useCallback((nodeId: string) => {
+        const id = (nodeId || '').toLowerCase()
+        let pick = ''
+        for (const name of viewSetRef.current) {
+            if (id.startsWith(name) && name.length > pick.length) pick = name
+        }
+        return pick
+    }, [])
 
-            const start = viewName
+    // Build a path using title-only start/goal: choose the shortest among all matching nodes
+    const buildTitlePath = useCallback((targetTitle: string) => {
+        const graph = getM8GraphAsMap()
+        const starts: string[] = []
+        const goals: string[] = []
+        for (const node of graph.keys()) {
+            const t = titleOfNode(node)
+            if (!t) continue
+            if (t === (viewName || '')) starts.push(node)
+            if (t === targetTitle) goals.push(node)
+        }
+        if (!starts.length || !goals.length) return null
 
-            const goal = resolveTarget(targetPage)
-
-            if (!start || !goal) return
-
-            const graph = getM8GraphAsMap()
-
-            if (!graph.has(goal)) {
-                console.warn('Unknown goal in graph', { goal })
-                return
+        let best: { pages: string[]; directions: ('up' | 'down' | 'left' | 'right')[]; cost: number } | null = null
+        for (const s of starts) {
+            for (const g of goals) {
+                const res = computePagePath(getM8GraphAsMap(), s, g)
+                if (res && (!best || res.cost < best.cost)) best = res
             }
+        }
+        return best
+    }, [titleOfNode, viewName])
 
-            // Fallback: navigate shift+left to reach a known start
-            if (!graph.has(start)) {
-                pendingTarget.current = goal
-                runner.start([M8KeyMask.Shift | M8KeyMask.Left])
+    const framesForEdge = useCallback((from: string, to: string, dir: 'up' | 'down' | 'left' | 'right') => {
+        const keysMap = getLoadedEdgeKeys()
+        const frames = keysMap?.get(from.toLowerCase())?.get(to)
+        if (frames?.length) {
+            // Ensure final release present
+            return frames[frames.length - 1] === 0 ? frames.slice() : [...frames, 0]
+        }
+        // Fallback to directional masks (legacy)
+        return toKeyMasks([dir], { shift: true })
+    }, [])
+
+    const executeNextNavigationStep = useCallback(() => {
+        const goalTitle = navigationGoal.current
+        const startTitle = viewName || ''
+
+        if (!goalTitle || !startTitle) return
+
+        // Check if we've reached the goal
+        if (startTitle === goalTitle) {
+            console.log('Navigation complete:', { goal: goalTitle, steps: navigationSteps.current })
+            navigationGoal.current = null
+            navigationSteps.current = 0
+            return
+        }
+
+        // Safety check: prevent infinite loops
+        if (navigationSteps.current >= maxNavigationSteps) {
+            console.warn('Navigation aborted: max steps reached', { startTitle, goalTitle, steps: navigationSteps.current })
+            navigationGoal.current = null
+            navigationSteps.current = 0
+            return
+        }
+
+        const graph = getM8GraphAsMap()
+
+        // Unknown current title: try Shift+Up fallback once
+        const knownStart = Array.from(graph.keys()).some((k) => titleOfNode(k) === startTitle)
+        if (!knownStart) {
+            if (!retryRef.current) {
+                retryRef.current = true
+                runner.start([M8KeyMask.Shift | M8KeyMask.Up, 0])
+                // Re-plan shortly
+                setTimeout(() => {
+                    executeNextNavigationStep()
+                    retryRef.current = false
+                }, 50)
+            } else {
+                console.log('Navigation stopped: unknown current view after retry')
+                navigationGoal.current = null
+                navigationSteps.current = 0
             }
+            return
+        }
 
-            const res = computePagePath(graph, start, goal)
-            if (!res) {
-                console.warn('No path found', { start, goal })
-                return
-            }
+        // Compute path from current position to goal
+        const res = buildTitlePath(goalTitle)
+        if (!res) {
+            console.warn('No path found (iterative)', { startTitle, goalTitle, step: navigationSteps.current })
+            navigationGoal.current = null
+            navigationSteps.current = 0
+            return
+        }
 
-            const seq = toKeyMasks(res.directions, { shift: true })
-            console.log('Macro plan', { start, goal, steps: res.directions.length, seqLen: seq.length })
-            runner.cancel('new page path')
-            runner.start(seq)
+        // Execute ONLY the first step
+        if (res.pages.length > 1) {
+            const from = res.pages[0]
+            const to = res.pages[1]
+            const dir = res.directions[0]
+            const frames = framesForEdge(from, to, dir)
+
+            navigationSteps.current += 1
+            console.log('Navigation step', {
+                step: navigationSteps.current,
+                from: startTitle,
+                to: titleOfNode(to),
+                dir,
+                goal: goalTitle,
+                frames
+            })
+
+            runner.cancel('iterative navigation step')
+            runner.start(frames)
+        }
+    }, [runner, viewName, buildTitlePath, framesForEdge, titleOfNode])
+
+    const navigateToView = useCallback(
+        (targetViewTitle: string) => {
+            const goalTitle = resolveTarget(targetViewTitle)
+            if (!goalTitle) return
+
+            // Set the navigation goal and reset step counter
+            navigationGoal.current = goalTitle
+            navigationSteps.current = 0
+
+            console.log('Starting iterative navigation', { goal: goalTitle, from: viewName || 'unknown' })
+
+            // Start the first step immediately
+            executeNextNavigationStep()
         },
-        [runner, viewName, resolveTarget],
+        [resolveTarget, viewName, executeNextNavigationStep],
     )
+    // Subscribe to view changes AND macro completion to execute next navigation step
+    useEffect(() => {
+        if (navigationGoal.current && viewName && !macroStatus.running) {
+            // View changed and macro completed while navigating - execute next step
+            executeNextNavigationStep()
+        }
+    }, [viewName, macroStatus.running, executeNextNavigationStep])
+
     // biome-ignore lint/correctness/useExhaustiveDependencies: <title or minimap should trigger>
     useEffect(() => {
         // Try loading runtime graph JSON once and viewlist
@@ -78,9 +190,9 @@ export const useMacroInput = (connection?: ConnectedBus) => {
         loadViewList().then((set) => {
             if (set?.size) viewSetRef.current = set
         }).catch(() => void 0)
-        if (pendingTarget.current) planAndSendPath(pendingTarget.current)
+        if (pendingTarget.current) navigateToView(pendingTarget.current)
         pendingTarget.current = ''
-    }, [planAndSendPath, viewName])
+    }, [navigateToView, viewName])
 
     const handleInput = useCallback(
         (ev: KeyboardEvent) => {
@@ -90,61 +202,57 @@ export const useMacroInput = (connection?: ConnectedBus) => {
             // Any key should preempt current macro
             runner.cancel('preempted by keyboard')
 
-            //console.log('useMacroInput keydown', ev.code)
             switch (ev.code) {
                 case 'F1':
-                    planAndSendPath('songpsvcpit')
+                    navigateToView('song')
                     ev.preventDefault()
                     break
                 case 'F2':
-                    planAndSendPath('chainspcvpit')
+                    navigateToView('chain')
                     ev.preventDefault()
                     break
                 case 'F3':
-                    planAndSendPath('phrasescgpvit')
+                    navigateToView('phrase')
                     ev.preventDefault()
                     break
                 case 'F4':
-                    planAndSendPath('tablescpimtv')
+                    navigateToView('table')
                     ev.preventDefault()
                     break
                 case 'F5':
-                    planAndSendPath('instrumentpoolscppmivit')
+                    navigateToView('instrumentpool')
                     ev.preventDefault()
                     break
                 case 'F6':
-                    planAndSendPath('instscpmivt')
+                    navigateToView('inst')
                     ev.preventDefault()
                     break
                 case 'F7':
-                    planAndSendPath('mixerscgpvxit')
+                    navigateToView('instmods')
                     ev.preventDefault()
                     break
                 case 'F8':
-                    planAndSendPath('effectsettingsscgpvxit')
+                    navigateToView('effectsettings')
                     ev.preventDefault()
                     break
                 case 'F9':
-                    planAndSendPath('projectspcvpit')
+                    navigateToView('project')
                     ev.preventDefault()
                     break
                 default:
                     break
             }
         },
-        [planAndSendPath, runner],
+        [navigateToView, runner],
     )
 
     useEffect(() => {
-        const handleKeyDown = (ev: KeyboardEvent) => {
-            handleInput(ev)
-        }
-        //console.log('useMacroInput mounted: listening for keydown')
-        window.addEventListener('keydown', handleKeyDown)
+        window.addEventListener('keydown', handleInput)
 
         return () => {
-            window.removeEventListener('keydown', handleKeyDown)
-            //console.log('useMacroInput cleanup: removed listeners')
+            window.removeEventListener('keydown', handleInput)
         }
     }, [handleInput])
+
+    return { navigateToView }
 }

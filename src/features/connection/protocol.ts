@@ -113,8 +113,77 @@ export const protocol = () => {
         wave: (data: WaveCommand) => void
         key: (data: KeyCommand) => void
         system: (data: SystemCommand) => void
+        systemInfo: (data: {
+            model: SystemCommand['model']
+            fontMode: SystemCommand['fontMode']
+            spacingX: number
+            spacingY: number
+            offX: number
+            offY: number
+            screenWidth: number
+            screenHeight: number
+        }) => void
         any: (data: Uint8Array<ArrayBufferLike>) => void
     }>()
+
+    // Cached enriched system infos (includes layout metrics)
+    let cachedSystemInfos: {
+        model: SystemCommand['model']
+        fontMode: SystemCommand['fontMode']
+        spacingX: number
+        spacingY: number
+        offX: number
+        offY: number
+        screenWidth: number
+        screenHeight: number
+    } | undefined
+
+    const computeLayoutMetrics = (sys: SystemCommand | undefined) => {
+        // Defaults assume Model:02 small font
+        let spacingX = 12
+        let spacingY = 14
+        const offX = 0
+        let offY = 0
+        let screenWidth = 480
+        let screenHeight = 320
+
+        if (!sys) return { spacingX, spacingY, offX, offY, screenWidth, screenHeight }
+
+        const isV2 = sys.model === 'M8 Model:02' || sys.model === 'Beta M8'
+        const fm = sys.fontMode // 0 small, 1 large, 2 large/no-scope
+
+        if (isV2) {
+            screenWidth = 480
+            screenHeight = 320
+            if (fm === 0) {
+                spacingX = 12
+                spacingY = 14
+                offY = 3
+            } else if (fm === 1) {
+                spacingX = 12
+                spacingY = 14
+                offY = 2
+            } else {
+                spacingX = 15
+                spacingY = 16
+                offY = 5
+            }
+        } else {
+            // Model:01
+            screenWidth = 320
+            screenHeight = 240
+            if (fm === 0) {
+                spacingX = 8
+                spacingY = 10
+                offY = 0
+            } else {
+                spacingX = 10
+                spacingY = 12
+                offY = 0
+            }
+        }
+        return { spacingX, spacingY, offX, offY, screenWidth, screenHeight }
+    }
 
     const dispatch = (data: DataView, dataLength: number) => {
         try {
@@ -146,6 +215,13 @@ export const protocol = () => {
                 case 0xff: { // system info
                     lastSystemInfo = parseSystemCommand(data, dataLength)
                     eventBus.emit('system', lastSystemInfo)
+                    const metrics = computeLayoutMetrics(lastSystemInfo)
+                    cachedSystemInfos = {
+                        model: lastSystemInfo.model,
+                        fontMode: lastSystemInfo.fontMode,
+                        ...metrics,
+                    }
+                    eventBus.emit('systemInfo', cachedSystemInfos)
                     break
                 }
                 default:
@@ -159,5 +235,26 @@ export const protocol = () => {
         eventBus,
         dispatch,
         getSystemInfo: () => lastSystemInfo,
+        getSystemInfos: () => {
+            // Build from last system if not yet computed
+            if (!cachedSystemInfos) {
+                const metrics = computeLayoutMetrics(lastSystemInfo)
+                if (lastSystemInfo) {
+                    cachedSystemInfos = {
+                        model: lastSystemInfo.model,
+                        fontMode: lastSystemInfo.fontMode,
+                        ...metrics,
+                    }
+                } else {
+                    // Unknown yet; return defaults
+                    cachedSystemInfos = {
+                        model: 'Headless',
+                        fontMode: 0,
+                        ...metrics,
+                    }
+                }
+            }
+            return cachedSystemInfos
+        },
     }
 }

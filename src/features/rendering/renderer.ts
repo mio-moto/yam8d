@@ -38,6 +38,7 @@ const v1Screen = {
   width: 320,
   height: 240,
 } as const
+
 const v2Screen = {
   width: 480,
   height: 320,

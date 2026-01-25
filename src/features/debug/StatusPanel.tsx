@@ -1,8 +1,8 @@
 import { css, cx } from '@linaria/core'
-// import type { ConnectedBus } from '../connection/connection'
-// import { useMacroRunner } from '../macros/macroRunner'
-// import { useAutoViewGraph } from '../macros/autoViewGraph'
-import { useCellMetrics, useCursor, useCursorRect, useDeviceModel, useFontMode, useMacroStatus, useMinimapKey, useViewTitle, useTitleColor, useBackgroundColor } from '../state/viewStore'
+import type { ConnectedBus } from '../connection/connection'
+import { useMacroRunner } from '../macros/macroRunner'
+import { useAutoViewGraph } from '../macros/autoViewGraph'
+import { useCellMetrics, useCursor, useCursorRect, useDeviceModel, useFontMode, useMacroStatus, useViewTitle, useViewName } from '../state/viewStore'
 
 const panelClass = css`
   position: absolute;
@@ -40,32 +40,33 @@ const panelClass = css`
   }
 `
 
-export const StatusPanel = (/*{ bus }: { bus?: ConnectedBus }*/) => {
-  // const [viewName] = useViewName()
+export const StatusPanel = ({ bus }: { bus?: ConnectedBus }) => {
+  const [viewName] = useViewName()
   const [viewTitle] = useViewTitle()
-  const [minimapKey] = useMinimapKey()
-  const [titleFirstFg] = useTitleColor()
-  const [titleFirstBg] = useBackgroundColor()
+  // const [minimapKey] = useMinimapKey()
+  // const [titleFirstFg] = useTitleColor()
+  // const [titleFirstBg] = useBackgroundColor()
   const [cursor] = useCursor()
   const [cursorRect] = useCursorRect()
   const [macro] = useMacroStatus()
   const [model] = useDeviceModel()
   const [fontMode] = useFontMode()
   const [metrics] = useCellMetrics()
-  // const runner = useMacroRunner(bus)
-  // const automaton = useAutoViewGraph(bus)
+  const runner = useMacroRunner(bus)
+  const automaton = useAutoViewGraph(bus)
 
   return (
     <div className={cx('status-panel', panelClass)}>
-      {/* <span className="label">View</span>
-      <span className="value">{viewName ?? '—'}</span>
-      <span /> */}
 
       <span className="label">Title</span>
       <span className="value">{viewTitle ?? '—'}</span>
       <span />
 
-      <span className="label">Title FG</span>
+      <span className="label">View id</span>
+      <span className="value">{viewName ?? '—'}</span>
+      <span />
+
+      {/* <span className="label">Title FG</span>
       <span className="value">{titleFirstFg ? `${titleFirstFg.r}, ${titleFirstFg.g}, ${titleFirstFg.b}` : '—'}</span>
       <span />
 
@@ -75,7 +76,7 @@ export const StatusPanel = (/*{ bus }: { bus?: ConnectedBus }*/) => {
 
       <span className="label">Minimap</span>
       <span className="value">{minimapKey ?? '—'}</span>
-      <span />
+      <span /> */}
 
       <span className="label">Cursor</span>
       <span className="value">{cursor ? `${cursor.x}, ${cursor.y}` : '—'}</span>

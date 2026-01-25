@@ -17,7 +17,7 @@ export const useMacroRunner = (connection?: ConnectedBus) => {
             store.set(macroStatusAtom, { running: false })
             if (reason) {
                 // optional: log reason
-                console.debug('Macro canceled:', reason)
+                //console.debug('Macro canceled:', reason)
             }
         },
         [store],
@@ -28,10 +28,10 @@ export const useMacroRunner = (connection?: ConnectedBus) => {
         if (queue.current.length === 0) return
         setRunning(true)
         store.set(macroStatusAtom, { running: true, currentStep: 0, sequenceLength: queue.current.length })
-        // kick off
-        const first = queue.current.shift() as number
-        lastSent.current = first
-        connection?.commands.sendKeys(first)
+        // // kick off
+        // const first = queue.current.shift() as number
+        // lastSent.current = first
+        // connection?.commands.sendKeys(first)
     }
 
 
@@ -63,6 +63,12 @@ export const useMacroRunner = (connection?: ConnectedBus) => {
 
         window.addEventListener('keydown', onKeyDown)
         connection?.protocol.eventBus.on('key', onKeyEcho)
+
+        // kick off
+        const first = queue.current.shift() as number
+        lastSent.current = first
+        connection?.commands.sendKeys(first)
+
 
         return () => {
             window.removeEventListener('keydown', onKeyDown)

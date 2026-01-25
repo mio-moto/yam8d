@@ -1,0 +1,26 @@
+{
+    "views": [
+        "chain",
+        "effectsettings",
+        "groove",
+        "instmods",
+        "inst",
+        "instrumentpool",
+        "mixer",
+        "phrase",
+        "project",
+        "scale",
+        "song",
+        "table",
+        "mixeq",
+        "limiterscope",
+        "mixscope",
+        "modfxeq",
+        "delayeq",
+        "reverbeq",
+        "loadinstrument",
+        "selectsavedirectory",
+        "createdirectory",
+        "systemsettings"
+    ]
+}
