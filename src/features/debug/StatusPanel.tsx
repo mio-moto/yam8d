@@ -1,7 +1,7 @@
 import { css, cx } from '@linaria/core'
-import type { ConnectedBus } from '../connection/connection'
-import { useMacroRunner } from '../macros/macroRunner'
-import { useAutoViewGraph } from '../macros/autoViewGraph'
+// import type { ConnectedBus } from '../connection/connection'
+// import { useMacroRunner } from '../macros/macroRunner'
+// import { useAutoViewGraph } from '../macros/autoViewGraph'
 import { useCellMetrics, useCursor, useCursorRect, useDeviceModel, useFontMode, useMacroStatus, useViewTitle, useViewName } from '../state/viewStore'
 
 const panelClass = css`
@@ -40,7 +40,7 @@ const panelClass = css`
   }
 `
 
-export const StatusPanel = ({ bus }: { bus?: ConnectedBus }) => {
+export const StatusPanel = (/*{ bus }: { bus?: ConnectedBus }*/) => {
   const [viewName] = useViewName()
   const [viewTitle] = useViewTitle()
   // const [minimapKey] = useMinimapKey()
@@ -52,8 +52,8 @@ export const StatusPanel = ({ bus }: { bus?: ConnectedBus }) => {
   const [model] = useDeviceModel()
   const [fontMode] = useFontMode()
   const [metrics] = useCellMetrics()
-  const runner = useMacroRunner(bus)
-  const automaton = useAutoViewGraph(bus)
+  // const runner = useMacroRunner(bus)
+  // const automaton = useAutoViewGraph(bus)
 
   return (
     <div className={cx('status-panel', panelClass)}>

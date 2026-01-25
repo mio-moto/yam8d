@@ -2,7 +2,7 @@
 import type { ConnectedBus } from '../connection/connection'
 import { M8KeyMask } from '../connection/keys'
 import { useCallback, useEffect, useRef } from 'react'
-import { useCursor, useCursorRect } from '../state/viewStore'
+import { useCursor, useCursorRect, useSystemInfo } from '../state/viewStore'
 
 type keyType = 'up' | 'down' | 'left' | 'right' | null
 
@@ -47,11 +47,12 @@ const isBetterPoint = (
 export const useViewNavigator = (connection?: ConnectedBus) => {
     const [cursor] = useCursor()
     const [cursorRect] = useCursorRect()
+    const [systemInfo] = useSystemInfo()
 
     const currentTarget = useRef<{ x: number; y: number } | null>(null)
 
     const safety = useRef(0)
-    const MAX_STEPS = 40
+    const MAX_STEPS = 20
 
     const lastStep = useRef<keyType>(null)
     const stepsHistory = useRef<keyType[]>([])
@@ -73,7 +74,6 @@ export const useViewNavigator = (connection?: ConnectedBus) => {
     const bounceVertical = useRef(0)
     const bounceHorizontal = useRef(0)
 
-    // rect lors de l'envoi du dernier step (pour détecter "le curseur n'a pas bougé")
     const lastRect = useRef<{ rx: number; ry: number; rw: number; rh: number } | null>(null)
 
     const getRect = useCallback(() => {
@@ -81,11 +81,16 @@ export const useViewNavigator = (connection?: ConnectedBus) => {
         const gridW = 1
         const gridH = 1
         const rx = rect ? Math.floor(rect.x / gridW) : 0
-        const ry = rect ? Math.floor(rect.y / gridH) : 0
+
+        // Apply rectOffset adjustment (same logic as renderer)
+        const rectOffset = systemInfo?.rectOffset ?? 0
+        const rawY = rect ? Math.floor(rect.y / gridH) : 0
+        const ry = rawY > 0 ? rawY + rectOffset : rawY
+
         const rw = rect ? Math.floor(rect.w / gridW) : 480
         const rh = rect ? Math.ceil(rect.h / gridH) : 320
         return { rx, ry, rw, rh }
-    }, [cursorRect])
+    }, [cursorRect, systemInfo])
 
     const distanceToRect = useCallback((
         r: { rx: number; ry: number; rw: number; rh: number },
@@ -112,7 +117,6 @@ export const useViewNavigator = (connection?: ConnectedBus) => {
         lastRect.current = null
     }, [])
 
-    // Revenir à la meilleure position trouvée en rejouant les steps à l'envers
     const returnToBestPosition = useCallback(() => {
         const history = stepsHistory.current
         const bestIdx = bestPoint.current.index
@@ -159,7 +163,6 @@ export const useViewNavigator = (connection?: ConnectedBus) => {
         const target = currentTarget.current
         const rect = getRect()
 
-        // 1) Détection : est-ce que le dernier step a effectivement déplacé le curseur ?
         const prevRect = lastRect.current
         const didMove =
             !prevRect ||
@@ -169,19 +172,15 @@ export const useViewNavigator = (connection?: ConnectedBus) => {
             prevRect.rh !== rect.rh
 
         if (lastStep.current && !didMove) {
-            // Si un step vertical n'a pas déplacé le curseur -> priorité à l'horizontal
             if (lastStep.current === 'up' || lastStep.current === 'down') {
                 priority.current = 'horizontal'
             } else {
-                // Step horizontal bloqué -> priorité au vertical
                 priority.current = 'vertical'
             }
         }
 
-        // Mémoriser le rect courant comme "avant le prochain step"
         lastRect.current = rect
 
-        // 2) Score actuel et mise à jour du "meilleur point"
         const { dist, dx, dy } = distanceToRect(rect, target)
         const absDx = Math.abs(dx)
         const absDy = Math.abs(dy)
@@ -192,7 +191,6 @@ export const useViewNavigator = (connection?: ConnectedBus) => {
         }
         lastPoint.current = current
 
-        // 3) Si la target est dans le rect : on a vraiment "atteint" la cible
         const inside =
             target.x >= rect.rx &&
             target.x <= rect.rx + rect.rw &&
@@ -204,24 +202,20 @@ export const useViewNavigator = (connection?: ConnectedBus) => {
             return
         }
 
-        // 4) Sécurité globale
         if (safety.current >= MAX_STEPS) {
             returnToBestPosition()
             resetState()
             return
         }
 
-        // 5) Décider le prochain step
         const stepNow = decideStep(target)
 
-        // Plus de direction possible => on revient au meilleur point trouvé
         if (!stepNow) {
             returnToBestPosition()
             resetState()
             return
         }
 
-        // 6) Gestion des allers-retours (bounces) pour limiter les essais
         if (lastStep.current) {
             const opp = opposite(lastStep.current)
             if (opp && stepNow === opp) {
@@ -232,10 +226,6 @@ export const useViewNavigator = (connection?: ConnectedBus) => {
                     bounceHorizontal.current += 1
                 }
 
-                // *Avant* on s'arrêtait dès 2 allers-retours, même si dy > 0.
-                // Maintenant :
-                // - si on a déjà trouvé une ligne avec dy = 0, 2 allers-retours suffisent pour s'arrêter,
-                // - sinon, on bascule la priorité sur l'autre axe pour continuer à explorer.
                 const havePerfectRow = bestPoint.current.absDy === 0
 
                 if (bounceVertical.current >= 2 || bounceHorizontal.current >= 2) {
@@ -244,7 +234,6 @@ export const useViewNavigator = (connection?: ConnectedBus) => {
                         resetState()
                         return
                     } else {
-                        // On n'a pas encore trouvé la bonne ligne : on change d'axe plutôt que d'arrêter.
                         if (bounceVertical.current >= 2) {
                             priority.current = 'horizontal'
                             bounceVertical.current = 0

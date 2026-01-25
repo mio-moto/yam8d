@@ -97,7 +97,7 @@ const screenLayout3Config = {
 } as const satisfies ScreenConfig
 // M8:02 large font
 const screenLayout4Config = {
-  rectOffset: -2,
+  rectOffset: 1,
   programType: 2,
   font: {
     url: Font4,
@@ -114,7 +114,7 @@ const screenLayout4Config = {
 } as const satisfies ScreenConfig
 // M8:02 large font, no scope
 const screenLayout5Config = {
-  rectOffset: -54,
+  rectOffset: -45,
   programType: 2,
   font: {
     url: Font5,

@@ -122,6 +122,7 @@ export const protocol = () => {
             offY: number
             screenWidth: number
             screenHeight: number
+            rectOffset: number
         }) => void
         any: (data: Uint8Array<ArrayBufferLike>) => void
     }>()
@@ -136,6 +137,7 @@ export const protocol = () => {
         offY: number
         screenWidth: number
         screenHeight: number
+        rectOffset: number
     } | undefined
 
     const computeLayoutMetrics = (sys: SystemCommand | undefined) => {
@@ -146,8 +148,9 @@ export const protocol = () => {
         let offY = 0
         let screenWidth = 480
         let screenHeight = 320
+        let rectOffset = 1
 
-        if (!sys) return { spacingX, spacingY, offX, offY, screenWidth, screenHeight }
+        if (!sys) return { spacingX, spacingY, offX, offY, screenWidth, screenHeight, rectOffset }
 
         const isV2 = sys.model === 'M8 Model:02' || sys.model === 'Beta M8'
         const fm = sys.fontMode // 0 small, 1 large, 2 large/no-scope
@@ -159,14 +162,17 @@ export const protocol = () => {
                 spacingX = 12
                 spacingY = 14
                 offY = 3
+                rectOffset = 1
             } else if (fm === 1) {
                 spacingX = 12
                 spacingY = 14
                 offY = 2
+                rectOffset = 1
             } else {
                 spacingX = 15
                 spacingY = 16
                 offY = 5
+                rectOffset = -45
             }
         } else {
             // Model:01
@@ -176,13 +182,15 @@ export const protocol = () => {
                 spacingX = 8
                 spacingY = 10
                 offY = 0
+                rectOffset = 0
             } else {
                 spacingX = 10
                 spacingY = 12
                 offY = 0
+                rectOffset = -40
             }
         }
-        return { spacingX, spacingY, offX, offY, screenWidth, screenHeight }
+        return { spacingX, spacingY, offX, offY, screenWidth, screenHeight, rectOffset }
     }
 
     const dispatch = (data: DataView, dataLength: number) => {

@@ -16,6 +16,18 @@ export interface RGB {
     b: number
 }
 
+export interface SystemInfos {
+    model: string
+    fontMode: number
+    spacingX: number
+    spacingY: number
+    offX: number
+    offY: number
+    screenWidth: number
+    screenHeight: number
+    rectOffset: number
+}
+
 // Current M8 view name (lowercased, cleaned)
 export const viewNameAtom = atom<string | null>(null)
 // Store raw title and minimap key separately for flexibility
@@ -44,6 +56,9 @@ export const fontModeAtom = atom<number | null>(null)
 // Cell metrics (model/font dependent); offsets approximate renderer uniforms
 export const cellMetricsAtom = atom<{ cellW: number; cellH: number; offX: number; offY: number }>({ cellW: 12, cellH: 14, offX: 0, offY: 0 })
 
+// Complete system info including rectOffset
+export const systemInfoAtom = atom<SystemInfos | null>(null)
+
 export const useViewName = () => useAtom(viewNameAtom)
 export const useViewTitle = () => useAtom(viewTitleAtom)
 export const useMinimapKey = () => useAtom(minimapKeyAtom)
@@ -56,3 +71,4 @@ export const useMacroStatus = () => useAtom(macroStatusAtom)
 export const useCellMetrics = () => useAtom(cellMetricsAtom)
 export const useDeviceModel = () => useAtom(deviceModelAtom)
 export const useFontMode = () => useAtom(fontModeAtom)
+export const useSystemInfo = () => useAtom(systemInfoAtom)

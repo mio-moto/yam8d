@@ -7,6 +7,7 @@ import {
     cursorRectAtom,
     deviceModelAtom,
     fontModeAtom,
+    systemInfoAtom,
     //highlightColorAtom, //TODO
     viewNameAtom,
     viewTitleAtom,
@@ -313,7 +314,7 @@ export function registerViewExtractor(bus?: ConnectedBus | null) {
 
         private normForCompare(s: string) {
             s = s.includes('live') ? 'song' : s
-            return s.toLowerCase().trim().replace(/}/g, '0').replace(/[^a-z0-9]/g, '')
+            return s.toLowerCase().trim().replace(/[{}]/g, '0').replace(/[^a-z0-9]/g, '')
         }
 
         private normalizeFinal(titleRaw: string) {
@@ -321,7 +322,7 @@ export function registerViewExtractor(bus?: ConnectedBus | null) {
             const trimmed = titleRaw.trim()
 
             // biome-ignore lint/complexity/noUselessEscapeInRegex: needed for * or ^
-            const noTrail = trimmed.replace(/}/g, '0').replace(/\s[0-9a-fA-F]{1,2}[\^\*]?\s*$/, '')
+            const noTrail = trimmed.replace(/[{}]/g, '0').replace(/\s[0-9a-fA-F]{1,2}[\^\*]?\s*$/, '')
             const cleaned = noTrail.replace(/[^a-z0-9 ]/gi, '').replace(/\s+/g, ' ').trim()
             const noSpaces = cleaned.replace(/\s+/g, '').toLowerCase().slice(0, 20)
             return noSpaces.includes('live') ? 'song' : noSpaces
@@ -437,10 +438,21 @@ export function registerViewExtractor(bus?: ConnectedBus | null) {
         }
     }
 
-    const systemInfoHandler = (info: { model: string; fontMode: 0 | 1 | 2; spacingX: number; spacingY: number; offX: number; offY: number; screenWidth?: number; screenHeight?: number }) => {
+    const systemInfoHandler = (info: { model: string; fontMode: 0 | 1 | 2; spacingX: number; spacingY: number; offX: number; offY: number; screenWidth?: number; screenHeight?: number; rectOffset: number }) => {
         store.set(deviceModelAtom, info.model)
         store.set(fontModeAtom, info.fontMode)
         store.set(cellMetricsAtom, { cellW: info.spacingX, cellH: info.spacingY, offX: info.offX, offY: info.offY })
+        store.set(systemInfoAtom, {
+            model: info.model,
+            fontMode: info.fontMode,
+            spacingX: info.spacingX,
+            spacingY: info.spacingY,
+            offX: info.offX,
+            offY: info.offY,
+            screenWidth: info.screenWidth ?? 480,
+            screenHeight: info.screenHeight ?? 320,
+            rectOffset: info.rectOffset
+        })
     }
 
     const onText = (d: CharacterCommand) => extractor.processChar(d)
