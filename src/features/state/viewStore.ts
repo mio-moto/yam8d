@@ -15,6 +15,11 @@ export interface RGB {
     g: number
     b: number
 }
+export interface HSL {
+    h: number
+    l: number
+    s: number
+}
 
 export interface SystemInfos {
     model: string
@@ -42,6 +47,12 @@ export const cursorRectAtom = atom<CursorRect | null>(null)
 // Last detected highlight color (theme-dependent)
 export const highlightColorAtom = atom<RGB | null>(null)
 
+// Text under the cursor (character with same color as highlight)
+export const textUnderCursorAtom = atom<string | null>(null)
+
+// Full line at cursor position
+export const currentLineAtom = atom<string | null>(null)
+
 // Stabilized colors from the first character of the title row
 export const titleColorAtom = atom<RGB | null>(null)
 export const backgroundColorAtom = atom<RGB | null>(null)
@@ -65,6 +76,8 @@ export const useMinimapKey = () => useAtom(minimapKeyAtom)
 export const useCursor = () => useAtom(cursorPosAtom)
 export const useCursorRect = () => useAtom(cursorRectAtom)
 export const useHighlightColor = () => useAtom(highlightColorAtom)
+export const useTextUnderCursor = () => useAtom(textUnderCursorAtom)
+export const useCurrentLine = () => useAtom(currentLineAtom)
 export const useTitleColor = () => useAtom(titleColorAtom)
 export const useBackgroundColor = () => useAtom(backgroundColorAtom)
 export const useMacroStatus = () => useAtom(macroStatusAtom)

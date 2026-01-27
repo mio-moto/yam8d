@@ -153,7 +153,7 @@ export const protocol = () => {
         if (!sys) return { spacingX, spacingY, offX, offY, screenWidth, screenHeight, rectOffset }
 
         const isV2 = sys.model === 'M8 Model:02' || sys.model === 'Beta M8'
-        const fm = sys.fontMode // 0 small, 1 large, 2 large/no-scope
+        const fm = sys.fontMode // 0 small, 1 bold, 2 large/no-scope
 
         if (isV2) {
             screenWidth = 480
@@ -161,13 +161,13 @@ export const protocol = () => {
             if (fm === 0) {
                 spacingX = 12
                 spacingY = 14
-                offY = 3
-                rectOffset = 1
+                offY = 0
+                rectOffset = 0
             } else if (fm === 1) {
                 spacingX = 12
                 spacingY = 14
-                offY = 2
-                rectOffset = 1
+                offY = 0
+                rectOffset = 0
             } else {
                 spacingX = 15
                 spacingY = 16

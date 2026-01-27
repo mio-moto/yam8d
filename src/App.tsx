@@ -14,6 +14,7 @@ import { Menu } from './features/settings/menu'
 import { useSettingsContext } from './features/settings/settings'
 import { VirtualKeyboard } from './features/virtualKeyboard/VirtualKeyboard'
 import { StatusPanel } from './features/debug/StatusPanel'
+import { ShortcutsDisplay } from './features/shortcuts/shortcutsIntegration'
 
 const appClass = css`
   // display: flex;
@@ -71,6 +72,7 @@ export const App: FC = () => {
         </>
       )}
       <StatusPanel bus={connectedBus} />
+      <ShortcutsDisplay></ShortcutsDisplay>
     </div>
   )
 }

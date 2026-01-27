@@ -7,7 +7,12 @@
     },
     "files": {
         "ignoreUnknown": false,
-        "includes": ["**", "!!**/node_modules", "!!**/dist"]
+        "includes": [
+            "**",
+            "!!**/node_modules",
+            "!!**/dist",
+            "!!**/.git"
+        ]
     },
     "formatter": {
         "enabled": true,

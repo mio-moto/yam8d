@@ -2,7 +2,7 @@ import { css, cx } from '@linaria/core'
 // import type { ConnectedBus } from '../connection/connection'
 // import { useMacroRunner } from '../macros/macroRunner'
 // import { useAutoViewGraph } from '../macros/autoViewGraph'
-import { useCellMetrics, useCursor, useCursorRect, useDeviceModel, useFontMode, useMacroStatus, useViewTitle, useViewName } from '../state/viewStore'
+import { useCellMetrics, useCursor, useCursorRect, useDeviceModel, useFontMode, useMacroStatus, useViewTitle, useViewName, useHighlightColor, useTextUnderCursor, useCurrentLine } from '../state/viewStore'
 
 const panelClass = css`
   position: absolute;
@@ -48,6 +48,9 @@ export const StatusPanel = (/*{ bus }: { bus?: ConnectedBus }*/) => {
   // const [titleFirstBg] = useBackgroundColor()
   const [cursor] = useCursor()
   const [cursorRect] = useCursorRect()
+  const [highlightColor] = useHighlightColor()
+  const [textUnderCursor] = useTextUnderCursor()
+  const [currentLine] = useCurrentLine()
   const [macro] = useMacroStatus()
   const [model] = useDeviceModel()
   const [fontMode] = useFontMode()
@@ -84,6 +87,19 @@ export const StatusPanel = (/*{ bus }: { bus?: ConnectedBus }*/) => {
 
       <span className="label">CursorRect</span>
       <span className="value">{cursorRect ? `${cursorRect.x}, ${cursorRect.y}, ${cursorRect.w}×${cursorRect.h}` : '—'}</span>
+      <span />
+
+      <span className="label">Highlight Color</span>
+      <span className="value" style={{ backgroundColor: highlightColor ? `rgb(${highlightColor.r}, ${highlightColor.g}, ${highlightColor.b})` : 'transparent', width: '20px', height: '12px', border: '1px solid rgba(255,255,255,0.3)' }} />
+      {/* <span className="value">{highlightColor ? `rgb(${highlightColor.r}, ${highlightColor.g}, ${highlightColor.b})` : '—'}</span> */}
+      <span />
+
+      <span className="label">Text Under Cursor</span>
+      <span className="value">{textUnderCursor ? `"${textUnderCursor}"` : '—'}</span>
+      <span />
+
+      <span className="label">Current Line</span>
+      <span className="value">{currentLine ?? '—'}</span>
       <span />
 
       <span className="label">Macro</span>
