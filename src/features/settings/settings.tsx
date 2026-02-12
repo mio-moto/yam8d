@@ -23,7 +23,7 @@ const defaultSettings: Settings = {
     fullM8View: true,
     virtualKeyboard: true,
     displayShortcuts: false,
-    shortcutsHost: 'https://miomoto.de/m8-shortcuts/',
+    shortcutsHost: 'https://m8-shortcuts-65mb.vercel.app/', //'https://miomoto.de/m8-shortcuts/',
     showM8Body: true,
 
     inputMap: defaultInputMap,
