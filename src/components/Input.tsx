@@ -3,11 +3,9 @@ import type { FC, HTMLProps } from 'react'
 import { fragments } from '../app/style/fragments'
 import { style } from '../app/style/style'
 
+try { CSS.registerProperty({ name: '--border-color', syntax: '"<color>"', inherits: false, initialValue: style.themeColors.line.default }) } catch {}
+
 const inputClass = css`
-  @property --border-color {
-    syntax: "<color>";
-    initial-value: ${style.themeColors.line.default};
-  }
   border: 3px solid;
   border-image: linear-gradient(to bottom, transparent 25%,transparent 25%,transparent 75%, var(--border-color) 75%);
   border-image-slice: 1;

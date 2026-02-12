@@ -3,12 +3,9 @@ import { type FC, forwardRef, type HTMLProps } from 'react'
 import { fragments } from '../app/style/fragments'
 import { style } from '../app/style/style'
 
+try { CSS.registerProperty({ name: '--border-color', syntax: '"<color>"', inherits: false, initialValue: style.themeColors.line.default }) } catch {}
+
 export const buttonClass = css`
-  @property --border-color {
-    syntax: "<color>";
-    inherits: false;
-    initial-value: ${style.themeColors.line.default};
-  }
   cursor: pointer;
   padding: 0 8px;
   border-radius: 0px;
