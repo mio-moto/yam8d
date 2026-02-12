@@ -1,29 +1,93 @@
 import type { FC } from 'react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from '../../components/Button'
+import { Input } from '../../components/Input'
 import { useSettingsContext } from './settings'
 import './menu.css'
 
 export const Menu: FC = () => {
     const { settings, updateSettingValue } = useSettingsContext()
     const [opened, setOpened] = useState(false)
+    const [hostDraft, setHostDraft] = useState(settings.shortcutsHost)
+    const menuRef = useRef<HTMLDivElement | null>(null)
+    const hitboxRef = useRef<HTMLDivElement | null>(null)
+    // Mark menu open on document body for global hooks to detect
+    useEffect(() => {
+        document.body.dataset.m8MenuOpen = opened ? 'true' : 'false'
+        return () => {
+            delete document.body.dataset.m8MenuOpen
+        }
+    }, [opened])
+
+    // Keep local draft in sync if setting changes elsewhere
+    useEffect(() => {
+        setHostDraft(settings.shortcutsHost)
+    }, [settings.shortcutsHost])
+
+    // Debounce persisting the host to settings
+    useEffect(() => {
+        const id = setTimeout(() => {
+            if (hostDraft !== settings.shortcutsHost) {
+                updateSettingValue('shortcutsHost', hostDraft)
+            }
+        }, 400)
+        return () => clearTimeout(id)
+    }, [hostDraft, settings.shortcutsHost, updateSettingValue])
+
+    // Close menu when clicking anywhere outside the menu or the toggle hitbox
+    useEffect(() => {
+        if (!opened) return
+        const onPointerDown = (e: PointerEvent) => {
+            const target = e.target as Node | null
+            if (!target) return
+            // If click is inside the menu or the hitbox, ignore
+            if (menuRef.current?.contains(target) || hitboxRef.current?.contains(target)) {
+                return
+            }
+            setOpened(false)
+        }
+        // Use capture to ensure we catch the event early across the page
+        document.addEventListener('pointerdown', onPointerDown, true)
+        return () => {
+            document.removeEventListener('pointerdown', onPointerDown, true)
+        }
+    }, [opened])
     return (
         <>
-            <div className="menu-hitbox" onClick={() => setOpened((o) => !o)} aria-label="Toggle menu" role="button" />
-            <div className={opened ? 'menu opened' : 'menu closed'}>
+            <div
+                className="menu-hitbox"
+                ref={hitboxRef}
+                onClick={() => setOpened((o) => !o)}
+                aria-label="Toggle menu"
+                role="button"
+            />
+            <div className={opened ? 'menu opened' : 'menu closed'} ref={menuRef}>
+
                 <div className="menu-item">
-                    <span className="title">Zoom View</span>
+                    <span className="title">Show M8 body</span>
                     <div>
-                        <Button selected={settings.fullM8View} onClick={() => updateSettingValue('fullM8View', true)}>
-                            No
-                        </Button>
-                        <Button selected={!settings.fullM8View} onClick={() => updateSettingValue('fullM8View', false)}>
+                        <Button selected={settings.showM8Body} onClick={() => updateSettingValue('showM8Body', true)}>
                             Yes
+                        </Button>
+                        <Button selected={!settings.showM8Body} onClick={() => updateSettingValue('showM8Body', false)}>
+                            No
                         </Button>
                     </div>
                 </div>
 
-        {/* kept for WebGL -> Canvas switch
+                <div className="menu-item">
+                    <span className="title">Zoom View</span>
+                    <div>
+                        <Button selected={!settings.fullM8View} onClick={() => updateSettingValue('fullM8View', false)}>
+                            Yes
+                        </Button>
+                        <Button selected={settings.fullM8View} onClick={() => updateSettingValue('fullM8View', true)}>
+                            No
+                        </Button>
+                    </div>
+                </div>
+
+                {/* kept for WebGL -> Canvas switch
         <div className="menu-item">
           <span className="title">Display mode</span>
           <div>
@@ -47,6 +111,31 @@ export const Menu: FC = () => {
                         </Button>
                     </div>
                 </div>
+
+                <div className="menu-item">
+                    <span className="title">Display shortcuts</span>
+                    <div>
+                        <Button selected={settings.displayShortcuts} onClick={() => updateSettingValue('displayShortcuts', true)}>
+                            Yes
+                        </Button>
+                        <Button selected={!settings.displayShortcuts} onClick={() => updateSettingValue('displayShortcuts', false)}>
+                            No
+                        </Button>
+                    </div>
+                </div>
+
+                {settings.displayShortcuts && (
+                    <div className="menu-item">
+                        <span className="title">Shortcuts host</span>
+                        <div>
+                            <Input
+                                value={hostDraft}
+                                placeholder="http://localhost:5174"
+                                onChange={(e) => setHostDraft((e.target as HTMLInputElement).value)}
+                            />
+                        </div>
+                    </div>
+                )}
             </div>
         </>
     )

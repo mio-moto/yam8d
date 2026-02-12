@@ -1,6 +1,8 @@
 .menu {
     position: absolute;
     background: rgb(77, 77, 77);
+    top: 0;
+    left: 0;
 }
 
 .menu.opened {
@@ -13,7 +15,7 @@
 
 .menu-hitbox {
     position: absolute;
-    left: 32px;
+    left: 0;
     top: 0;
     bottom: 0;
     width: 40px;
@@ -65,13 +67,13 @@
     align-items: center;
 }
 
-.menu-item > .title {
+.menu-item>.title {
     display: block;
     font-weight: 600;
 }
 
 /* Inner content of a menu-item: flex with 8px gap */
-.menu-item > div {
+.menu-item>div {
     display: flex;
     gap: 8px;
     align-items: center;

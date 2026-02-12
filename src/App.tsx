@@ -13,10 +13,11 @@ import { useMacroInput } from './features/macros/useMacroInput'
 import { Menu } from './features/settings/menu'
 import { useSettingsContext } from './features/settings/settings'
 import { VirtualKeyboard } from './features/virtualKeyboard/VirtualKeyboard'
-import { StatusPanel } from './features/debug/StatusPanel'
+// import { StatusPanel } from './features/debug/StatusPanel'
 import { ShortcutsDisplay } from './features/shortcuts/shortcutsIntegration'
 
 const appClass = css`
+    min-width: 38vw;
   // display: flex;
   // flex-direction: column;
   // flex: 1;
@@ -62,17 +63,19 @@ export const App: FC = () => {
   useMacroInput(connectedBus)
 
   return (
-    <div className={appClass}>
-      <Menu />
-      {!connectedBus && <Button onClick={tryConnect}>Connect</Button>}
-      {connectedBus && (
-        <>
-          {settings.virtualKeyboard && <VirtualKeyboard bus={connectedBus} strokeColor={style.themeColors.text.default}></VirtualKeyboard>}
-          {<M8Player bus={connectedBus} fullView={settings.fullM8View} />}
-        </>
-      )}
-      <StatusPanel bus={connectedBus} />
-      <ShortcutsDisplay></ShortcutsDisplay>
-    </div>
+    <>
+      <div className={appClass}>
+        <Menu />
+        {!connectedBus && <Button onClick={tryConnect}>Connect</Button>}
+        {connectedBus && (
+          <>
+            {settings.virtualKeyboard && <VirtualKeyboard bus={connectedBus} strokeColor={style.themeColors.text.default}></VirtualKeyboard>}
+            {<M8Player bus={connectedBus} fullView={settings.fullM8View} />}
+          </>
+        )}
+        {/* <StatusPanel bus={connectedBus} /> */}
+      </div>
+      {settings.displayShortcuts && <ShortcutsDisplay bus={connectedBus} />}
+    </>
   )
 }

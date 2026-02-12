@@ -7,6 +7,9 @@ const SETTINGS = 'M8settings'
 export type Settings = {
     fullM8View: boolean
     virtualKeyboard: boolean
+    displayShortcuts: boolean
+    shortcutsHost: string
+    showM8Body: boolean
     inputMap: typeof defaultInputMap
     keyMap: typeof defaultKeyMap
 }
@@ -19,6 +22,9 @@ export type SettingsContextValue = {
 const defaultSettings: Settings = {
     fullM8View: true,
     virtualKeyboard: true,
+    displayShortcuts: false,
+    shortcutsHost: 'https://miomoto.de/m8-shortcuts/',
+    showM8Body: true,
 
     inputMap: defaultInputMap,
     keyMap: defaultKeyMap,

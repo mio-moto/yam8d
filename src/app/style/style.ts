@@ -8,8 +8,8 @@ import './font.css'
 import './prescreen.css'
 
 export const style = notCss({
-    colors,
-    themeColors,
+  colors,
+  themeColors,
 })
 
 export const globalStyle = css`
@@ -86,9 +86,12 @@ export const globalStyle = css`
     #root {
       flex: 1;
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
+      justify-content: space-evenly;
+      align-items: stretch;      
       min-height: 100%;
       max-height: 100%;
+      gap: 16px;
     }
 
     .M8-full-view {
