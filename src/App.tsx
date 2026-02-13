@@ -18,6 +18,8 @@ import { ShortcutsDisplay } from './features/shortcuts/shortcutsIntegration'
 
 const appClass = css`
     min-width: 38vw;
+    max-width: 64vw;
+    width: -webkit-fill-available;
   // display: flex;
   // flex-direction: column;
   // flex: 1;
@@ -64,18 +66,18 @@ export const App: FC = () => {
 
   return (
     <>
-      <div className={appClass}>
-        <Menu />
-        {!connectedBus && <Button onClick={tryConnect}>Connect</Button>}
-        {connectedBus && (
-          <>
+      {!connectedBus && <Button onClick={tryConnect}>Connect</Button>}
+      {connectedBus && (
+        <>
+          <Menu />
+          <div className={appClass}>
             {settings.virtualKeyboard && <VirtualKeyboard bus={connectedBus} strokeColor={style.themeColors.text.default}></VirtualKeyboard>}
             {<M8Player bus={connectedBus} fullView={settings.fullM8View} />}
-          </>
-        )}
-        {/* <StatusPanel bus={connectedBus} /> */}
-      </div>
-      {settings.displayShortcuts && <ShortcutsDisplay bus={connectedBus} />}
+            {/* <StatusPanel bus={connectedBus} /> */}
+          </div>
+          {settings.displayShortcuts && <ShortcutsDisplay bus={connectedBus} />}
+        </>
+      )}
     </>
   )
 }

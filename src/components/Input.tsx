@@ -3,7 +3,7 @@ import type { FC, HTMLProps } from 'react'
 import { fragments } from '../app/style/fragments'
 import { style } from '../app/style/style'
 
-try { CSS.registerProperty({ name: '--border-color', syntax: '"<color>"', inherits: false, initialValue: style.themeColors.line.default }) } catch {}
+try { CSS.registerProperty({ name: '--border-color', syntax: '<color>', inherits: false, initialValue: style.themeColors.line.default }) } catch {}
 
 const inputClass = css`
   border: 3px solid;
