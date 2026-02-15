@@ -3,8 +3,11 @@
 // Released under the MIT licence, https://opensource.org/licenses/MIT
 
 precision highp float;
+precision highp int;
 
 uniform sampler2D font;
+uniform int useSmooth;
+uniform vec2 fontAtlasSize;
 
 in vec2 fontCoord;
 in vec3 colorV;
@@ -12,6 +15,11 @@ in vec3 colorV;
 out vec4 fragColor;
 
 void main() {
-    vec4 fontTexel = texelFetch(font, ivec2(fontCoord), 0);
-    fragColor = vec4(colorV, fontTexel.r);
+    float alpha;
+    if (useSmooth == 1) {
+        alpha = texture(font, fontCoord / fontAtlasSize).r;
+    } else {
+        alpha = texelFetch(font, ivec2(fontCoord), 0).r;
+    }
+    fragColor = vec4(colorV, alpha);
 }

@@ -10,6 +10,10 @@ export type Settings = {
     displayShortcuts: boolean
     shortcutsHost: string
     showM8Body: boolean
+    smoothRendering: boolean
+    smoothBlurRadius: number
+    smoothThreshold: number
+    smoothSmoothness: number
     inputMap: typeof defaultInputMap
     keyMap: typeof defaultKeyMap
 }
@@ -25,6 +29,10 @@ const defaultSettings: Settings = {
     displayShortcuts: false,
     shortcutsHost: 'https://m8-shortcuts-65mb.vercel.app/', //'https://miomoto.de/m8-shortcuts/',
     showM8Body: true,
+    smoothRendering: true,
+    smoothBlurRadius: 5.6,
+    smoothThreshold: 0.50,
+    smoothSmoothness: 0.10,
 
     inputMap: defaultInputMap,
     keyMap: defaultKeyMap,

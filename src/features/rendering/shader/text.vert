@@ -52,6 +52,11 @@ uniform vec2 posOffsetRow0;
 // text 3,4,5: vec2(480.0, 320.0)
 uniform vec2 camSize;
 
+uniform int useSmooth;
+uniform float fontGlyphStride;
+uniform float fontGlyphPad;
+uniform vec2 fontGlyphSize;
+
 out vec3 colorV;
 out vec2 fontCoord;
 
@@ -71,12 +76,20 @@ void main() {
     vec2 pos = vec2(col, row) * spacing + posOffset;
 
     if(row == 0.0) {
-        pos = pos + posOffsetRow0; 
+        pos = pos + posOffsetRow0;
     }
 
     pos = ((corners[gl_VertexID] * size + pos) + camOffset) * camScale;
 
     gl_Position = vec4(char == 0.0 ? vec2(2.0) : pos, 0.0, 1.0);
     colorV = color;
-    fontCoord = (vec2(char - 1.0, 0.0) + corners[gl_VertexID]) * size;
+
+    if (useSmooth == 1) {
+        fontCoord = vec2(
+            (char - 1.0) * fontGlyphStride + fontGlyphPad,
+            fontGlyphPad
+        ) + corners[gl_VertexID] * fontGlyphSize;
+    } else {
+        fontCoord = (vec2(char - 1.0, 0.0) + corners[gl_VertexID]) * size;
+    }
 }

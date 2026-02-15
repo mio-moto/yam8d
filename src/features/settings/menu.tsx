@@ -87,6 +87,65 @@ export const Menu: FC = () => {
                     </div>
                 </div>
 
+                <div className="menu-item">
+                    <span className="title">Smooth rendering</span>
+                    <div>
+                        <Button selected={settings.smoothRendering} onClick={() => updateSettingValue('smoothRendering', true)}>
+                            Yes
+                        </Button>
+                        <Button selected={!settings.smoothRendering} onClick={() => updateSettingValue('smoothRendering', false)}>
+                            No
+                        </Button>
+                    </div>
+                </div>
+
+                {settings.smoothRendering && (
+                    <>
+                        <div className="menu-item">
+                            <span className="title">Blur radius</span>
+                            <div>
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="20"
+                                    step="0.1"
+                                    value={settings.smoothBlurRadius}
+                                    onChange={(e) => updateSettingValue('smoothBlurRadius', Number.parseFloat(e.target.value))}
+                                />
+                                <span>{settings.smoothBlurRadius.toFixed(1)}</span>
+                            </div>
+                        </div>
+                        <div className="menu-item">
+                            <span className="title">Threshold</span>
+                            <div>
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="1"
+                                    step="0.01"
+                                    value={settings.smoothThreshold}
+                                    onChange={(e) => updateSettingValue('smoothThreshold', Number.parseFloat(e.target.value))}
+                                />
+                                <span>{settings.smoothThreshold.toFixed(2)}</span>
+                            </div>
+                        </div>
+                        <div className="menu-item">
+                            <span className="title">Smoothness</span>
+                            <div>
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="0.5"
+                                    step="0.01"
+                                    value={settings.smoothSmoothness}
+                                    onChange={(e) => updateSettingValue('smoothSmoothness', Number.parseFloat(e.target.value))}
+                                />
+                                <span>{settings.smoothSmoothness.toFixed(2)}</span>
+                            </div>
+                        </div>
+                    </>
+                )}
+
                 {/* kept for WebGL -> Canvas switch
         <div className="menu-item">
           <span className="title">Display mode</span>

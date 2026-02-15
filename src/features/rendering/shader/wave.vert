@@ -6,6 +6,7 @@ layout(location = 0) in uint value;
 
 uniform vec2 size;
 uniform int programType;
+uniform float pointScale;
 
 
 
@@ -14,9 +15,9 @@ void main() {
     vec2 camOffset = vec2(-size.x / 2.0, -size.y / 2.0);
     vec2 pos = vec2(float(gl_VertexID), float(value));
     pos = (pos + vec2(0.5) + camOffset) * camScale;
-    
+
     if(programType <= 1 || float(value) < 100.0) {
-        gl_PointSize = 1.0;
+        gl_PointSize = pointScale;
         gl_Position = vec4(pos, 0.0, 1.0);
     } else {
         gl_Position = vec4(pos, 2.0, 1.0);
