@@ -41,6 +41,14 @@ const midiCommands = (output: MIDIOutput) => {
             const msb = 0 | (1 << 2)
             commands.push(new Uint8Array([0xf0, 0x00, 0x02, 0x61, 0x00, msb, 0x48, 0x7f, 0xf7]))
         },
+        sendProgramChange: (program: number, channel: number = 0) => {
+            // MIDI Program Change: 0xC0-0xCF (C = 12 in decimal, shifted left 4 bits)
+            // Program change message: status byte = 0xC0 + channel, data byte = program number (0-127)
+            const safeChannel = Math.min(15, Math.max(0, channel))
+            const safeProgram = Math.min(127, Math.max(0, program))
+            const statusByte = 0xC0 | safeChannel
+            commands.push(new Uint8Array([statusByte, safeProgram]))
+        },
     }
 }
 
@@ -70,6 +78,11 @@ const commands = (writer: ReturnType<typeof usbWriter> | ReturnType<typeof seria
         },
         sendNoteOff: async () => {
             commands.push(new Uint8Array([0x4b, 255]))
+        },
+        sendProgramChange: async (program: number, _channel: number = 0) => {
+            // USB/Serial: Use 0x4c prefix for program change (similar to 0x4b for note on/off)
+            const safeProgram = Math.min(127, Math.max(0, program))
+            commands.push(new Uint8Array([0x4c, safeProgram]))
         },
     }
 }

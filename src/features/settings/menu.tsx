@@ -44,6 +44,8 @@ export const Menu: FC = () => {
             if (menuRef.current?.contains(target) || hitboxRef.current?.contains(target)) {
                 return
             }
+            e.stopImmediatePropagation()
+            e.preventDefault()
             setOpened(false)
         }
         // Use capture to ensure we catch the event early across the page
@@ -189,7 +191,7 @@ export const Menu: FC = () => {
                         <div>
                             <Input
                                 value={hostDraft}
-                                placeholder="http://localhost:5174"
+                                placeholder="https://miomoto.de/m8-shortcuts/"
                                 onChange={(e) => setHostDraft((e.target as HTMLInputElement).value)}
                             />
                         </div>

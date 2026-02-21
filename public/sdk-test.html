@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>M8 SDK Test Page</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: #1a1a2e;
+        color: #eee;
+        padding: 20px;
+        min-height: 100vh;
+      }
+
+      h1 {
+        color: #ff6b6b;
+        margin-bottom: 20px;
+        font-size: 24px;
+      }
+
+      .status {
+        background: #16213e;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border-left: 4px solid #e94560;
+      }
+
+      .status.connected {
+        border-left-color: #4ecca3;
+      }
+
+      .status h2 {
+        font-size: 14px;
+        text-transform: uppercase;
+        color: #888;
+        margin-bottom: 10px;
+      }
+
+      .state-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 10px;
+        font-size: 13px;
+      }
+
+      .state-item {
+        background: #0f3460;
+        padding: 8px 12px;
+        border-radius: 4px;
+      }
+
+      .state-item .label {
+        color: #888;
+        font-size: 11px;
+        text-transform: uppercase;
+      }
+
+      .state-item .value {
+        color: #4ecca3;
+        font-family: monospace;
+      }
+
+      .controls {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+
+      button {
+        background: #e94560;
+        color: white;
+        border: none;
+        padding: 12px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 13px;
+        transition: background 0.2s;
+      }
+
+      button:hover {
+        background: #ff6b6b;
+      }
+
+      button:disabled {
+        background: #444;
+        cursor: not-allowed;
+      }
+
+      .section {
+        background: #16213e;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+      }
+
+      .section h3 {
+        font-size: 14px;
+        color: #888;
+        margin-bottom: 12px;
+        text-transform: uppercase;
+      }
+
+      .log {
+        background: #0a0a0a;
+        padding: 10px;
+        border-radius: 4px;
+        font-family: monospace;
+        font-size: 12px;
+        max-height: 200px;
+        overflow-y: auto;
+      }
+
+      .log-entry {
+        padding: 4px 0;
+        border-bottom: 1px solid #222;
+      }
+
+      .log-entry:last-child {
+        border-bottom: none;
+      }
+
+      .log-entry.info {
+        color: #4ecca3;
+      }
+      .log-entry.warn {
+        color: #ffa500;
+      }
+      .log-entry.error {
+        color: #e94560;
+      }
+
+      .input-group {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
+      input[type="text"],
+      input[type="number"] {
+        flex: 1;
+        background: #0f3460;
+        border: 1px solid #1a1a2e;
+        color: white;
+        padding: 10px;
+        border-radius: 4px;
+        font-family: monospace;
+      }
+
+      input:focus {
+        outline: none;
+        border-color: #e94560;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🎛️ M8 SDK Test Client</h1>
+
+    <div id="status" class="status">
+      <h2>Connection Status</h2>
+      <div id="connection-state">Connecting...</div>
+    </div>
+
+    <div class="section">
+      <h3>Current State</h3>
+      <div class="state-grid" id="state-grid">
+        <div class="state-item">
+          <div class="label">View Name</div>
+          <div class="value" id="view-name">-</div>
+        </div>
+        <div class="state-item">
+          <div class="label">Cursor Position</div>
+          <div class="value" id="cursor-pos">-</div>
+        </div>
+        <div class="state-item">
+          <div class="label">Text Under Cursor</div>
+          <div class="value" id="text-cursor">-</div>
+        </div>
+        <div class="state-item">
+          <div class="label">Device Model</div>
+          <div class="value" id="device-model">-</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>View Navigation</h3>
+      <div class="controls">
+        <button onclick="navigateToView('song')">Song (F1)</button>
+        <button onclick="navigateToView('chain')">Chain (F2)</button>
+        <button onclick="navigateToView('phrase')">Phrase (F3)</button>
+        <button onclick="navigateToView('table')">Table (F4)</button>
+        <button onclick="navigateToView('instrumentpool')">
+          Instr Pool (F5)
+        </button>
+        <button onclick="navigateToView('inst')">Instrument (F6)</button>
+        <button onclick="navigateToView('instmods')">Inst Mods (F7)</button>
+        <button onclick="navigateToView('effectsettings')">
+          FX Settings (F8)
+        </button>
+        <button onclick="navigateToView('project')">Project (F9)</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Coordinate Navigation</h3>
+      <div class="input-group">
+        <input
+          type="number"
+          id="nav-x"
+          placeholder="X (0-39)"
+          min="0"
+          max="39"
+          value="10"
+        />
+        <input
+          type="number"
+          id="nav-y"
+          placeholder="Y (0-23)"
+          min="0"
+          max="23"
+          value="5"
+        />
+        <button onclick="navigateToCoords()">Navigate</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Value Manipulation</h3>
+      <div class="input-group">
+        <input
+          type="text"
+          id="hex-value"
+          placeholder="Hex value (e.g., 3F, FF, 00)"
+          value="3F"
+        />
+        <button onclick="setValueToHex()">Set Value</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Key Press</h3>
+      <div class="controls">
+        <button onclick="sendKey(['left'])">Left</button>
+        <button onclick="sendKey(['right'])">Right</button>
+        <button onclick="sendKey(['up'])">Up</button>
+        <button onclick="sendKey(['down'])">Down</button>
+        <button onclick="sendKey(['shift'])">Shift</button>
+        <button onclick="sendKey(['play'])">Play</button>
+        <button onclick="sendKey(['opt'])">Opt</button>
+        <button onclick="sendKey(['edit'])">Edit</button>
+        <button onclick="sendKey(['left', 'shift'])">Left+Shift</button>
+        <button onclick="sendKey(['right', 'shift'])">Right+Shift</button>
+        <button onclick="sendKey(['edit', 'up'])">Edit+Up</button>
+        <button onclick="sendKey(['edit', 'down'])">Edit+Down</button>
+        <button onclick="sendKey(['edit', 'left'])">Edit+Left</button>
+        <button onclick="sendKey(['edit', 'right'])">Edit+Right</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>Event Log</h3>
+      <div class="log" id="log"></div>
+      <button onclick="clearLog()" style="margin-top: 10px">Clear Log</button>
+    </div>
+
+    <!-- Load the SDK client -->
+    <script type="module">
+      // Import post-me as ES module
+      import {
+        ChildHandshake,
+        WindowMessenger,
+      } from "https://unpkg.com/post-me@0.4.5/dist/index.esnext.mjs";
+
+      // Make available globally for debugging
+      window.PostMe = { ChildHandshake, WindowMessenger };
+
+      const log = (message, type = "info") => {
+        const logEl = document.getElementById("log");
+        const entry = document.createElement("div");
+        entry.className = `log-entry ${type}`;
+        entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+        logEl.appendChild(entry);
+        logEl.scrollTop = logEl.scrollHeight;
+        console.log(`[SDK Test] ${message}`);
+      };
+
+      // Minimal SDK Client implementation for testing
+      class M8TestClient {
+        constructor() {
+          this.state = {
+            viewName: null,
+            viewTitle: null,
+            cursorPos: null,
+            textUnderCursor: null,
+            deviceModel: null,
+            macroRunning: false,
+          };
+          this.isConnected = false;
+          this.remoteHandle = null;
+          this.localHandle = null;
+          this.connection = null;
+        }
+
+        async connect() {
+          try {
+            log("Attempting to connect to parent...");
+
+            // Check if post-me is available
+            if (typeof PostMe === "undefined") {
+              throw new Error("PostMe library not loaded");
+            }
+
+            const { ChildHandshake, WindowMessenger } = PostMe;
+
+            if (!ChildHandshake || !WindowMessenger) {
+              throw new Error("PostMe exports not available");
+            }
+
+            log("Creating WindowMessenger...");
+            const messenger = new WindowMessenger({
+              localWindow: window,
+              remoteWindow: window.parent,
+              remoteOrigin: "*",
+            });
+
+            log("Starting ChildHandshake...");
+            const connection = await ChildHandshake(messenger, {
+              ping: async () => "pong",
+            });
+
+            log("Handshake complete!");
+
+            this.connection = connection;
+            this.remoteHandle = connection.remoteHandle();
+            this.localHandle = connection.localHandle();
+            this.isConnected = true;
+
+            // Setup event listeners
+            log("Setting up event listeners...");
+
+            this.remoteHandle.addEventListener("stateChanged", (state) => {
+              log(`Event: stateChanged received`);
+              this.state = { ...this.state, ...state };
+              updateUI();
+            });
+
+            this.remoteHandle.addEventListener(
+              "viewChanged",
+              ({ viewName, viewTitle }) => {
+                log(`Event: viewChanged - ${viewTitle || viewName}`);
+                this.state.viewName = viewName;
+                this.state.viewTitle = viewTitle;
+                updateUI();
+              },
+            );
+
+            this.remoteHandle.addEventListener(
+              "cursorMoved",
+              ({ pos, rect }) => {
+                log(
+                  `Event: cursorMoved - (${pos?.x}, ${pos?.y}) - Rect ${rect.x}, ${rect.y}, ${rect.w}×${rect.h}`,
+                );
+                this.state.cursorPos = pos;
+                updateUI();
+              },
+            );
+
+            this.remoteHandle.addEventListener(
+              "textUpdated",
+              ({ textUnderCursor, currentLine }) => {
+                log(`Event: textUpdated - "${textUnderCursor}"`);
+                this.state.textUnderCursor = textUnderCursor;
+                this.state.currentLine = currentLine;
+                updateUI();
+              },
+            );
+
+            // Listen for key press events
+            this.remoteHandle.addEventListener("keyPressed", ({ keys }) => {
+              log(
+                `Event: keyPressed - keys: ${keys} (0x${keys.toString(16).toUpperCase().padStart(2, "0")})`,
+              );
+            });
+
+            // Fetch initial state
+            log("Fetching initial state...");
+            const initialState = await this.remoteHandle.call("getState");
+            log(
+              `Initial state received: ${JSON.stringify(initialState).slice(0, 200)}`,
+            );
+            this.state = { ...this.state, ...initialState };
+            updateUI();
+
+            document.getElementById("status").classList.add("connected");
+            document.getElementById("connection-state").textContent =
+              "Connected to M8 Host";
+            log("✅ Connected to M8 host successfully!");
+
+            // Emit ready
+            this.localHandle.emit("ready", undefined);
+          } catch (error) {
+            log(`Connection failed: ${error.message}`, "error");
+            console.error("Connection error:", error);
+            document.getElementById("connection-state").textContent =
+              `Connection failed: ${error.message} - retrying...`;
+            setTimeout(() => this.connect(), 3000);
+          }
+        }
+
+        async navigateToView(viewName) {
+          if (!this.isConnected) throw new Error("Not connected");
+          log(`Calling navigateToView: ${viewName}`);
+          try {
+            const result = await this.remoteHandle.call(
+              "navigateToView",
+              viewName,
+            );
+            log(`navigateToView result: ${result}`);
+            return result;
+          } catch (error) {
+            log(`navigateToView error: ${error.message}`, "error");
+            throw error;
+          }
+        }
+
+        async navigateTo(x, y) {
+          if (!this.isConnected) throw new Error("Not connected");
+          log(`Calling navigateTo: (${x}, ${y})`);
+          try {
+            await this.remoteHandle.call("navigateTo", x, y);
+            log(`navigateTo completed`);
+          } catch (error) {
+            log(`navigateTo error: ${error.message}`, "error");
+            throw error;
+          }
+        }
+
+        async setValueToHex(hex) {
+          if (!this.isConnected) throw new Error("Not connected");
+          const value = parseInt(hex, 16);
+          if (Number.isNaN(value)) {
+            log(`Invalid hex value: ${hex}`, "error");
+            return false;
+          }
+          log(
+            `Calling setValueToHex: ${value.toString(16).padStart(2, "0").toUpperCase()}`,
+          );
+          try {
+            const result = await this.remoteHandle.call("setValueToHex", value);
+            log(`setValueToHex result: ${result}`);
+            return result;
+          } catch (error) {
+            log(`setValueToHex error: ${error.message}`, "error");
+            throw error;
+          }
+        }
+
+        async sendKeyPress(keys) {
+          if (!this.isConnected) throw new Error("Not connected");
+          log(`Calling sendKeyPress: [${keys.join(", ")}]`);
+          try {
+            await this.remoteHandle.call("sendKeyPress", keys);
+            log(`sendKeyPress completed`);
+          } catch (error) {
+            log(`sendKeyPress error: ${error.message}`, "error");
+            throw error;
+          }
+        }
+      }
+
+      // Global client instance
+      window.m8Client = new M8TestClient();
+
+      // UI Update function
+      function updateUI() {
+        const state = window.m8Client.state;
+        document.getElementById("view-name").textContent =
+          state.viewName || "-";
+        document.getElementById("cursor-pos").textContent = state.cursorPos
+          ? `(${state.cursorPos.x}, ${state.cursorPos.y})`
+          : "-";
+        document.getElementById("text-cursor").textContent =
+          state.textUnderCursor || "-";
+        document.getElementById("device-model").textContent =
+          state.deviceModel || "-";
+      }
+
+      // Expose functions to global scope for button onclick handlers
+      window.navigateToView = async (viewName) => {
+        try {
+          await window.m8Client.navigateToView(viewName);
+          log(`Navigation to ${viewName} initiated`);
+        } catch (error) {
+          log(`Navigation failed: ${error.message}`, "error");
+        }
+      };
+
+      window.navigateToCoords = async () => {
+        const x = parseInt(document.getElementById("nav-x").value, 10);
+        const y = parseInt(document.getElementById("nav-y").value, 10);
+        try {
+          await window.m8Client.navigateTo(x, y);
+          log(`Navigation to (${x}, ${y}) initiated`);
+        } catch (error) {
+          log(`Navigation failed: ${error.message}`, "error");
+        }
+      };
+
+      window.setValueToHex = async () => {
+        const hex = document.getElementById("hex-value").value;
+        try {
+          const result = await window.m8Client.setValueToHex(hex);
+          log(`Set value result: ${result ? "success" : "failed"}`);
+        } catch (error) {
+          log(`Set value failed: ${error.message}`, "error");
+        }
+      };
+
+      window.clearLog = () => {
+        document.getElementById("log").innerHTML = "";
+      };
+
+      window.sendKey = async (keys) => {
+        try {
+          await window.m8Client.sendKeyPress(keys);
+          log(`Key press sent: [${keys.join(", ")}]`);
+        } catch (error) {
+          log(`Key press failed: ${error.message}`, "error");
+        }
+      };
+
+      // Connect on load
+      window.addEventListener("load", () => {
+        log("SDK Test Client loaded");
+        window.m8Client.connect();
+      });
+    </script>
+  </body>
+</html>

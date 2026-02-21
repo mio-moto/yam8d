@@ -8,7 +8,7 @@ import { useViewNavigator } from './macros/useViewNavigator'
 import { M8Screen } from './rendering/M8Screen'
 import { registerViewExtractor } from './state/viewExtractor'
 import { M8Body } from './rendering/M8Body'
-import { useBackgroundColor } from './state/viewStore'
+import { useBackgroundColor, useSystemInfo } from './state/viewStore'
 import { rgbToHex } from '../utils/colorTools'
 import { useSettingsContext } from '../features/settings/settings'
 
@@ -137,6 +137,8 @@ const FullM8Player: FC<{
   // M8 body ref (as parent for the screen)
   const parentRef = useRef<HTMLDivElement | null>(null)
 
+  const [sys] = useSystemInfo()
+
   const [bgColor] = useBackgroundColor()
   const screenColor = rgbToHex(bgColor ?? { r: 0, g: 0, b: 0 })
 
@@ -186,23 +188,19 @@ const FullM8Player: FC<{
       if (!screen) return
       const screenRect = screen.getBoundingClientRect()
 
-      // TODO : get screen size from centralized place
-      let sw = 480
-      let sh = 320
-      if (model === 1) {
-        sw = 320
-        sh = 240
-      }
+      const sw = sys?.screenWidth ?? 480
+      const sh = sys?.screenHeight ?? 320
+      const offX = (sys?.offX ?? 0)
+      const offY = (sys?.offY ?? 0) - (sys?.rectOffset ?? 0)
 
-      // Map to 480x320 grid using element-relative fractions
-      const gx = Math.round(((ev.clientX - screenRect.left) / screenRect.width) * sw)
-      const gy = Math.round(((ev.clientY - screenRect.top) / screenRect.height) * sh)
+      const gx = Math.round(((ev.clientX - screenRect.left) / screenRect.width) * sw) + offX
+      const gy = Math.round(((ev.clientY - screenRect.top) / screenRect.height) * sh) + offY
       console.log('screen click → grid', { gx, gy })
       navigateTo({ x: gx, y: gy })
       ev.stopPropagation()
       ev.preventDefault()
     },
-    [navigateTo, model],
+    [navigateTo, sys],
   )
 
   useEffect(() => {
@@ -268,7 +266,7 @@ const FullM8Player: FC<{
         <div
           // When body is hidden, provide a placeholder element to anchor the screen overlay
           ref={screenEdgeRef as unknown as React.Ref<HTMLDivElement>}
-          style={{ width: '100%', height: '66vh' }}
+          style={{ width: '100%', height: '66vh', filter: 'drop-shadow(0 0 0.75rem crimson)' }}
         />
       )}
 

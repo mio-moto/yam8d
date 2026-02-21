@@ -13,8 +13,10 @@ import { useMacroInput } from './features/macros/useMacroInput'
 import { Menu } from './features/settings/menu'
 import { useSettingsContext } from './features/settings/settings'
 import { VirtualKeyboard } from './features/virtualKeyboard/VirtualKeyboard'
-// import { StatusPanel } from './features/debug/StatusPanel'
+//import { ProgramChangeKeyboard } from './features/virtualKeyboard/ProgramChangeKeyboard'
+import { StatusPanel } from './features/debug/StatusPanel'
 import { ShortcutsDisplay } from './features/shortcuts/shortcutsIntegration'
+import { SdkTest } from './components/SdkTest'
 
 const appClass = css`
     min-width: 38vw;
@@ -72,9 +74,12 @@ export const App: FC = () => {
           <Menu />
           <div className={appClass}>
             {settings.virtualKeyboard && <VirtualKeyboard bus={connectedBus} strokeColor={style.themeColors.text.default}></VirtualKeyboard>}
+            {/* not ready <ProgramChangeKeyboard bus={connectedBus} strokeColor={style.themeColors.text.default} /> */}
             {<M8Player bus={connectedBus} fullView={settings.fullM8View} />}
+            <StatusPanel />
             {/* <StatusPanel bus={connectedBus} /> */}
           </div>
+          <SdkTest bus={connectedBus} />
           {settings.displayShortcuts && <ShortcutsDisplay bus={connectedBus} />}
         </>
       )}

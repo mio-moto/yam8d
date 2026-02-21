@@ -19,7 +19,6 @@ import {
     type RGB,
 } from './viewStore'
 import { getLoadedViewList, loadViewList } from '../macros/m8GraphLoader'
-import { hueMatches, rgbToHsl } from '../../utils/colorTools'
 
 // Heuristics aligned with existing extraction logic
 const STABILIZE_MS = 50
@@ -436,8 +435,6 @@ export function registerViewExtractor(bus?: ConnectedBus | null) {
     class CharacterGridTracker {
         // Grid: y -> x -> { char, fg, bg }
         private grid: Map<number, Map<number, { ch: string; fg: RGB; bg: RGB }>> = new Map()
-        // Store cursor color hue for comparison
-        private cursorHue: number | null = null
 
         processChar(cmd: CharacterCommand) {
             const { cellW, cellH, offX, offY } = store.get(cellMetricsAtom)
@@ -458,78 +455,79 @@ export function registerViewExtractor(bus?: ConnectedBus | null) {
                     this.grid.delete(key)
                 }
             }
-            // Update highlight info for new cursor position with cursor color
+            // Update highlight info for new cursor position
             this.updateHighlightAtCursor()
 
         }
 
         updateHighlightAtCursor() {
-
+            const cursorRect = store.get(cursorRectAtom)
             const pos = store.get(cursorPosAtom)
-            if (!pos) {
+
+            if (!pos || !cursorRect) {
                 store.set(textUnderCursorAtom, null)
                 store.set(currentLineAtom, null)
+                store.set(highlightColorAtom, null)
                 return
             }
-            const { x, y } = pos
-            const textUnderCursor = this.getTextUnderCursor(x, y)
-            const currentLine = this.getCurrentLine(y)
+
+            const { cellW, offX, } = store.get(cellMetricsAtom)
+
+            // Convert pixel cursor bounds to grid coordinates
+            // Cursor rect is in pixels, text is in grid cells
+            const startGx = Math.floor((cursorRect.x - offX) / cellW)
+            const endGx = Math.floor(((cursorRect.x + cursorRect.w - 1) - offX) / cellW)
+            const gy = pos.y // Use cursor's grid Y position
+
+            // Extract text within cursor bounds (no hue filtering)
+            const textUnderCursor = this.getTextUnderCursor(startGx, endGx, gy)
+
+            // Extract highlight color from text under cursor (stable, not pulsing)
+            const textHighlightColor = this.getHighlightColorFromText(startGx, endGx, gy)
+
+            const currentLine = this.getCurrentLine(gy)
 
             store.set(textUnderCursorAtom, textUnderCursor)
             store.set(currentLineAtom, currentLine)
+
+            // Use stable text color as highlight color
+            if (textHighlightColor) {
+                store.set(highlightColorAtom, textHighlightColor)
+            }
         }
 
-        getColorAtCursor(gx: number, gy: number): RGB | null {
+        getTextUnderCursor(startGx: number, endGx: number, gy: number): string | null {
             const row = this.grid.get(gy)
             if (!row) return null
 
-            const cell = row.get(gx)
-            if (!cell) return null
-
-            return cell.fg
-        }
-
-        getTextUnderCursor(gx: number, gy: number): string | null {
-            // if (this.cursorHue === null)
-            this.cursorHue = rgbToHsl(store.get(highlightColorAtom) as RGB).h
-            const row = this.grid.get(gy)
-            if (!row) return null
-
-            // Find start position: go left while hue matches (within tolerance)
-            const startX = gx
-            // while (startX >= 0) {
-            //     const cell = row.get(startX)
-
-            //     if (!cell || !hueMatches(cell.fg, this.cursorHue)) {
-            //         startX++
-            //         break
-            //     }
-            //     if (startX === 0) break
-            //     startX--
-            // }
-
-            // Find end position: go right while hue matches (within tolerance)
-            const endX = 39 //gx
-            // while (endX <= 39) { // Max 40 characters per line
-            //     const cell = row.get(endX)
-            //     if (!cell || !hueMatches(cell.fg, this.cursorHue)) {
-            //         endX--
-            //         break
-            //     }
-            //     if (endX === 39) break
-            //     endX++
-            // }
-
-            // Extract text from startX to endX
+            // Extract all characters within cursor bounds without hue filtering
             const text: string[] = []
-            for (let x = startX; x <= endX; x++) {
+            for (let x = startGx; x <= endGx; x++) {
                 const cell = row.get(x)
-                if (cell && hueMatches(cell.fg, this.cursorHue)) {
+                if (cell) {
                     text.push(cell.ch)
                 }
             }
 
             return text.join('').trim() || null
+        }
+
+        /**
+         * Get the stable highlight color from text under cursor
+         * This is the foreground color of the text, which doesn't pulse
+         */
+        getHighlightColorFromText(startGx: number, endGx: number, gy: number): RGB | null {
+            const row = this.grid.get(gy)
+            if (!row) return null
+
+            // Find first non-space character within cursor bounds
+            for (let x = startGx; x <= endGx; x++) {
+                const cell = row.get(x)
+                if (cell?.ch.trim()) {
+                    return cell.fg
+                }
+            }
+            return null
         }
 
         getCurrentLine(gy: number): string | null {
@@ -554,34 +552,19 @@ export function registerViewExtractor(bus?: ConnectedBus | null) {
     const cursorExtractor = (data: RectCommand) => {
         if (!data) return
         const { cellW, cellH, offX, offY } = store.get(cellMetricsAtom)
-        const { cursor, cursorColor } = CursorAssembly.processRect(data)
+        const { cursor } = CursorAssembly.processRect(data)
         const { x, y, w, h } = cursor
         // Use top-left of cursor to determine grid position (same as characters)
+        // No rectOffset correction needed: both cursor rects and character positions
+        // come from raw M8 protocol data without visual offset applied
         const gx = Math.floor((x - offX) / cellW)
         const gy = Math.floor((y - offY) / cellH)
-
-        // Use cursor color if available, otherwise fall back to color at cursor position
-        let highlightColor = store.get(highlightColorAtom) ?? cursorColor
-
-        // Calculate hue from cursor color for comparison
-        if (highlightColor && cursorColor) {
-            const lastHsl = rgbToHsl(highlightColor)
-            const currentHsl = rgbToHsl(cursorColor)
-            if (!hueMatches(lastHsl, currentHsl.h) ||
-                lastHsl.l < currentHsl.l) {
-
-                // console.log(highlightColor, cursorColor)
-                highlightColor = cursorColor
-            }
-
-            store.set(highlightColorAtom, highlightColor)
-        }
 
         const prevPos = store.get(cursorPosAtom)
         if (!prevPos || prevPos.x !== gx || prevPos.y !== gy) {
             store.set(cursorPosAtom, { x: gx, y: gy })
             store.set(cursorRectAtom, { x, y, w, h })
-            store.set(highlightColorAtom, highlightColor)
+            // Note: highlightColor is now set by updateHighlightAtCursor using stable text color
         }
     }
 

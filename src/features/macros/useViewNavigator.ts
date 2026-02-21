@@ -1,8 +1,7 @@
-//import { useMacroRunner } from './macroRunner'
 import type { ConnectedBus } from '../connection/connection'
 import { M8KeyMask } from '../connection/keys'
 import { useCallback, useEffect, useRef } from 'react'
-import { useCursor, useCursorRect, useSystemInfo } from '../state/viewStore'
+import { useCursor, useCursorRect } from '../state/viewStore'
 
 type keyType = 'up' | 'down' | 'left' | 'right' | null
 
@@ -47,12 +46,11 @@ const isBetterPoint = (
 export const useViewNavigator = (connection?: ConnectedBus) => {
     const [cursor] = useCursor()
     const [cursorRect] = useCursorRect()
-    const [systemInfo] = useSystemInfo()
 
     const currentTarget = useRef<{ x: number; y: number } | null>(null)
 
     const safety = useRef(0)
-    const MAX_STEPS = 20
+    const MAX_STEPS = 24
 
     const lastStep = useRef<keyType>(null)
     const stepsHistory = useRef<keyType[]>([])
@@ -76,21 +74,17 @@ export const useViewNavigator = (connection?: ConnectedBus) => {
 
     const lastRect = useRef<{ rx: number; ry: number; rw: number; rh: number } | null>(null)
 
+    // Promise resolver for navigation completion
+    const navigationResolver = useRef<(() => void) | null>(null)
+
     const getRect = useCallback(() => {
         const rect = cursorRect
-        const gridW = 1
-        const gridH = 1
-        const rx = rect ? Math.floor(rect.x / gridW) : 0
-
-        // Apply rectOffset adjustment (same logic as renderer)
-        const rectOffset = systemInfo?.rectOffset ?? 0
-        const rawY = rect ? Math.floor(rect.y / gridH) : 0
-        const ry = rawY > 0 ? rawY + rectOffset : rawY
-
-        const rw = rect ? Math.floor(rect.w / gridW) : 480
-        const rh = rect ? Math.ceil(rect.h / gridH) : 320
+        const rx = rect?.x ?? 0
+        const ry = rect?.y ?? 0
+        const rw = rect?.w ?? 480
+        const rh = rect?.h ?? 320
         return { rx, ry, rw, rh }
-    }, [cursorRect, systemInfo])
+    }, [cursorRect])
 
     const distanceToRect = useCallback((
         r: { rx: number; ry: number; rw: number; rh: number },
@@ -105,6 +99,11 @@ export const useViewNavigator = (connection?: ConnectedBus) => {
     }, [])
 
     const resetState = useCallback(() => {
+        // Resolve any pending navigation promise before resetting
+        if (navigationResolver.current) {
+            navigationResolver.current()
+            navigationResolver.current = null
+        }
         currentTarget.current = null
         safety.current = 0
         lastStep.current = null
@@ -256,33 +255,53 @@ export const useViewNavigator = (connection?: ConnectedBus) => {
         connection.commands.sendKeys(0)
     }, [cursorRect, connection, getRect, distanceToRect, decideStep, resetState, returnToBestPosition])
 
-    const navigateTo = (target: { x: number; y: number }) => {
-        if (!cursor || !connection) return
+    const navigateTo = useCallback((target: { x: number; y: number }): Promise<void> => {
+        return new Promise((resolve) => {
+            if (!cursor || !connection) {
+                resolve()
+                return
+            }
 
-        resetState()
-        currentTarget.current = target
+            // Reset any existing navigation and set up new resolver
+            if (navigationResolver.current) {
+                navigationResolver.current()
+            }
+            navigationResolver.current = resolve
 
-        const rect = getRect()
-        lastRect.current = rect
+            resetState()
+            // Target is already in rendered/visual coordinates from textGridToPixel
+            // getRect() also returns rendered coordinates, so we can compare directly
+            currentTarget.current = target
 
-        const { dist, dx, dy } = distanceToRect(rect, target)
-        const absDx = Math.abs(dx)
-        const absDy = Math.abs(dy)
-        const initial = { dist, absDx, absDy }
+            const rect = getRect()
+            lastRect.current = rect
 
-        bestPoint.current = { ...initial, index: 0 }
-        lastPoint.current = initial
+            // Use target directly for distance calculation (both in rendered coords)
+            const { dist, dx, dy } = distanceToRect(rect, target)
+            const absDx = Math.abs(dx)
+            const absDy = Math.abs(dy)
+            const initial = { dist, absDx, absDy }
 
-        const step = decideStep(target)
-        if (!step) return
+            bestPoint.current = { ...initial, index: 0 }
+            lastPoint.current = initial
 
-        stepsHistory.current.push(step)
-        safety.current += 1
-        lastStep.current = step
+            // Use target directly for step decision
+            const step = decideStep(target)
+            if (!step) {
+                // Already at target, resolve immediately
+                navigationResolver.current = null
+                resolve()
+                return
+            }
 
-        connection.commands.sendKeys(map[step])
-        connection.commands.sendKeys(0)
-    }
+            stepsHistory.current.push(step)
+            safety.current += 1
+            lastStep.current = step
+
+            connection.commands.sendKeys(map[step])
+            connection.commands.sendKeys(0)
+        })
+    }, [cursor, connection, resetState, getRect, distanceToRect, decideStep])
 
     return { navigateTo }
 }

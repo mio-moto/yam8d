@@ -15,6 +15,10 @@ import FragText from './shader/text.frag?raw'
 import VertText from './shader/text.vert?raw'
 import FragWave from './shader/wave.frag?raw'
 import VertWave from './shader/wave.vert?raw'
+import FragApollonian from './shader/apollonian.frag?raw'
+import FragPlasma from './shader/plasma.frag?raw'
+
+export type BackgroundShader = 'none' | 'apollonian' | 'plasma'
 
 export type ScreenLayout = 1 | 2 | 3 | 4 | 5
 type ScreenConfig = {
@@ -274,6 +278,37 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
   const postprocessVao = gl.createVertexArray()
   const blurVT_uAlphaMode = gl.getUniformLocation(blurVThresholdProgram, 'uAlphaMode')
 
+  // --- Background shaders ---
+  let backgroundShader: BackgroundShader = 'none'
+  let backgroundStartTime = performance.now() / 1000
+
+  const apollonianProgram = buildProgram(gl, VertPostprocess, FragApollonian)
+  const apollonian_uTime = gl.getUniformLocation(apollonianProgram, 'uTime')
+  const apollonian_uResolution = gl.getUniformLocation(apollonianProgram, 'uResolution')
+
+  const plasmaProgram = buildProgram(gl, VertPostprocess, FragPlasma)
+  const plasma_uTime = gl.getUniformLocation(plasmaProgram, 'uTime')
+  const plasma_uResolution = gl.getUniformLocation(plasmaProgram, 'uResolution')
+
+  const renderBackground = () => {
+    if (backgroundShader === 'none') return
+    gl.disable(gl.BLEND)
+    gl.bindVertexArray(postprocessVao)
+    if (backgroundShader === 'apollonian') {
+      // biome-ignore lint/correctness/useHookAtTopLevel: ain't a hook
+      gl.useProgram(apollonianProgram)
+      gl.uniform1f(apollonian_uTime, performance.now() / 1000 - backgroundStartTime)
+      gl.uniform2f(apollonian_uResolution, displayWidth, displayHeight)
+    } else if (backgroundShader === 'plasma') {
+      // biome-ignore lint/correctness/useHookAtTopLevel: ain't a hook
+      gl.useProgram(plasmaProgram)
+      gl.uniform1f(plasma_uTime, performance.now() / 1000 - backgroundStartTime)
+      gl.uniform2f(plasma_uResolution, displayWidth, displayHeight)
+    }
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+    gl.enable(gl.BLEND)
+  }
+
   const processFont = () => {
     if (!fontAtlasOrigW || !fontAtlasOrigH) return
 
@@ -510,6 +545,9 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
           if (smoothRendering && processedFontTexture) {
             // Smooth path: render at display resolution directly to screen
 
+            // Step 0: Render background shader
+            renderBackground()
+
             // Step 1: Render rects to rectsFBO at native res (skip blit)
             gl.viewport(0, 0, nativeW, nativeH)
             rectRenderer.renderRects(true)
@@ -535,6 +573,10 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
             waveRenderer.renderWave(true)
           } else {
             // Non-smooth path: render at native res, then post-process
+
+            // Step 0: Render background shader
+            renderBackground()
+
             gl.bindFramebuffer(gl.FRAMEBUFFER, sceneFbo)
             gl.viewport(0, 0, nativeW, nativeH)
 
@@ -715,7 +757,9 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
       const { width, height } = screenLayoutConfig[screenLayout].screen
       if (rectsClear) {
         gl.bindFramebuffer(gl.FRAMEBUFFER, rectsFramebuffer)
-        gl.clearColor(background.r, background.g, background.b, 1)
+        // Make background transparent when any background shader is enabled so it shows through
+        const alpha = backgroundShader !== 'none' ? 0.0 : 1.0
+        gl.clearColor(background.r, background.g, background.b, alpha)
         gl.clear(gl.COLOR_BUFFER_BIT)
         rectsClear = false
       }
@@ -740,7 +784,7 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
     }
     const drawRect = ({ pos: { x, y }, size: { width, height }, color }: Exclude<RectCommand, undefined>) => {
       lastColor = color ?? lastColor
-      const { r, g, b } = lastColor
+      let { r, g, b } = lastColor
 
       if (rectCount >= 1024) {
         renderRects()
@@ -749,19 +793,31 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
       const { rectOffset, screen } = screenLayoutConfig[screenLayout]
 
       if (x === 0 && y === 0 && width >= screen.width && height >= screen.height) {
+        // Full-screen rect - this is the background color
         background = { r: r / 255, g: g / 255, b: b / 255 }
         rectCount = 0
         rectsClear = true
-      } else if (rectCount < 1024) {
-        const i = rectCount
-        rectShapes[i * 6 + 0] = x
-        rectShapes[i * 6 + 1] = y > 0 ? y + rectOffset : y
-        rectShapes[i * 6 + 2] = width
-        rectShapes[i * 6 + 3] = height
-        rectColors[i * 12 + 0] = r
-        rectColors[i * 12 + 1] = g
-        rectColors[i * 12 + 2] = b
-        rectCount++
+      } else {
+        // When background shader is enabled, make background-colored rects transparent
+        const isBackgroundShader = backgroundShader !== 'none'
+        const isBackgroundColor = r === Math.round(background.r * 255) && g === Math.round(background.g * 255) && b === Math.round(background.b * 255)
+        if (isBackgroundShader && isBackgroundColor) {
+          r = 0
+          g = 0
+          b = 0
+        }
+
+        if (rectCount < 1024) {
+          const i = rectCount
+          rectShapes[i * 6 + 0] = x
+          rectShapes[i * 6 + 1] = y > 0 ? y + rectOffset : y
+          rectShapes[i * 6 + 2] = width
+          rectShapes[i * 6 + 3] = height
+          rectColors[i * 12 + 0] = r
+          rectColors[i * 12 + 1] = g
+          rectColors[i * 12 + 2] = b
+          rectCount++
+        }
       }
 
       queueFrame()
@@ -898,6 +954,11 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
         processFont()
         queueFrame()
       }
+    },
+    setBackgroundShader: (shader: BackgroundShader) => {
+      backgroundShader = shader
+      backgroundStartTime = performance.now() / 1000
+      queueFrame()
     },
   }
 }

@@ -148,7 +148,7 @@ export const protocol = () => {
         let offY = 0
         let screenWidth = 480
         let screenHeight = 320
-        let rectOffset = 1
+        let rectOffset = 0
 
         if (!sys) return { spacingX, spacingY, offX, offY, screenWidth, screenHeight, rectOffset }
 
@@ -171,7 +171,7 @@ export const protocol = () => {
             } else {
                 spacingX = 15
                 spacingY = 16
-                offY = 5
+                offY = 0
                 rectOffset = -45
             }
         } else {

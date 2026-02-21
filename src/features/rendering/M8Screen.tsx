@@ -30,6 +30,7 @@ export const M8Screen = ({ bus, onClick }: { bus?: ConnectedBus | null; onClick?
         }
         const systemInfo = bus?.protocol.getSystemInfo()
         const render = renderer(innerRef.current, systemInfo ? makeScreenLayout(systemInfo) : 5)
+        render?.setBackgroundShader('none')
         renderRef.current = render
         const drawText = (data: CharacterCommand) => {
             render?.text.drawText({
@@ -76,6 +77,7 @@ export const M8Screen = ({ bus, onClick }: { bus?: ConnectedBus | null; onClick?
                     height = Math.round(entry.contentRect.height * dpr)
                 }
                 if (width > 0 && height > 0) {
+                    console.log('M8 screen resize', width, height)
                     render?.resize(width, height)
                 }
             }

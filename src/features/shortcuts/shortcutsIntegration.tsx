@@ -6,6 +6,7 @@ import type { ConnectedBus } from "../connection/connection"
 import type { KeyCommand } from "../connection/protocol"
 import { isEdit, isOpt, isPlay, isShift } from "../connection/keys"
 import { useSettingsContext } from "../settings/settings"
+import { useM8SdkHost } from "../../sdk"
 
 const shortcuts = css`
 // position : fixed;
@@ -29,6 +30,16 @@ export const ShortcutsDisplay: FC<{ bus?: ConnectedBus }> = ({ bus }) => {
 
     const prevMaskRef = useRef<number>(0)
     const activeKeyRef = useRef<string>("")
+
+    // Use the M8 SDK host hook to enable iframe communication via post-me
+    const { iframeRef, isReady: sdkReady } = useM8SdkHost(bus, { debug: false })
+
+    // Log SDK connection status for debugging
+    useEffect(() => {
+        if (sdkReady) {
+            console.log('[ShortcutsDisplay] M8 SDK client connected')
+        }
+    }, [sdkReady])
 
     useEffect(() => {
         if (!bus) return
@@ -95,6 +106,10 @@ export const ShortcutsDisplay: FC<{ bus?: ConnectedBus }> = ({ bus }) => {
     return (
         <div className={shortcuts} >
             {/* <iframe src={`https://miomoto.de/m8-shortcuts/#/${title}`}></iframe> */}
-            <iframe src={`${settings.shortcutsHost}#/${title ?? ""}/?mode=min&key=${keyName}`}></iframe>
+            <iframe
+                ref={iframeRef}
+                src={`${settings.shortcutsHost}#/${title ?? ""}/?mode=min&key=${keyName}`}
+                title="M8 Shortcuts"
+            />
         </div>)
 }
