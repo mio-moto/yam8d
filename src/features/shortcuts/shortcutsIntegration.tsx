@@ -32,7 +32,17 @@ export const ShortcutsDisplay: FC<{ bus?: ConnectedBus }> = ({ bus }) => {
     const activeKeyRef = useRef<string>("")
 
     // Use the M8 SDK host hook to enable iframe communication via post-me
-    const { iframeRef, isReady: sdkReady } = useM8SdkHost(bus, { debug: false })
+    const { iframeRef, isReady: sdkReady } = useM8SdkHost(bus, { debug: true })
+
+    // Freeze the iframe src once the SDK is connected to prevent spurious load events.
+    // Changing src while connected causes the iframe to navigate, fires 'load', and triggers
+    // a new ParentHandshake that fails because the client is already connected.
+    const [iframeSrc, setIframeSrc] = useState(() => `${settings.shortcutsHost}#/${title ?? ""}/?mode=min`)
+    useEffect(() => {
+        if (!sdkReady) {
+            setIframeSrc(`${settings.shortcutsHost}#/${title ?? ""}/?mode=min&key=${keyName}`)
+        }
+    }, [sdkReady, title, keyName, settings.shortcutsHost])
 
     // Log SDK connection status for debugging
     useEffect(() => {
@@ -108,7 +118,7 @@ export const ShortcutsDisplay: FC<{ bus?: ConnectedBus }> = ({ bus }) => {
             {/* <iframe src={`https://miomoto.de/m8-shortcuts/#/${title}`}></iframe> */}
             <iframe
                 ref={iframeRef}
-                src={`${settings.shortcutsHost}#/${title ?? ""}/?mode=min&key=${keyName}`}
+                src={iframeSrc}
                 title="M8 Shortcuts"
             />
         </div>)

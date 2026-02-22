@@ -70,6 +70,7 @@ m8.disconnect();
 | `navigateTo(x: number, y: number)` | Navigate to grid coordinates    | `Promise<void>`    |
 | `setValueToHex(hex: number)`       | Set value using edit+navigation | `Promise<boolean>` |
 | `getState()`                       | Get full M8 state               | `Promise<M8State>` |
+| `sendKeys(keys: number)`           | Send key combination            | `void`             |
 
 ### Client State (reactive)
 
@@ -86,12 +87,13 @@ m8.disconnect();
 
 ### Events (Host → Client)
 
-| Event          | Payload                            | Description       |
-| -------------- | ---------------------------------- | ----------------- |
-| `stateChanged` | `M8State`                          | Full state update |
-| `viewChanged`  | `{ viewName, viewTitle }`          | View changed      |
-| `cursorMoved`  | `{ pos, rect }`                    | Cursor moved      |
-| `textUpdated`  | `{ textUnderCursor, currentLine }` | Text changed      |
+| Event          | Payload                            | Description                |
+| -------------- | ---------------------------------- | -------------------------- |
+| `stateChanged` | `M8State`                          | Full state update          |
+| `viewChanged`  | `{ viewName, viewTitle }`          | View changed               |
+| `cursorMoved`  | `{ pos, rect }`                    | Cursor moved               |
+| `textUpdated`  | `{ textUnderCursor, currentLine }` | Text changed               |
+| `keyPressed`   | `{ keys }`                         | Key(s) pressed or released |
 
 ## setValueToHex Implementation
 

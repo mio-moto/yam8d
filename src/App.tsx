@@ -16,7 +16,7 @@ import { VirtualKeyboard } from './features/virtualKeyboard/VirtualKeyboard'
 //import { ProgramChangeKeyboard } from './features/virtualKeyboard/ProgramChangeKeyboard'
 import { StatusPanel } from './features/debug/StatusPanel'
 import { ShortcutsDisplay } from './features/shortcuts/shortcutsIntegration'
-import { SdkTest } from './components/SdkTest'
+// import { SdkTest } from './components/SdkTest'
 
 const appClass = css`
     min-width: 38vw;
@@ -79,7 +79,7 @@ export const App: FC = () => {
             <StatusPanel />
             {/* <StatusPanel bus={connectedBus} /> */}
           </div>
-          <SdkTest bus={connectedBus} />
+          {/* <SdkTest bus={connectedBus} /> */}
           {settings.displayShortcuts && <ShortcutsDisplay bus={connectedBus} />}
         </>
       )}
