@@ -2,15 +2,19 @@ import type { FC } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '../../components/Button'
 import { Input } from '../../components/Input'
+import { Modal } from '../../components/Modal'
 import { useSettingsContext } from './settings'
+import { KeyboardSettings } from './KeyboardSettings'
 import './menu.css'
 
 export const Menu: FC = () => {
     const { settings, updateSettingValue } = useSettingsContext()
     const [opened, setOpened] = useState(false)
     const [hostDraft, setHostDraft] = useState(settings.shortcutsHost)
+    const [keyboardSettingsOpen, setKeyboardSettingsOpen] = useState(false)
     const menuRef = useRef<HTMLDivElement | null>(null)
     const hitboxRef = useRef<HTMLDivElement | null>(null)
+    const keyboardModalRef = useRef<HTMLDialogElement | null>(null)
     // Mark menu open on document body for global hooks to detect
     useEffect(() => {
         document.body.dataset.m8MenuOpen = opened ? 'true' : 'false'
@@ -54,6 +58,35 @@ export const Menu: FC = () => {
             document.removeEventListener('pointerdown', onPointerDown, true)
         }
     }, [opened])
+
+    // Handle keyboard settings modal
+    useEffect(() => {
+        const modal = keyboardModalRef.current
+        if (!modal) return
+
+        const handleClose = () => setKeyboardSettingsOpen(false)
+        const handleClick = (e: MouseEvent) => {
+            // Close when clicking on backdrop
+            if (e.target === modal) {
+                setKeyboardSettingsOpen(false)
+            }
+        }
+
+        modal.addEventListener('close', handleClose)
+        modal.addEventListener('click', handleClick as EventListener)
+
+        if (keyboardSettingsOpen) {
+            modal.showModal()
+        } else {
+            modal.close()
+        }
+
+        return () => {
+            modal.removeEventListener('close', handleClose)
+            modal.removeEventListener('click', handleClick as EventListener)
+        }
+    }, [keyboardSettingsOpen])
+
     return (
         <>
             <div
@@ -197,7 +230,18 @@ export const Menu: FC = () => {
                         </div>
                     </div>
                 )}
+
+                <div className="menu-item">
+                    <span className="title">Keyboard mapping</span>
+                    <div>
+                        <Button onClick={() => setKeyboardSettingsOpen(true)}>Configure</Button>
+                    </div>
+                </div>
             </div>
+
+            <Modal ref={keyboardModalRef}>
+                <KeyboardSettings />
+            </Modal>
         </>
     )
 }

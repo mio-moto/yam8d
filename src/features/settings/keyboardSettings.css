@@ -1,0 +1,50 @@
+/* Keyboard SVG key styles — classes mirror M8Body button classes */
+
+[data-code] {
+    transition: fill 0.2s ease, fill-opacity 0.2s ease;
+    fill-opacity: 0;
+}
+
+/* Same color classes as M8Body buttons — sourced from CSS variables injected by colorTheme */
+[data-code].opt {
+    fill: var(--teal-primary);
+    fill-opacity: 0.6;
+}
+
+[data-code].edit {
+    fill: var(--ochre-primary);
+    fill-opacity: 0.6;
+}
+
+[data-code].shift {
+    fill: var(--raspberry-500);
+    fill-opacity: 0.6;
+}
+
+[data-code].play {
+    fill: var(--lime-primary);
+    fill-opacity: 0.6;
+}
+
+[data-code].up,
+[data-code].down,
+[data-code].left,
+[data-code].right {
+    fill: var(--anthracite-400);
+    fill-opacity: 0.6;
+}
+
+[data-code]:hover {
+    fill-opacity: 0.85 !important;
+}
+
+[data-code].has-mapping {
+    stroke: rgba(255, 255, 255, 0.25);
+    stroke-width: 1px;
+}
+
+/* Visual feedback when key is pressed without M8 mapping selected */
+[data-code].pressed {
+    fill: white;
+    fill-opacity: 1;
+}

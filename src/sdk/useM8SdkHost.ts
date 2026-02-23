@@ -34,6 +34,7 @@ import type {
     M8SdkConfig,
 } from './types'
 
+
 // Helper to get current state from all atoms
 const getCurrentState = (): M8State => {
     const store = getDefaultStore()
@@ -83,6 +84,9 @@ export const useM8SdkHost = (bus: ConnectedBus | undefined, config: M8SdkConfig 
     const [clientConnected, setClientConnected] = useState(false)
     const busRef = useRef(bus)
 
+    const log = (msg: string) => {
+        if (config.debug) console.log(msg)
+    }
     // Keep bus ref up to date
     useEffect(() => {
         busRef.current = bus

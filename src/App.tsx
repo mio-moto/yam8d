@@ -79,8 +79,8 @@ export const App: FC = () => {
             <StatusPanel />
             {/* <StatusPanel bus={connectedBus} /> */}
           </div>
-          {/* <SdkTest bus={connectedBus} /> */}
           {settings.displayShortcuts && <ShortcutsDisplay bus={connectedBus} />}
+          {/* <SdkTest bus={connectedBus} /> */}
         </>
       )}
     </>

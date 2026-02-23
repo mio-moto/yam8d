@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>M8 SDK Test Page</title>
+  </head>
+  <body>
+    <button id="download">Télécharger le SVG annoté</button>
+    <div id="status" style="font-family: system-ui; margin: 8px 0"></div>
+    <div id="host"></div>
+
+    <script>
+      const SVG_URL =
+        "https://yam8d.vercel.app/Clavier-without-labels---shapes-only.svg";
+
+      function installBinder(svg) {
+        // Style simple
+        const style = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "style",
+        );
+        style.textContent = `
+    .kb-key { cursor: pointer; }
+    .kb-key.is-selected { stroke: #ff1744 !important; stroke-width: 3px !important; }
+    .kb-key.has-code { stroke: #00c853 !important; stroke-width: 2px !important; }
+    .kb-key.is-active { stroke: #00e676 !important; stroke-width: 3px !important; }
+  `;
+        svg.prepend(style);
+
+        // "Touches" = fill none (les LEDs ont un fill)
+        const keys = [...svg.querySelectorAll("path")].filter(
+          (p) => getComputedStyle(p).fill === "none",
+        );
+
+        keys.forEach((p) => {
+          p.classList.add("kb-key");
+        });
+
+        let selected = null;
+
+        function refreshStatus() {
+          const assigned = keys.filter((k) =>
+            k.hasAttribute("data-code"),
+          ).length;
+          const total = keys.length;
+          document.getElementById("status").textContent =
+            `Touches: ${total} — Assignées: ${assigned} — Restantes: ${total - assigned}`;
+          keys.forEach((k) => {
+            k.classList.toggle("has-code", k.hasAttribute("data-code"));
+          });
+        }
+
+        function select(el) {
+          if (selected) selected.classList.remove("is-selected");
+          selected = el;
+          if (selected) selected.classList.add("is-selected");
+        }
+
+        // Click pour sélectionner une touche
+        svg.addEventListener("click", (e) => {
+          const el = e.target;
+          if (!(el instanceof SVGPathElement)) return;
+          if (!el.classList.contains("kb-key")) return;
+          select(el);
+          refreshStatus();
+        });
+
+        // Keydown : si une touche est sélectionnée, on bind
+        window.addEventListener(
+          "keydown",
+          (e) => {
+            // Surlignage live (même sans sélection)
+            const live = svg.querySelector(
+              `[data-code="${CSS.escape(e.code)}"]`,
+            );
+            if (live) live.classList.add("is-active");
+
+            if (!selected) return;
+
+            e.preventDefault(); // évite back/refresh/etc pendant le binding
+            selected.setAttribute("data-code", e.code);
+            selected.setAttribute("data-role", "key");
+
+            // auto-advance: sélectionne la prochaine touche non bindée (optionnel)
+            const idx = keys.indexOf(selected);
+            const next =
+              keys.slice(idx + 1).find((k) => !k.hasAttribute("data-code")) ||
+              keys.find((k) => !k.hasAttribute("data-code"));
+            select(next || null);
+
+            refreshStatus();
+          },
+          { passive: false },
+        );
+
+        window.addEventListener("keyup", (e) => {
+          const live = svg.querySelector(`[data-code="${CSS.escape(e.code)}"]`);
+          if (live) live.classList.remove("is-active");
+        });
+
+        window.addEventListener("blur", () => {
+          svg.querySelectorAll(".is-active").forEach((el) => {
+            el.classList.remove("is-active");
+          });
+        });
+
+        refreshStatus();
+      }
+
+      function downloadSvg(svg, filename = "keyboard-annotated.svg") {
+        const xml = new XMLSerializer().serializeToString(svg);
+        const blob = new Blob([xml], { type: "image/svg+xml;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      }
+
+      (async function main() {
+        const host = document.getElementById("host");
+        host.innerHTML = await fetch(SVG_URL).then((r) => r.text());
+        const svg = host.querySelector("svg");
+        await new Promise(requestAnimationFrame);
+
+        installBinder(svg);
+
+        document
+          .getElementById("download")
+          .addEventListener("click", () => downloadSvg(svg));
+      })();
+    </script>
+  </body>
+</html>

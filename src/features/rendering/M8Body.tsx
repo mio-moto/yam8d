@@ -1,6 +1,15 @@
-import { cx } from '@linaria/core';
+import { css, cx } from '@linaria/core';
 import type { FC, Ref } from 'react'
 import { isDown, isEdit, isLeft, isOpt, isPlay, isRight, isShift, isUp } from '../connection/keys';
+import { style } from '../../app/style/style'
+
+// Button color classes — shared by any context that renders M8Body
+const svgClass = css`
+    .button.opt   { fill: ${style.colors.teal.primary} !important; }
+    .button.edit  { fill: ${style.colors.ochre.primary} !important; }
+    .button.shift { fill: ${style.colors.raspberry[500]} !important; }
+    .button.play  { fill: ${style.colors.lime.primary} !important; }
+`
 
 export const M8Body: FC<{
     strokeColor: string;
@@ -30,7 +39,7 @@ export const Model02: FC<{
 >
     = ({ strokeColor = '#d0d0d0', screenColor = '#000000', onClick, keysPressed = 0, screenEdgeRef }) => {
         return (
-            <svg xmlns="http://www.w3.org/2000/svg" xmlSpace="preserve" style={{
+            <svg xmlns="http://www.w3.org/2000/svg" xmlSpace="preserve" className={svgClass} style={{
                 clipRule: 'evenodd',
                 strokeLinecap: 'round',
                 strokeLinejoin: 'round',
@@ -114,6 +123,7 @@ export const Model01: FC<{
                 width="100%"
                 height="100%"
                 viewBox="0 0 119 164"
+                className={svgClass}
                 xmlns="http://www.w3.org/2000/svg"
                 xmlnsXlink="http://www.w3.org/1999/xlink"
                 xmlSpace="preserve"

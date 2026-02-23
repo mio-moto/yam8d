@@ -71,19 +71,6 @@ const containerClass = css`
         fill-opacity: 0.25;
       }
 
-      &.opt {
-        fill: ${style.colors.teal.primary} !important;
-      }
-      &.edit {
-        fill: ${style.colors.ochre.primary} !important;
-      }
-      &.shift {
-        fill: ${style.colors.raspberry[500]} !important;
-      }
-      &.play {
-        fill: ${style.colors.lime.primary} !important;
-      }
-
       &.press {
         fill-opacity: 1;
         transition: none;

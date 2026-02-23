@@ -32,7 +32,7 @@ export const ShortcutsDisplay: FC<{ bus?: ConnectedBus }> = ({ bus }) => {
     const activeKeyRef = useRef<string>("")
 
     // Use the M8 SDK host hook to enable iframe communication via post-me
-    const { iframeRef, isReady: sdkReady } = useM8SdkHost(bus, { debug: true })
+    const { iframeRef, isReady: sdkReady } = useM8SdkHost(bus, { debug: false })
 
     // Freeze the iframe src once the SDK is connected to prevent spurious load events.
     // Changing src while connected causes the iframe to navigate, fires 'load', and triggers
