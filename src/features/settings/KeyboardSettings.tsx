@@ -317,7 +317,7 @@ export const KeyboardSettings: FC = () => {
                 {/* Keyboard SVG — keys colored with the same CSS classes as M8Body buttons */}
                 <div className={keyboardContainerClass} ref={svgRef}>
                     <img
-                        src="/keyboard-annotated.svg"
+                        src="keyboard-annotated.svg"
                         alt="Keyboard"
                         style={{ width: '100%', maxWidth: '1000px' }}
                         onLoad={(e) => {
