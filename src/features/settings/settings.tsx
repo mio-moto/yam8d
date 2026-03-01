@@ -52,14 +52,16 @@ export const SettingsProvider = ({ children }: { children?: React.ReactNode }) =
     const [settingsContextValues, setSettingsContextValues] = useState<Settings>(initialSettings)
     const updateSettingValue = useCallback(
         <K extends keyof Settings>(settingName: K, value: Settings[K]) => {
-            const newSettingsValues: Settings = {
-                ...settingsContextValues,
-                [settingName]: value,
-            }
-            localStorage[SETTINGS] = JSON.stringify(newSettingsValues)
-            setSettingsContextValues(newSettingsValues)
+            setSettingsContextValues((prev) => {
+                const newSettingsValues: Settings = {
+                    ...prev,
+                    [settingName]: value,
+                }
+                localStorage[SETTINGS] = JSON.stringify(newSettingsValues)
+                return newSettingsValues
+            })
         },
-        [settingsContextValues],
+        [],
     )
 
     return <SettingsContext.Provider value={{ settings: settingsContextValues, updateSettingValue }}>{children}</SettingsContext.Provider>

@@ -144,19 +144,19 @@ const FullM8Player: FC<{
       const screenEdgeBox = screenEdge.getBoundingClientRect()
       const parentBox = parent.getBoundingClientRect()
 
-      const top = screenEdgeBox.top - parentBox.top + 1
-      const left = screenEdgeBox.left - parentBox.left + 4
-      const bottom = parentBox.bottom - screenEdgeBox.bottom - 1
-      const right = parentBox.right - screenEdgeBox.right - 4
+      const top = screenEdgeBox.top - parentBox.top //+ 1
+      const left = screenEdgeBox.left - parentBox.left //+ 4
+      const bottom = parentBox.bottom - screenEdgeBox.bottom //- 1
+      const right = parentBox.right - screenEdgeBox.right //- 4
 
       const style = screen.style
       style.position = 'absolute'
-      style.top = `${top}px`
-      style.left = `${left}px`
-      style.bottom = `${bottom}px`
-      style.right = `${right}px`
-      style.width = `${screenEdgeBox.width - 8}px`
-      style.height = `${screenEdgeBox.height - 8}px`
+      style.top = `${Math.round(top)}px`
+      style.left = `${Math.round(left)}px`
+      style.bottom = `${Math.round(bottom)}px`
+      style.right = `${Math.round(right)}px`
+      style.width = `${Math.round(screenEdgeBox.width) /*- 8*/}px`
+      style.height = `${Math.round(screenEdgeBox.height)/* - 8*/}px`
     }
 
     updatePosition()

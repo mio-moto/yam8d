@@ -11,6 +11,9 @@ import FragBlurVThreshold from './shader/blur_v_threshold.frag?raw'
 import VertPostprocess from './shader/postprocess.vert?raw'
 import FragRect from './shader/rect.frag?raw'
 import VertRect from './shader/rect.vert?raw'
+import FragSdfDist from './shader/sdf_dist.frag?raw'
+import FragSdfJfa from './shader/sdf_jfa.frag?raw'
+import FragSdfSeed from './shader/sdf_seed.frag?raw'
 import FragText from './shader/text.frag?raw'
 import VertText from './shader/text.vert?raw'
 import FragWave from './shader/wave.frag?raw'
@@ -200,65 +203,34 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
   let processedGlyphPad = 0
   let processedGlyphW = 0
   let processedGlyphH = 0
+  let processedAtlasIsSdf = false
+  let processedSdfPxRange = 8
 
   const fontImage = new Image()
   fontImage.addEventListener('load', () => {
     fontAtlasOrigW = fontImage.width
     fontAtlasOrigH = fontImage.height
 
-    // Upload original font with NEAREST (for non-smooth path)
+    // Upload original font with NEAREST (kept as fallback reference)
     gl.activeTexture(gl.TEXTURE1)
     gl.bindTexture(gl.TEXTURE_2D, textTexture)
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, fontImage)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
 
-    if (smoothRendering) {
-      processFont()
-    }
+    // Always generate processed atlas (SDF or blur+threshold)
+    processFont()
 
     queueFrame()
   })
 
-  // --- Post-processing pipeline ---
   let smoothRendering = initialSmoothRendering
+  // Blur+threshold parameters for final glyph shaping when smoothRendering is on
   let smoothBlurRadius = 5.6
   let smoothThreshold = 0.50
   let smoothSmoothness = 0.10
   let displayWidth = screenLayoutConfig[screenLayout].screen.width
   let displayHeight = screenLayoutConfig[screenLayout].screen.height
-
-  // Scene FBO: composites all layers at native resolution
-  const sceneTexture = gl.createTexture()
-  const sceneFbo = gl.createFramebuffer()
-
-  const initSceneFbo = (nativeW: number, nativeH: number) => {
-    gl.activeTexture(gl.TEXTURE2)
-    gl.bindTexture(gl.TEXTURE_2D, sceneTexture)
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, nativeW, nativeH, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
-    gl.bindFramebuffer(gl.FRAMEBUFFER, sceneFbo)
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, sceneTexture, 0)
-  }
-
-  // Blur FBO: intermediate for horizontal blur at display resolution
-  const blurTexture = gl.createTexture()
-  const blurFbo = gl.createFramebuffer()
-
-  const initBlurFbo = (dispW: number, dispH: number) => {
-    gl.activeTexture(gl.TEXTURE3)
-    gl.bindTexture(gl.TEXTURE_2D, blurTexture)
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, dispW, dispH, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
-    gl.bindFramebuffer(gl.FRAMEBUFFER, blurFbo)
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, blurTexture, 0)
-  }
 
   // Post-processing shaders
   const postprocessVert = compileShader(gl, VertPostprocess, gl.VERTEX_SHADER)
@@ -277,6 +249,23 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
 
   const postprocessVao = gl.createVertexArray()
   const blurVT_uAlphaMode = gl.getUniformLocation(blurVThresholdProgram, 'uAlphaMode')
+
+  // --- SDF font preprocessing programs ---
+  const sdfSeedProgram = buildProgram(gl, VertPostprocess, FragSdfSeed)
+  const sdfSeed_uGlyph = gl.getUniformLocation(sdfSeedProgram, 'uGlyph')
+  const sdfSeed_uSize = gl.getUniformLocation(sdfSeedProgram, 'uSize')
+
+  const sdfJfaProgram = buildProgram(gl, VertPostprocess, FragSdfJfa)
+  const sdfJfa_uJFA = gl.getUniformLocation(sdfJfaProgram, 'uJFA')
+  const sdfJfa_uTexelSize = gl.getUniformLocation(sdfJfaProgram, 'uTexelSize')
+  const sdfJfa_uStep = gl.getUniformLocation(sdfJfaProgram, 'uStep')
+  const sdfJfa_uSize = gl.getUniformLocation(sdfJfaProgram, 'uSize')
+
+  const sdfDistProgram = buildProgram(gl, VertPostprocess, FragSdfDist)
+  const sdfDist_uJFA = gl.getUniformLocation(sdfDistProgram, 'uJFA')
+  const sdfDist_uGlyph = gl.getUniformLocation(sdfDistProgram, 'uGlyph')
+  const sdfDist_uSize = gl.getUniformLocation(sdfDistProgram, 'uSize')
+  const sdfDist_uSpread = gl.getUniformLocation(sdfDistProgram, 'uSpread')
 
   // --- Background shaders ---
   let backgroundShader: BackgroundShader = 'none'
@@ -309,6 +298,16 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
     gl.enable(gl.BLEND)
   }
 
+  // ---------------------------------------------------------------------------
+  // Unified font atlas pipeline (per-glyph):
+  //   1. Extract padded glyph from source
+  //   2. Build SDF from original upscaled glyph
+  //   3. If smoothRendering: apply final blur+threshold shaping on SDF
+  //   4. Blit glyph centre to output atlas
+  //
+  // JFA positions encoded as (pixel_coord / 255) in RGBA8 — no float FBO needed.
+  // Max scaled glyph dim ≤ 255 px (worst case ~208 px at scale=8).
+  // ---------------------------------------------------------------------------
   const processFont = () => {
     if (!fontAtlasOrigW || !fontAtlasOrigH) return
 
@@ -316,18 +315,17 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
     const glyphW = screenLayoutConfig[screenLayout].font.sizeX
     const glyphH = fontAtlasOrigH
     const numGlyphs = Math.round(fontAtlasOrigW / glyphW)
-    const blurRadius = smoothBlurRadius
 
-    // Padding in original pixels so the blur can spread freely around glyph edges
-    const pad = 6
-    const paddedW = glyphW + 2 * pad
-    const paddedH = glyphH + 2 * pad
-    const padScaledW = paddedW * scale
-    const padScaledH = paddedH * scale
-    const padPx = pad * scale
+    // SDF spread in scaled pixels
+    const sdfSpread = Math.max(4, Math.min(40, Math.round(smoothBlurRadius * 2)))
 
-    // Output atlas dimensions with spacing between glyphs to prevent LINEAR bleed
-    const atlasPad = 2 // pixels of padding around each glyph in the output atlas
+    // Padding: must cover both blur kernel and SDF spread
+    const sdfPad = Math.ceil(sdfSpread / scale) + 2
+    const blurPad = smoothRendering ? 6 : 0
+    const pad = Math.max(sdfPad, blurPad)
+
+    // Output atlas dimensions
+    const atlasPad = 2
     const glyphScaledW = glyphW * scale
     const glyphScaledH = glyphH * scale
     const slotW = glyphScaledW + 2 * atlasPad
@@ -335,54 +333,17 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
     const atlasW = numGlyphs * slotW
     const atlasH = slotH
 
-    // 2D canvas to extract individual glyphs with padding
-    const cropCanvas = document.createElement('canvas')
-    cropCanvas.width = paddedW
-    cropCanvas.height = paddedH
-    const cropCtx = cropCanvas.getContext('2d')
-    if (!cropCtx) return
+    // Padded glyph dimensions (for processing)
+    const paddedW = glyphW + 2 * pad
+    const paddedH = glyphH + 2 * pad
+    const scaledW = paddedW * scale
+    const scaledH = paddedH * scale
+    const padPx = pad * scale
 
-    // Per-glyph input texture (LINEAR for bilinear upscale)
-    const glyphTex = gl.createTexture()
-    gl.activeTexture(gl.TEXTURE4)
-    gl.bindTexture(gl.TEXTURE_2D, glyphTex)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
-
-    // H-blur intermediate: padded glyph sized
-    const hblurTex = gl.createTexture()
-    gl.activeTexture(gl.TEXTURE5)
-    gl.bindTexture(gl.TEXTURE_2D, hblurTex)
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, padScaledW, padScaledH, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
-    const hblurFbo = gl.createFramebuffer()
-    gl.bindFramebuffer(gl.FRAMEBUFFER, hblurFbo)
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, hblurTex, 0)
-
-    // V-blur+threshold result: padded glyph sized
-    const vtTex = gl.createTexture()
-    gl.activeTexture(gl.TEXTURE6)
-    gl.bindTexture(gl.TEXTURE_2D, vtTex)
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, padScaledW, padScaledH, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
-    const vtFbo = gl.createFramebuffer()
-    gl.bindFramebuffer(gl.FRAMEBUFFER, vtFbo)
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, vtTex, 0)
-
-    // Output atlas
-    if (processedFontTexture) {
-      gl.deleteTexture(processedFontTexture)
-    }
+    // Output atlas texture
+    if (processedFontTexture) gl.deleteTexture(processedFontTexture)
     processedFontTexture = gl.createTexture()
-    gl.activeTexture(gl.TEXTURE7)
+    gl.activeTexture(gl.TEXTURE8)
     gl.bindTexture(gl.TEXTURE_2D, processedFontTexture)
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, atlasW, atlasH, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
@@ -393,45 +354,180 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
     gl.bindFramebuffer(gl.FRAMEBUFFER, atlasFbo)
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, processedFontTexture, 0)
 
+    // Store atlas layout
+    processedAtlasW = atlasW
+    processedAtlasH = atlasH
+    processedGlyphStride = slotW
+    processedGlyphPad = atlasPad
+    processedGlyphW = glyphScaledW
+    processedGlyphH = glyphScaledH
+    processedAtlasIsSdf = !smoothRendering
+    processedSdfPxRange = sdfSpread
+
+    // 2D canvas for glyph extraction
+    const cropCanvas = document.createElement('canvas')
+    cropCanvas.width = paddedW
+    cropCanvas.height = paddedH
+    const cropCtx = cropCanvas.getContext('2d')
+    if (!cropCtx) return
+
+    // Per-glyph input texture (bilinear; upscaled implicitly by viewport)
+    const glyphTex = gl.createTexture()
+    gl.activeTexture(gl.TEXTURE4)
+    gl.bindTexture(gl.TEXTURE_2D, glyphTex)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+
+    // --- Blur textures (only allocated when smoothRendering) ---
+    let hblurTex: WebGLTexture | null = null
+    let hblurFbo: WebGLFramebuffer | null = null
+    let blurResultTex: WebGLTexture | null = null
+    let blurResultFbo: WebGLFramebuffer | null = null
+
+    if (smoothRendering) {
+      hblurTex = gl.createTexture()
+      gl.activeTexture(gl.TEXTURE5)
+      gl.bindTexture(gl.TEXTURE_2D, hblurTex)
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, scaledW, scaledH, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+      hblurFbo = gl.createFramebuffer()
+      gl.bindFramebuffer(gl.FRAMEBUFFER, hblurFbo)
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, hblurTex, 0)
+
+      blurResultTex = gl.createTexture()
+      gl.activeTexture(gl.TEXTURE6)
+      gl.bindTexture(gl.TEXTURE_2D, blurResultTex)
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, scaledW, scaledH, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+      blurResultFbo = gl.createFramebuffer()
+      gl.bindFramebuffer(gl.FRAMEBUFFER, blurResultFbo)
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, blurResultTex, 0)
+    }
+
+    // --- JFA ping-pong textures: RGBA8, NEAREST (exact integer coord encoding) ---
+    const jfaTex0 = gl.createTexture()
+    const jfaFbo0 = gl.createFramebuffer()
+    const jfaTex1 = gl.createTexture()
+    const jfaFbo1 = gl.createFramebuffer()
+    for (const [tex, fbo, unit] of [
+      [jfaTex0, jfaFbo0, 7],
+      [jfaTex1, jfaFbo1, 9],
+    ] as [WebGLTexture | null, WebGLFramebuffer | null, number][]) {
+      gl.activeTexture(gl.TEXTURE0 + unit)
+      gl.bindTexture(gl.TEXTURE_2D, tex)
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, scaledW, scaledH, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fbo)
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0)
+    }
+
+    // SDF result texture
+    const sdfTex = gl.createTexture()
+    const sdfFbo = gl.createFramebuffer()
+    gl.activeTexture(gl.TEXTURE10)
+    gl.bindTexture(gl.TEXTURE_2D, sdfTex)
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, scaledW, scaledH, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+    gl.bindFramebuffer(gl.FRAMEBUFFER, sdfFbo)
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, sdfTex, 0)
+
+    const numPasses = Math.ceil(Math.log2(Math.max(scaledW, scaledH)))
+    const jfaUnits = [7, 9]
+    const jfaTextures = [jfaTex0, jfaTex1]
+    const jfaFbos = [jfaFbo0, jfaFbo1]
+
     gl.disable(gl.BLEND)
     gl.bindVertexArray(postprocessVao)
 
     for (let g = 0; g < numGlyphs; g++) {
-      // Extract glyph with padding via 2D canvas (glyph centered in padded area)
+      // Extract padded glyph via 2D canvas (glyph centred in padded area)
       cropCtx.clearRect(0, 0, paddedW, paddedH)
       cropCtx.drawImage(fontImage, g * glyphW, 0, glyphW, glyphH, pad, pad, glyphW, glyphH)
       gl.activeTexture(gl.TEXTURE4)
       gl.bindTexture(gl.TEXTURE_2D, glyphTex)
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, cropCanvas)
 
-      // H-blur: padded glyph → hblurFbo (blur spreads freely into padding)
-      gl.bindFramebuffer(gl.FRAMEBUFFER, hblurFbo)
-      gl.viewport(0, 0, padScaledW, padScaledH)
+      gl.viewport(0, 0, scaledW, scaledH)
+
+      // --- SDF seed: classify inside/outside from binary glyph ---
+      gl.bindFramebuffer(gl.FRAMEBUFFER, jfaFbo0)
       // biome-ignore lint/correctness/useHookAtTopLevel: ain't a hook
-      gl.useProgram(blurHProgram)
-      gl.uniform1i(blurH_uScene, 4)
-      gl.uniform2f(blurH_uTexelSize, 1.0 / padScaledW, 1.0 / padScaledH)
-      gl.uniform1f(blurH_uBlurRadius, blurRadius)
-      gl.uniform4f(blurH_uUvClamp, 0.0, 0.0, 1.0, 1.0)
+      gl.useProgram(sdfSeedProgram)
+      gl.uniform1i(sdfSeed_uGlyph, 4)
+      gl.uniform2f(sdfSeed_uSize, scaledW, scaledH)
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
 
-      // V-blur + threshold: hblurTex → vtFbo (alpha mask mode)
-      gl.bindFramebuffer(gl.FRAMEBUFFER, vtFbo)
-      gl.viewport(0, 0, padScaledW, padScaledH)
+      // --- JFA passes: ping-pong ---
+      let readIdx = 0
+      for (let p = numPasses - 1; p >= 0; p--) {
+        const writeIdx = 1 - readIdx
+        gl.bindFramebuffer(gl.FRAMEBUFFER, jfaFbos[writeIdx])
+        // biome-ignore lint/correctness/useHookAtTopLevel: ain't a hook
+        gl.useProgram(sdfJfaProgram)
+        gl.activeTexture(gl.TEXTURE0 + jfaUnits[readIdx])
+        gl.bindTexture(gl.TEXTURE_2D, jfaTextures[readIdx])
+        gl.uniform1i(sdfJfa_uJFA, jfaUnits[readIdx])
+        gl.uniform2f(sdfJfa_uTexelSize, 1.0 / scaledW, 1.0 / scaledH)
+        gl.uniform1f(sdfJfa_uStep, Math.pow(2, p))
+        gl.uniform2f(sdfJfa_uSize, scaledW, scaledH)
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+        readIdx = writeIdx
+      }
+
+      // --- Distance pass: JFA result + binary glyph → normalised SDF ---
+      gl.bindFramebuffer(gl.FRAMEBUFFER, sdfFbo)
       // biome-ignore lint/correctness/useHookAtTopLevel: ain't a hook
-      gl.useProgram(blurVThresholdProgram)
-      gl.activeTexture(gl.TEXTURE5)
-      gl.bindTexture(gl.TEXTURE_2D, hblurTex)
-      gl.uniform1i(blurVT_uBlurred, 5)
-      gl.uniform2f(blurVT_uTexelSize, 1.0 / padScaledW, 1.0 / padScaledH)
-      gl.uniform1f(blurVT_uBlurRadius, blurRadius)
-      gl.uniform1f(blurVT_uThreshold, smoothThreshold)
-      gl.uniform1f(blurVT_uSmoothness, smoothSmoothness)
-      gl.uniform1i(blurVT_uAlphaMode, 1)
+      gl.useProgram(sdfDistProgram)
+      gl.activeTexture(gl.TEXTURE0 + jfaUnits[readIdx])
+      gl.bindTexture(gl.TEXTURE_2D, jfaTextures[readIdx])
+      gl.uniform1i(sdfDist_uJFA, jfaUnits[readIdx])
+      gl.uniform1i(sdfDist_uGlyph, 4)
+      gl.uniform2f(sdfDist_uSize, scaledW, scaledH)
+      gl.uniform1f(sdfDist_uSpread, sdfSpread)
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
 
-      // Copy center (glyph without padding) to atlas slot with spacing
-      gl.bindFramebuffer(gl.READ_FRAMEBUFFER, vtFbo)
+      if (smoothRendering) {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, hblurFbo)
+        // biome-ignore lint/correctness/useHookAtTopLevel: ain't a hook
+        gl.useProgram(blurHProgram)
+        gl.activeTexture(gl.TEXTURE10)
+        gl.bindTexture(gl.TEXTURE_2D, sdfTex)
+        gl.uniform1i(blurH_uScene, 10)
+        gl.uniform2f(blurH_uTexelSize, 1.0 / scaledW, 1.0 / scaledH)
+        gl.uniform1f(blurH_uBlurRadius, smoothBlurRadius)
+        gl.uniform4f(blurH_uUvClamp, 0.0, 0.0, 1.0, 1.0)
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+
+        gl.bindFramebuffer(gl.FRAMEBUFFER, blurResultFbo)
+        // biome-ignore lint/correctness/useHookAtTopLevel: ain't a hook
+        gl.useProgram(blurVThresholdProgram)
+        gl.activeTexture(gl.TEXTURE5)
+        gl.bindTexture(gl.TEXTURE_2D, hblurTex)
+        gl.uniform1i(blurVT_uBlurred, 5)
+        gl.uniform2f(blurVT_uTexelSize, 1.0 / scaledW, 1.0 / scaledH)
+        gl.uniform1f(blurVT_uBlurRadius, smoothBlurRadius)
+        gl.uniform1f(blurVT_uThreshold, smoothThreshold)
+        gl.uniform1f(blurVT_uSmoothness, smoothSmoothness)
+        gl.uniform1i(blurVT_uAlphaMode, 1)
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+      }
+
+      // --- Blit glyph centre (without padding) to atlas slot ---
+      gl.bindFramebuffer(gl.READ_FRAMEBUFFER, smoothRendering ? blurResultFbo : sdfFbo)
       gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, atlasFbo)
       const dstX = g * slotW + atlasPad
       const dstY = atlasPad
@@ -443,84 +539,19 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
     }
 
     gl.enable(gl.BLEND)
-
-    // Store processed atlas layout for renderText
-    processedAtlasW = atlasW
-    processedAtlasH = atlasH
-    processedGlyphStride = slotW
-    processedGlyphPad = atlasPad
-    processedGlyphW = glyphScaledW
-    processedGlyphH = glyphScaledH
-
-    // Clean up temp resources
     gl.deleteTexture(glyphTex)
-    gl.deleteTexture(hblurTex)
-    gl.deleteTexture(vtTex)
-    gl.deleteFramebuffer(hblurFbo)
-    gl.deleteFramebuffer(vtFbo)
+    if (hblurTex) gl.deleteTexture(hblurTex)
+    if (blurResultTex) gl.deleteTexture(blurResultTex)
+    if (hblurFbo) gl.deleteFramebuffer(hblurFbo)
+    if (blurResultFbo) gl.deleteFramebuffer(blurResultFbo)
+    gl.deleteTexture(jfaTex0)
+    gl.deleteTexture(jfaTex1)
+    gl.deleteTexture(sdfTex)
+    gl.deleteFramebuffer(jfaFbo0)
+    gl.deleteFramebuffer(jfaFbo1)
+    gl.deleteFramebuffer(sdfFbo)
     gl.deleteFramebuffer(atlasFbo)
-
-    // Reset uniforms for normal screen use
     gl.bindFramebuffer(gl.FRAMEBUFFER, null)
-    // biome-ignore lint/correctness/useHookAtTopLevel: ain't a hook
-    gl.useProgram(blurVThresholdProgram)
-    gl.uniform1i(blurVT_uAlphaMode, 0)
-  }
-
-  const postProcess = () => {
-    gl.disable(gl.BLEND)
-    gl.bindVertexArray(postprocessVao)
-
-    if (smoothRendering) {
-      const { width: nativeW } = screenLayoutConfig[screenLayout].screen
-      const scale = displayWidth / nativeW
-      const blurRadius = Math.max(1.0, scale * 0.5)
-
-      // Pass 1: horizontal blur (sceneFbo → blurFbo at display res)
-      gl.bindFramebuffer(gl.FRAMEBUFFER, blurFbo)
-      gl.viewport(0, 0, displayWidth, displayHeight)
-      // biome-ignore lint/correctness/useHookAtTopLevel: ain't a hook
-      gl.useProgram(blurHProgram)
-      gl.activeTexture(gl.TEXTURE2)
-      gl.bindTexture(gl.TEXTURE_2D, sceneTexture)
-      gl.uniform1i(blurH_uScene, 2)
-      gl.uniform2f(blurH_uTexelSize, 1.0 / displayWidth, 1.0 / displayHeight)
-      gl.uniform1f(blurH_uBlurRadius, blurRadius)
-      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
-
-      // Pass 2: vertical blur + threshold (blurFbo → screen)
-      gl.bindFramebuffer(gl.FRAMEBUFFER, null)
-      gl.viewport(0, 0, displayWidth, displayHeight)
-      // biome-ignore lint/correctness/useHookAtTopLevel: ain't a hook
-      gl.useProgram(blurVThresholdProgram)
-      gl.activeTexture(gl.TEXTURE3)
-      gl.bindTexture(gl.TEXTURE_2D, blurTexture)
-      gl.uniform1i(blurVT_uBlurred, 3)
-      gl.uniform2f(blurVT_uTexelSize, 1.0 / displayWidth, 1.0 / displayHeight)
-      gl.uniform1f(blurVT_uBlurRadius, blurRadius)
-      gl.uniform1f(blurVT_uThreshold, 0.15)
-      gl.uniform1f(blurVT_uSmoothness, 0.05)
-      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
-    } else {
-      // Simple NEAREST blit from sceneFbo to screen at display resolution
-      gl.bindFramebuffer(gl.FRAMEBUFFER, null)
-      gl.viewport(0, 0, displayWidth, displayHeight)
-      // biome-ignore lint/correctness/useHookAtTopLevel: ain't a hook
-      gl.useProgram(blurHProgram)
-      gl.activeTexture(gl.TEXTURE2)
-      gl.bindTexture(gl.TEXTURE_2D, sceneTexture)
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
-      gl.uniform1i(blurH_uScene, 2)
-      gl.uniform2f(blurH_uTexelSize, 0.0, 0.0)
-      gl.uniform1f(blurH_uBlurRadius, 0.0)
-      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
-      // Restore LINEAR for next smooth use
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
-    }
-
-    gl.enable(gl.BLEND)
   }
 
   const handleResize = (newWidth: number, newHeight: number) => {
@@ -530,7 +561,6 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
     displayHeight = newHeight
     element.width = displayWidth
     element.height = displayHeight
-    initBlurFbo(displayWidth, displayHeight)
     queueFrame()
   }
 
@@ -542,50 +572,42 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
         requestAnimationFrame(() => {
           const { width: nativeW, height: nativeH } = screenLayoutConfig[screenLayout].screen
 
-          if (smoothRendering && processedFontTexture) {
-            // Smooth path: render at display resolution directly to screen
+          // Always render directly to screen — no scene-level post-processing.
+          // Rounded alpha atlas handles text quality; blur+threshold is baked per-glyph.
 
-            // Step 0: Render background shader
-            renderBackground()
+          // Step 0: Clear + background shader
+          gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+          gl.viewport(0, 0, displayWidth, displayHeight)
+          gl.clearColor(0, 0, 0, 1)
+          gl.clear(gl.COLOR_BUFFER_BIT)
+          renderBackground()
 
-            // Step 1: Render rects to rectsFBO at native res (skip blit)
-            gl.viewport(0, 0, nativeW, nativeH)
-            rectRenderer.renderRects(true)
+          // Step 1: Rects at native res (into internal rectsFramebuffer)
+          gl.viewport(0, 0, nativeW, nativeH)
+          rectRenderer.renderRects(true)
 
-            // Step 2: Blit rects to screen at display res with LINEAR
-            gl.bindFramebuffer(gl.FRAMEBUFFER, null)
-            gl.viewport(0, 0, displayWidth, displayHeight)
-            gl.bindVertexArray(postprocessVao)
-            // biome-ignore lint/correctness/useHookAtTopLevel: ain't a hook
-            gl.useProgram(blurHProgram)
-            gl.activeTexture(gl.TEXTURE0)
-            gl.uniform1i(blurH_uScene, 0)
-            gl.uniform2f(blurH_uTexelSize, 0, 0)
-            gl.uniform1f(blurH_uBlurRadius, 0)
-            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+          // Step 2: Blit rects to screen at display res
+          gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+          gl.viewport(0, 0, displayWidth, displayHeight)
+          gl.bindVertexArray(postprocessVao)
+          // biome-ignore lint/correctness/useHookAtTopLevel: ain't a hook
+          gl.useProgram(blurHProgram)
+          gl.activeTexture(gl.TEXTURE0)
+          gl.uniform1i(blurH_uScene, 0)
+          gl.uniform2f(blurH_uTexelSize, 0, 0)
+          gl.uniform1f(blurH_uBlurRadius, 0)
+          gl.uniform4f(blurH_uUvClamp, 0.0, 0.0, 1.0, 1.0)
+          gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
 
-            // Step 3: Render text at display res with processed font
+          // Step 3: Text at display res with SDF processed font
+          if (processedFontTexture) {
             gl.activeTexture(gl.TEXTURE1)
             gl.bindTexture(gl.TEXTURE_2D, processedFontTexture)
-            textRenderer.renderText(true)
-
-            // Step 4: Render waves at display res with scaled point size
-            waveRenderer.renderWave(true)
-          } else {
-            // Non-smooth path: render at native res, then post-process
-
-            // Step 0: Render background shader
-            renderBackground()
-
-            gl.bindFramebuffer(gl.FRAMEBUFFER, sceneFbo)
-            gl.viewport(0, 0, nativeW, nativeH)
-
-            rectRenderer.renderRects()
-            textRenderer.renderText(false)
-            waveRenderer.renderWave(false)
-
-            postProcess()
           }
+          textRenderer.renderText(!!processedFontTexture)
+
+          // Step 4: Waves at display res
+          waveRenderer.renderWave(true)
 
           isQueued = false
         })
@@ -643,6 +665,10 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
         gl.uniform2f(gl.getUniformLocation(textShader, 'posOffsetRow0'), 0.0, row0Offset)
         gl.uniform2f(gl.getUniformLocation(textShader, 'camSize'), width, height)
         gl.uniform1i(gl.getUniformLocation(textShader, 'useSmooth'), smooth ? 1 : 0)
+        gl.uniform1i(gl.getUniformLocation(textShader, 'useSdf'), smooth && processedAtlasIsSdf ? 1 : 0)
+        gl.uniform1f(gl.getUniformLocation(textShader, 'sdfThreshold'), 0.5)
+        gl.uniform1f(gl.getUniformLocation(textShader, 'sdfSoftness'), 0.0)
+        gl.uniform1f(gl.getUniformLocation(textShader, 'sdfPxRange'), processedSdfPxRange)
         if (smooth) {
           gl.uniform2f(gl.getUniformLocation(textShader, 'fontAtlasSize'), processedAtlasW, processedAtlasH)
           gl.uniform1f(gl.getUniformLocation(textShader, 'fontGlyphStride'), processedGlyphStride)
@@ -775,7 +801,7 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
         rectCount = 0
       }
       if (!skipBlit) {
-        gl.bindFramebuffer(gl.FRAMEBUFFER, sceneFbo)
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null)
         // biome-ignore lint/correctness/useHookAtTopLevel: ain't a hook
         gl.useProgram(blitShader)
         gl.uniform2f(gl.getUniformLocation(blitShader, 'size'), width, height)
@@ -903,10 +929,6 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
     gl.enable(gl.BLEND)
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 
-    // Initialize FBOs
-    initSceneFbo(width, height)
-    initBlurFbo(displayWidth, displayHeight)
-
     // Canvas buffer always at display resolution
     element.width = displayWidth
     element.height = displayHeight
@@ -935,25 +957,19 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
     },
     resize: handleResize,
     setSmoothRendering: (enabled: boolean) => {
-      smoothRendering = enabled
-      if (enabled && !processedFontTexture && fontAtlasOrigW > 0) {
-        processFont()
+      if (smoothRendering !== enabled) {
+        smoothRendering = enabled
+        if (fontAtlasOrigW > 0) processFont()
+        queueFrame()
       }
-      if (!enabled) {
-        // Rebind original font texture with NEAREST
-        gl.activeTexture(gl.TEXTURE1)
-        gl.bindTexture(gl.TEXTURE_2D, textTexture)
-      }
-      queueFrame()
     },
     setSmoothParams: (blur: number, threshold: number, smoothness: number) => {
+      const changed = blur !== smoothBlurRadius || threshold !== smoothThreshold || smoothness !== smoothSmoothness
       smoothBlurRadius = blur
       smoothThreshold = threshold
       smoothSmoothness = smoothness
-      if (smoothRendering && fontAtlasOrigW > 0) {
-        processFont()
-        queueFrame()
-      }
+      if (changed && fontAtlasOrigW > 0) processFont()
+      queueFrame()
     },
     setBackgroundShader: (shader: BackgroundShader) => {
       backgroundShader = shader

@@ -7,7 +7,8 @@ import { useCellMetrics, useCursor, useCursorRect, useDeviceModel, useFontMode, 
 const panelClass = css`
   position: absolute;
 //  top: 100px;
-  bottom: 10px;
+  bottom: 6px;
+  left: 6px;
   font-family: monospace;
   display: grid;
   grid-template-columns: auto 1fr auto;

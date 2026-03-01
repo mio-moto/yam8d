@@ -5,6 +5,7 @@ import { Input } from '../../components/Input'
 import { Modal } from '../../components/Modal'
 import { useSettingsContext } from './settings'
 import { KeyboardSettings } from './KeyboardSettings'
+import { Manual } from '../manual/Manual'
 import './menu.css'
 
 export const Menu: FC = () => {
@@ -12,9 +13,11 @@ export const Menu: FC = () => {
     const [opened, setOpened] = useState(false)
     const [hostDraft, setHostDraft] = useState(settings.shortcutsHost)
     const [keyboardSettingsOpen, setKeyboardSettingsOpen] = useState(false)
+    const [manualOpen, setManualOpen] = useState(false)
     const menuRef = useRef<HTMLDivElement | null>(null)
     const hitboxRef = useRef<HTMLDivElement | null>(null)
     const keyboardModalRef = useRef<HTMLDialogElement | null>(null)
+    const manualModalRef = useRef<HTMLDialogElement | null>(null)
     // Mark menu open on document body for global hooks to detect
     useEffect(() => {
         document.body.dataset.m8MenuOpen = opened ? 'true' : 'false'
@@ -86,6 +89,34 @@ export const Menu: FC = () => {
             modal.removeEventListener('click', handleClick as EventListener)
         }
     }, [keyboardSettingsOpen])
+
+    // Handle manual modal
+    useEffect(() => {
+        const modal = manualModalRef.current
+        if (!modal) return
+
+        const handleClose = () => setManualOpen(false)
+        const handleClick = (e: MouseEvent) => {
+            // Close when clicking on backdrop
+            if (e.target === modal) {
+                setManualOpen(false)
+            }
+        }
+
+        modal.addEventListener('close', handleClose)
+        modal.addEventListener('click', handleClick as EventListener)
+
+        if (manualOpen) {
+            modal.showModal()
+        } else {
+            modal.close()
+        }
+
+        return () => {
+            modal.removeEventListener('close', handleClose)
+            modal.removeEventListener('click', handleClick as EventListener)
+        }
+    }, [manualOpen])
 
     return (
         <>
@@ -237,10 +268,21 @@ export const Menu: FC = () => {
                         <Button onClick={() => setKeyboardSettingsOpen(true)}>Configure</Button>
                     </div>
                 </div>
+
+                <div className="menu-item">
+                    <span className="title">Help</span>
+                    <div>
+                        <Button onClick={() => setManualOpen(true)}>Manual</Button>
+                    </div>
+                </div>
             </div>
 
             <Modal ref={keyboardModalRef}>
                 <KeyboardSettings />
+            </Modal>
+
+            <Modal ref={manualModalRef}>
+                <Manual />
             </Modal>
         </>
     )

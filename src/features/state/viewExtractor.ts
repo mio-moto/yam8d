@@ -324,7 +324,7 @@ export function registerViewExtractor(bus?: ConnectedBus | null) {
 
         private normForCompare(s: string) {
             s = s.includes('live') ? 'song' : s
-            return s.toLowerCase().trim().replace(/[{}]/g, '0').replace(/[^a-z0-9]/g, '')
+            return s.toLowerCase().trim().replace(/[{}]/g, '0') //.replace(/[^a-z0-9]/g, '')
         }
 
         private normalizeFinal(titleRaw: string) {
@@ -370,7 +370,7 @@ export function registerViewExtractor(bus?: ConnectedBus | null) {
             if (candidates.length === 1) {
                 const pick = candidates[0].slice(0, 20)
                 const { fg, bg } = this.pickColors()
-                store.set(viewTitleAtom, partialRaw)
+                store.set(viewTitleAtom, partial)
                 store.set(titleColorAtom, fg)
                 store.set(backgroundColorAtom, bg)
                 store.set(viewNameAtom, pick)
