@@ -5,6 +5,9 @@ uniform sampler2D uScene;
 uniform vec2 uTexelSize;
 uniform float uBlurRadius;
 uniform vec4 uUvClamp; // (minU, minV, maxU, maxV) — prevents blur bleed across glyph boundaries
+uniform int uUseChromaKey;
+uniform vec3 uChromaKeyColor;
+uniform float uChromaKeyThreshold;
 
 in vec2 vUv;
 out vec4 fragColor;
@@ -26,5 +29,9 @@ void main() {
         totalWeight += weight;
     }
 
-    fragColor = color / totalWeight;
+    vec4 outColor = color / totalWeight;
+    if (uUseChromaKey == 1 && distance(outColor.rgb, uChromaKeyColor) <= uChromaKeyThreshold) {
+        outColor.a = 0.0;
+    }
+    fragColor = outColor;
 }

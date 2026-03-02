@@ -241,6 +241,9 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
   const blurH_uTexelSize = gl.getUniformLocation(blurHProgram, 'uTexelSize')
   const blurH_uBlurRadius = gl.getUniformLocation(blurHProgram, 'uBlurRadius')
   const blurH_uUvClamp = gl.getUniformLocation(blurHProgram, 'uUvClamp')
+  const blurH_uUseChromaKey = gl.getUniformLocation(blurHProgram, 'uUseChromaKey')
+  const blurH_uChromaKeyColor = gl.getUniformLocation(blurHProgram, 'uChromaKeyColor')
+  const blurH_uChromaKeyThreshold = gl.getUniformLocation(blurHProgram, 'uChromaKeyThreshold')
   const blurVT_uBlurred = gl.getUniformLocation(blurVThresholdProgram, 'uBlurred')
   const blurVT_uTexelSize = gl.getUniformLocation(blurVThresholdProgram, 'uTexelSize')
   const blurVT_uBlurRadius = gl.getUniformLocation(blurVThresholdProgram, 'uBlurRadius')
@@ -542,6 +545,7 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
         gl.uniform2f(blurH_uTexelSize, 1.0 / scaledW, 1.0 / scaledH)
         gl.uniform1f(blurH_uBlurRadius, smoothBlurRadius)
         gl.uniform4f(blurH_uUvClamp, 0.0, 0.0, 1.0, 1.0)
+        gl.uniform1i(blurH_uUseChromaKey, 0)
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, blurResultFbo)
@@ -647,6 +651,11 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
           gl.uniform2f(blurH_uTexelSize, 0, 0)
           gl.uniform1f(blurH_uBlurRadius, 0)
           gl.uniform4f(blurH_uUvClamp, 0.0, 0.0, 1.0, 1.0)
+          const bg = rectRenderer.getBackgroundColor()
+          const useChromaKey = backgroundShader !== 'none'
+          gl.uniform1i(blurH_uUseChromaKey, useChromaKey ? 1 : 0)
+          gl.uniform3f(blurH_uChromaKeyColor, bg.r, bg.g, bg.b)
+          gl.uniform1f(blurH_uChromaKeyThreshold, 1.5 / 255.0)
           gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
 
           // Step 3: Text at display res with SDF processed font
@@ -880,32 +889,6 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
         rectsClear = true
       } else {
         const drawY = y > 0 ? y + rectOffset : y
-        const isBackgroundShader = backgroundShader !== 'none'
-        const isBackgroundColor = r === Math.round(background.r * 255) && g === Math.round(background.g * 255) && b === Math.round(background.b * 255)
-
-        // Background-color rects should punch through to the shader, not alpha-blend over stale pixels.
-        if (isBackgroundShader && isBackgroundColor) {
-          renderRects(true)
-          gl.bindFramebuffer(gl.FRAMEBUFFER, rectsFramebuffer)
-          gl.viewport(0, 0, screen.width, screen.height)
-
-          const x0 = Math.max(0, Math.min(screen.width, Math.floor(x)))
-          const y0 = Math.max(0, Math.min(screen.height, Math.floor(drawY)))
-          const x1 = Math.max(0, Math.min(screen.width, Math.ceil(x + width)))
-          const y1 = Math.max(0, Math.min(screen.height, Math.ceil(drawY + height)))
-          const scissorW = x1 - x0
-          const scissorH = y1 - y0
-
-          if (scissorW > 0 && scissorH > 0) {
-            gl.enable(gl.SCISSOR_TEST)
-            gl.scissor(x0, screen.height - y1, scissorW, scissorH)
-            gl.clearColor(0, 0, 0, 0)
-            gl.clear(gl.COLOR_BUFFER_BIT)
-            gl.disable(gl.SCISSOR_TEST)
-          }
-          queueFrame()
-          return
-        }
 
         if (rectCount < 1024) {
           const i = rectCount
@@ -926,6 +909,7 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
     return {
       renderRects,
       drawRect,
+      getBackgroundColor: () => background,
       invalidate: () => {
         rectCount = 0
         rectsClear = true
