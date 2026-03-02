@@ -17,6 +17,7 @@ import { VirtualKeyboard } from './features/virtualKeyboard/VirtualKeyboard'
 import { StatusPanel } from './features/debug/StatusPanel'
 import { ShortcutsDisplay } from './features/shortcuts/shortcutsIntegration'
 import { Manual } from './features/manual'
+import { BackgroundShaderEditor } from './features/rendering/BackgroundShaderEditor'
 // import { SdkTest } from './components/SdkTest'
 
 const appClass = css`
@@ -34,6 +35,13 @@ const appClass = css`
   // > ._buttons {
   //   display: flex;
   // }
+`
+
+const playerRowClass = css`
+  display: flex;
+  gap: 16px;
+  align-items: stretch;
+  justify-content: center;
 `
 
 export const App: FC = () => {
@@ -79,7 +87,10 @@ export const App: FC = () => {
           <div className={appClass}>
             {settings.virtualKeyboard && <VirtualKeyboard bus={connectedBus} strokeColor={style.themeColors.text.default}></VirtualKeyboard>}
             {/* not ready <ProgramChangeKeyboard bus={connectedBus} strokeColor={style.themeColors.text.default} /> */}
-            {<M8Player bus={connectedBus} fullView={settings.fullM8View} />}
+            <div className={playerRowClass}>
+              <M8Player bus={connectedBus} fullView={settings.fullM8View} />
+              {settings.showBackgroundShaderEditor && <BackgroundShaderEditor />}
+            </div>
             <StatusPanel />
             {/* <StatusPanel bus={connectedBus} /> */}
           </div>

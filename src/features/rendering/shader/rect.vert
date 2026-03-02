@@ -3,11 +3,11 @@
 // Released under the MIT licence, https://opensource.org/licenses/MIT
 
 layout(location = 0) in vec4 shape;
-layout(location = 1) in vec3 color;
+layout(location = 1) in vec4 color;
 
 uniform vec2 size;
 
-out vec3 colorV;
+out vec4 colorV;
 
 const vec2 corners[] = vec2[](
     vec2(0, 0),

@@ -213,6 +213,40 @@ export const Menu: FC = () => {
                             </div>
                         </div>
                     )}
+                    <div className="menu-item">
+                        <span className="title">Background shader</span>
+                        <div>
+                            <Button selected={settings.backgroundShader === 'none'} onClick={() => updateSettingValue('backgroundShader', 'none')}>
+                                None
+                            </Button>
+                            <Button selected={settings.backgroundShader === 'apollonian'} onClick={() => updateSettingValue('backgroundShader', 'apollonian')}>
+                                Apollonian
+                            </Button>
+                            <Button selected={settings.backgroundShader === 'plasma'} onClick={() => updateSettingValue('backgroundShader', 'plasma')}>
+                                Plasma
+                            </Button>
+                            <Button selected={settings.backgroundShader === 'custom'} onClick={() => updateSettingValue('backgroundShader', 'custom')}>
+                                Custom
+                            </Button>
+                        </div>
+                    </div>
+                    <div className="menu-item">
+                        <span className="title">Shader editor panel</span>
+                        <div>
+                            <Button
+                                selected={settings.showBackgroundShaderEditor}
+                                onClick={() => updateSettingValue('showBackgroundShaderEditor', true)}
+                            >
+                                Open
+                            </Button>
+                            <Button
+                                selected={!settings.showBackgroundShaderEditor}
+                                onClick={() => updateSettingValue('showBackgroundShaderEditor', false)}
+                            >
+                                Close
+                            </Button>
+                        </div>
+                    </div>
                 </div>
 
                 {/* kept for WebGL -> Canvas switch

@@ -14,6 +14,9 @@ export type Settings = {
     smoothBlurRadius: number
     smoothThreshold: number
     smoothSmoothness: number
+    backgroundShader: 'none' | 'apollonian' | 'plasma' | 'custom'
+    customBackgroundShader: string
+    showBackgroundShaderEditor: boolean
     inputMap: typeof defaultInputMap
     keyMap: typeof defaultKeyMap
 }
@@ -33,6 +36,20 @@ const defaultSettings: Settings = {
     smoothBlurRadius: 5.6,
     smoothThreshold: 0.50,
     smoothSmoothness: 0.10,
+    backgroundShader: 'none',
+    customBackgroundShader: `#version 300 es
+precision mediump float;
+out vec4 fragColor;
+uniform float uTime;
+uniform vec2 uResolution;
+
+void main() {
+  vec2 uv = gl_FragCoord.xy / max(uResolution.xy, vec2(1.0));
+  vec3 color = 0.5 + 0.5 * cos(uTime + uv.xyx + vec3(0.0, 2.0, 4.0));
+  fragColor = vec4(color, 1.0);
+}
+`,
+    showBackgroundShaderEditor: false,
 
     inputMap: defaultInputMap,
     keyMap: defaultKeyMap,

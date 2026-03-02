@@ -22,7 +22,6 @@ export const M8Screen = ({ bus, onClick }: { bus?: ConnectedBus | null; onClick?
         }
         const systemInfo = bus?.protocol.getSystemInfo()
         const render = renderer(innerRef.current, systemInfo ? makeScreenLayout(systemInfo) : 5)
-        render?.setBackgroundShader('none')
         renderRef.current = render
         const drawText = (data: CharacterCommand) => {
             render?.text.drawText({
@@ -92,6 +91,17 @@ export const M8Screen = ({ bus, onClick }: { bus?: ConnectedBus | null; onClick?
     useEffect(() => {
         renderRef.current?.setSmoothParams(settings.smoothBlurRadius, settings.smoothThreshold, settings.smoothSmoothness)
     }, [settings.smoothBlurRadius, settings.smoothThreshold, settings.smoothSmoothness])
+
+    useEffect(() => {
+        const error = renderRef.current?.setCustomBackgroundShader(settings.customBackgroundShader)
+        if (error) {
+            console.error('Custom background shader error:', error)
+        }
+    }, [settings.customBackgroundShader])
+
+    useEffect(() => {
+        renderRef.current?.setBackgroundShader(settings.backgroundShader)
+    }, [settings.backgroundShader])
 
     return (
         <canvas

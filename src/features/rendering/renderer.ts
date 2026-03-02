@@ -21,7 +21,7 @@ import VertWave from './shader/wave.vert?raw'
 import FragApollonian from './shader/apollonian.frag?raw'
 import FragPlasma from './shader/plasma.frag?raw'
 
-export type BackgroundShader = 'none' | 'apollonian' | 'plasma'
+export type BackgroundShader = 'none' | 'apollonian' | 'plasma' | 'custom'
 
 export type ScreenLayout = 1 | 2 | 3 | 4 | 5
 type ScreenConfig = {
@@ -279,6 +279,31 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
   const plasma_uTime = gl.getUniformLocation(plasmaProgram, 'uTime')
   const plasma_uResolution = gl.getUniformLocation(plasmaProgram, 'uResolution')
 
+  let customProgram: WebGLProgram | null = null
+  let custom_uTime: WebGLUniformLocation | null = null
+  let custom_uResolution: WebGLUniformLocation | null = null
+
+  const setCustomBackgroundShader = (fragmentSource: string) => {
+    try {
+      const nextProgram = buildProgram(gl, VertPostprocess, fragmentSource)
+      const nextTime = gl.getUniformLocation(nextProgram, 'uTime')
+      const nextResolution = gl.getUniformLocation(nextProgram, 'uResolution')
+
+      if (customProgram) {
+        gl.deleteProgram(customProgram)
+      }
+
+      customProgram = nextProgram
+      custom_uTime = nextTime
+      custom_uResolution = nextResolution
+      backgroundStartTime = performance.now() / 1000
+      queueFrame()
+      return null
+    } catch (error) {
+      return error instanceof Error ? error.message : 'Failed to compile custom background shader'
+    }
+  }
+
   const renderBackground = () => {
     if (backgroundShader === 'none') return
     gl.disable(gl.BLEND)
@@ -293,6 +318,12 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
       gl.useProgram(plasmaProgram)
       gl.uniform1f(plasma_uTime, performance.now() / 1000 - backgroundStartTime)
       gl.uniform2f(plasma_uResolution, displayWidth, displayHeight)
+    } else if (backgroundShader === 'custom') {
+      if (!customProgram) return
+      // biome-ignore lint/correctness/useHookAtTopLevel: ain't a hook
+      gl.useProgram(customProgram)
+      if (custom_uTime) gl.uniform1f(custom_uTime, performance.now() / 1000 - backgroundStartTime)
+      if (custom_uResolution) gl.uniform2f(custom_uResolution, displayWidth, displayHeight)
     }
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
     gl.enable(gl.BLEND)
@@ -763,7 +794,7 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
     gl.vertexAttribPointer(0, 4, gl.UNSIGNED_SHORT, false, 12, 0)
     gl.vertexAttribDivisor(0, 1)
     gl.enableVertexAttribArray(1)
-    gl.vertexAttribPointer(1, 3, gl.UNSIGNED_BYTE, true, 12, 8)
+    gl.vertexAttribPointer(1, 4, gl.UNSIGNED_BYTE, true, 12, 8)
     gl.vertexAttribDivisor(1, 1)
 
     const rectsTexture = gl.createTexture()
@@ -832,7 +863,7 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
     }
     const drawRect = ({ pos: { x, y }, size: { width, height }, color }: Exclude<RectCommand, undefined>) => {
       lastColor = color ?? lastColor
-      let { r, g, b } = lastColor
+      const { r, g, b } = lastColor
 
       if (rectCount >= 1024) {
         // Flush pending batch only into the native rect FBO.
@@ -848,24 +879,44 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
         rectCount = 0
         rectsClear = true
       } else {
-        // When background shader is enabled, make background-colored rects transparent
+        const drawY = y > 0 ? y + rectOffset : y
         const isBackgroundShader = backgroundShader !== 'none'
         const isBackgroundColor = r === Math.round(background.r * 255) && g === Math.round(background.g * 255) && b === Math.round(background.b * 255)
+
+        // Background-color rects should punch through to the shader, not alpha-blend over stale pixels.
         if (isBackgroundShader && isBackgroundColor) {
-          r = 0
-          g = 0
-          b = 0
+          renderRects(true)
+          gl.bindFramebuffer(gl.FRAMEBUFFER, rectsFramebuffer)
+          gl.viewport(0, 0, screen.width, screen.height)
+
+          const x0 = Math.max(0, Math.min(screen.width, Math.floor(x)))
+          const y0 = Math.max(0, Math.min(screen.height, Math.floor(drawY)))
+          const x1 = Math.max(0, Math.min(screen.width, Math.ceil(x + width)))
+          const y1 = Math.max(0, Math.min(screen.height, Math.ceil(drawY + height)))
+          const scissorW = x1 - x0
+          const scissorH = y1 - y0
+
+          if (scissorW > 0 && scissorH > 0) {
+            gl.enable(gl.SCISSOR_TEST)
+            gl.scissor(x0, screen.height - y1, scissorW, scissorH)
+            gl.clearColor(0, 0, 0, 0)
+            gl.clear(gl.COLOR_BUFFER_BIT)
+            gl.disable(gl.SCISSOR_TEST)
+          }
+          queueFrame()
+          return
         }
 
         if (rectCount < 1024) {
           const i = rectCount
           rectShapes[i * 6 + 0] = x
-          rectShapes[i * 6 + 1] = y > 0 ? y + rectOffset : y
+          rectShapes[i * 6 + 1] = drawY
           rectShapes[i * 6 + 2] = width
           rectShapes[i * 6 + 3] = height
           rectColors[i * 12 + 0] = r
           rectColors[i * 12 + 1] = g
           rectColors[i * 12 + 2] = b
+          rectColors[i * 12 + 3] = 255
           rectCount++
         }
       }
@@ -875,6 +926,10 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
     return {
       renderRects,
       drawRect,
+      invalidate: () => {
+        rectCount = 0
+        rectsClear = true
+      },
       resizeTexture: (width: number, height: number) => {
         gl.activeTexture(gl.TEXTURE0)
         gl.bindTexture(gl.TEXTURE_2D, rectsTexture)
@@ -996,9 +1051,11 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
       queueFrame()
     },
     setBackgroundShader: (shader: BackgroundShader) => {
-      backgroundShader = shader
+      backgroundShader = shader === 'custom' && !customProgram ? 'none' : shader
       backgroundStartTime = performance.now() / 1000
+      rectRenderer.invalidate()
       queueFrame()
     },
+    setCustomBackgroundShader,
   }
 }
