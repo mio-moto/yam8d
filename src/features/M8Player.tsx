@@ -151,12 +151,12 @@ const FullM8Player: FC<{
 
       const style = screen.style
       style.position = 'absolute'
-      style.top = `${Math.round(top)}px`
-      style.left = `${Math.round(left)}px`
-      style.bottom = `${Math.round(bottom)}px`
-      style.right = `${Math.round(right)}px`
-      style.width = `${Math.round(screenEdgeBox.width) /*- 8*/}px`
-      style.height = `${Math.round(screenEdgeBox.height)/* - 8*/}px`
+      style.top = `${Math.ceil(top)}px`
+      style.left = `${Math.ceil(left)}px`
+      style.bottom = `${Math.floor(bottom)}px`
+      style.right = `${Math.floor(right)}px`
+      style.width = `${Math.floor(screenEdgeBox.width) - 1 /*- 8*/}px`
+      style.height = `${Math.floor(screenEdgeBox.height) - 1 /* - 8*/}px`
     }
 
     updatePosition()

@@ -325,7 +325,8 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
     const pad = Math.max(sdfPad, blurPad)
 
     // Output atlas dimensions
-    const atlasPad = 2
+    // Extra per-slot padding in the final atlas to reduce cross-glyph sampling at small scales.
+    const atlasPad = 4
     const glyphScaledW = glyphW * scale
     const glyphScaledH = glyphH * scale
     const slotW = glyphScaledW + 2 * atlasPad
@@ -557,6 +558,9 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
   const handleResize = (newWidth: number, newHeight: number) => {
     if (newWidth <= 0 || newHeight <= 0) return
     if (newWidth === displayWidth && newHeight === displayHeight) return
+
+    console.log('resize huh', displayWidth, '->', newWidth, displayHeight, '->', newHeight)
+
     displayWidth = newWidth
     displayHeight = newHeight
     element.width = displayWidth
@@ -570,6 +574,21 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
       if (!isQueued) {
         isQueued = true
         requestAnimationFrame(() => {
+          // Guard against one-frame scale glitches when tab visibility/DPR/layout changes
+          // are observed after RAF resumes.
+          const dpr = window.devicePixelRatio || 1
+          const expectedWidth = Math.max(1, Math.round(element.clientWidth * dpr))
+          const expectedHeight = Math.max(1, Math.round(element.clientHeight * dpr))
+          if ((expectedWidth !== displayWidth || expectedHeight !== displayHeight) && expectedWidth > 0 && expectedHeight > 0) {
+            displayWidth = expectedWidth
+            displayHeight = expectedHeight
+            element.width = displayWidth
+            element.height = displayHeight
+            isQueued = false
+            queueFrame()
+            return
+          }
+
           const { width: nativeW, height: nativeH } = screenLayoutConfig[screenLayout].screen
 
           // Always render directly to screen — no scene-level post-processing.
@@ -783,6 +802,7 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
       const { width, height } = screenLayoutConfig[screenLayout].screen
       if (rectsClear) {
         gl.bindFramebuffer(gl.FRAMEBUFFER, rectsFramebuffer)
+        gl.viewport(0, 0, width, height)
         // Make background transparent when any background shader is enabled so it shows through
         const alpha = backgroundShader !== 'none' ? 0.0 : 1.0
         gl.clearColor(background.r, background.g, background.b, alpha)
@@ -791,6 +811,7 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
       }
       if (rectCount > 0) {
         gl.bindFramebuffer(gl.FRAMEBUFFER, rectsFramebuffer)
+        gl.viewport(0, 0, width, height)
         // biome-ignore lint/correctness/useHookAtTopLevel: ain't a hooke
         gl.useProgram(rectShader)
         gl.bindVertexArray(rectVao)
@@ -802,6 +823,7 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
       }
       if (!skipBlit) {
         gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+        gl.viewport(0, 0, displayWidth, displayHeight)
         // biome-ignore lint/correctness/useHookAtTopLevel: ain't a hook
         gl.useProgram(blitShader)
         gl.uniform2f(gl.getUniformLocation(blitShader, 'size'), width, height)
@@ -813,7 +835,9 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
       let { r, g, b } = lastColor
 
       if (rectCount >= 1024) {
-        renderRects()
+        // Flush pending batch only into the native rect FBO.
+        // Final screen presentation stays in queueFrame to keep passes synchronized.
+        renderRects(true)
       }
 
       const { rectOffset, screen } = screenLayoutConfig[screenLayout]

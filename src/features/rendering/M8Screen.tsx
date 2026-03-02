@@ -17,14 +17,6 @@ export const M8Screen = ({ bus, onClick }: { bus?: ConnectedBus | null; onClick?
     const { settings } = useSettingsContext()
 
     useEffect(() => {
-        renderRef.current?.setSmoothRendering(settings.smoothRendering)
-    }, [settings.smoothRendering])
-
-    useEffect(() => {
-        renderRef.current?.setSmoothParams(settings.smoothBlurRadius, settings.smoothThreshold, settings.smoothSmoothness)
-    }, [settings.smoothBlurRadius, settings.smoothThreshold, settings.smoothSmoothness])
-
-    useEffect(() => {
         if (!innerRef.current) {
             return
         }
@@ -92,6 +84,14 @@ export const M8Screen = ({ bus, onClick }: { bus?: ConnectedBus | null; onClick?
             bus?.protocol.eventBus.off('system', updateRenderer)
         }
     }, [bus])
+
+    useEffect(() => {
+        renderRef.current?.setSmoothRendering(settings.smoothRendering)
+    }, [settings.smoothRendering])
+
+    useEffect(() => {
+        renderRef.current?.setSmoothParams(settings.smoothBlurRadius, settings.smoothThreshold, settings.smoothSmoothness)
+    }, [settings.smoothBlurRadius, settings.smoothThreshold, settings.smoothSmoothness])
 
     return (
         <canvas

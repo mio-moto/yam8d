@@ -128,89 +128,92 @@ export const Menu: FC = () => {
                 role="button"
             />
             <div className={opened ? 'menu opened' : 'menu closed'} ref={menuRef}>
-
-                <div className="menu-item">
-                    <span className="title">Show M8 body</span>
-                    <div>
-                        <Button selected={settings.showM8Body} onClick={() => updateSettingValue('showM8Body', true)}>
-                            Yes
-                        </Button>
-                        <Button selected={!settings.showM8Body} onClick={() => updateSettingValue('showM8Body', false)}>
-                            No
-                        </Button>
+                <div className="menu-section">
+                    <span className="section-title">Display</span>
+                    <div className="menu-item">
+                        <span className="title">Show M8 body</span>
+                        <div>
+                            <Button selected={settings.showM8Body} onClick={() => updateSettingValue('showM8Body', true)}>
+                                Yes
+                            </Button>
+                            <Button selected={!settings.showM8Body} onClick={() => updateSettingValue('showM8Body', false)}>
+                                No
+                            </Button>
+                        </div>
+                    </div>
+                    <div className="menu-item">
+                        <span className="title">Zoom View</span>
+                        <div>
+                            <Button selected={!settings.fullM8View} onClick={() => updateSettingValue('fullM8View', false)}>
+                                Yes
+                            </Button>
+                            <Button selected={settings.fullM8View} onClick={() => updateSettingValue('fullM8View', true)}>
+                                No
+                            </Button>
+                        </div>
                     </div>
                 </div>
 
-                <div className="menu-item">
-                    <span className="title">Zoom View</span>
-                    <div>
-                        <Button selected={!settings.fullM8View} onClick={() => updateSettingValue('fullM8View', false)}>
-                            Yes
-                        </Button>
-                        <Button selected={settings.fullM8View} onClick={() => updateSettingValue('fullM8View', true)}>
-                            No
-                        </Button>
+                <div className="menu-section">
+                    <span className="section-title">Rendering</span>
+                    <div className="menu-item">
+                        <span className="title">Smooth rendering</span>
+                        <div>
+                            <Button selected={settings.smoothRendering} onClick={() => updateSettingValue('smoothRendering', true)}>
+                                Yes
+                            </Button>
+                            <Button selected={!settings.smoothRendering} onClick={() => updateSettingValue('smoothRendering', false)}>
+                                No
+                            </Button>
+                        </div>
                     </div>
+                    {settings.smoothRendering && (
+                        <div className="menu-submenu">
+                            <div className="menu-item">
+                                <span className="title">Blur radius</span>
+                                <div>
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="20"
+                                        step="0.1"
+                                        value={settings.smoothBlurRadius}
+                                        onChange={(e) => updateSettingValue('smoothBlurRadius', Number.parseFloat(e.target.value))}
+                                    />
+                                    <span>{settings.smoothBlurRadius.toFixed(1)}</span>
+                                </div>
+                            </div>
+                            <div className="menu-item">
+                                <span className="title">Threshold</span>
+                                <div>
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="1"
+                                        step="0.01"
+                                        value={settings.smoothThreshold}
+                                        onChange={(e) => updateSettingValue('smoothThreshold', Number.parseFloat(e.target.value))}
+                                    />
+                                    <span>{settings.smoothThreshold.toFixed(2)}</span>
+                                </div>
+                            </div>
+                            <div className="menu-item">
+                                <span className="title">Smoothness</span>
+                                <div>
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="0.5"
+                                        step="0.01"
+                                        value={settings.smoothSmoothness}
+                                        onChange={(e) => updateSettingValue('smoothSmoothness', Number.parseFloat(e.target.value))}
+                                    />
+                                    <span>{settings.smoothSmoothness.toFixed(2)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
-
-                <div className="menu-item">
-                    <span className="title">Smooth rendering</span>
-                    <div>
-                        <Button selected={settings.smoothRendering} onClick={() => updateSettingValue('smoothRendering', true)}>
-                            Yes
-                        </Button>
-                        <Button selected={!settings.smoothRendering} onClick={() => updateSettingValue('smoothRendering', false)}>
-                            No
-                        </Button>
-                    </div>
-                </div>
-
-                {settings.smoothRendering && (
-                    <>
-                        <div className="menu-item">
-                            <span className="title">Blur radius</span>
-                            <div>
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max="20"
-                                    step="0.1"
-                                    value={settings.smoothBlurRadius}
-                                    onChange={(e) => updateSettingValue('smoothBlurRadius', Number.parseFloat(e.target.value))}
-                                />
-                                <span>{settings.smoothBlurRadius.toFixed(1)}</span>
-                            </div>
-                        </div>
-                        <div className="menu-item">
-                            <span className="title">Threshold</span>
-                            <div>
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max="1"
-                                    step="0.01"
-                                    value={settings.smoothThreshold}
-                                    onChange={(e) => updateSettingValue('smoothThreshold', Number.parseFloat(e.target.value))}
-                                />
-                                <span>{settings.smoothThreshold.toFixed(2)}</span>
-                            </div>
-                        </div>
-                        <div className="menu-item">
-                            <span className="title">Smoothness</span>
-                            <div>
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max="0.5"
-                                    step="0.01"
-                                    value={settings.smoothSmoothness}
-                                    onChange={(e) => updateSettingValue('smoothSmoothness', Number.parseFloat(e.target.value))}
-                                />
-                                <span>{settings.smoothSmoothness.toFixed(2)}</span>
-                            </div>
-                        </div>
-                    </>
-                )}
 
                 {/* kept for WebGL -> Canvas switch
         <div className="menu-item">
@@ -225,54 +228,60 @@ export const Menu: FC = () => {
           </div>
         </div> */}
 
-                <div className="menu-item">
-                    <span className="title">Virtual midi keyboard</span>
-                    <div>
-                        <Button selected={settings.virtualKeyboard} onClick={() => updateSettingValue('virtualKeyboard', true)}>
-                            Yes
-                        </Button>
-                        <Button selected={!settings.virtualKeyboard} onClick={() => updateSettingValue('virtualKeyboard', false)}>
-                            No
-                        </Button>
-                    </div>
-                </div>
-
-                <div className="menu-item">
-                    <span className="title">Display shortcuts</span>
-                    <div>
-                        <Button selected={settings.displayShortcuts} onClick={() => updateSettingValue('displayShortcuts', true)}>
-                            Yes
-                        </Button>
-                        <Button selected={!settings.displayShortcuts} onClick={() => updateSettingValue('displayShortcuts', false)}>
-                            No
-                        </Button>
-                    </div>
-                </div>
-
-                {settings.displayShortcuts && (
+                <div className="menu-section">
+                    <span className="section-title">Input & shortcuts</span>
                     <div className="menu-item">
-                        <span className="title">Shortcuts host</span>
+                        <span className="title">Virtual midi keyboard</span>
                         <div>
-                            <Input
-                                value={hostDraft}
-                                placeholder="https://miomoto.de/m8-shortcuts/"
-                                onChange={(e) => setHostDraft((e.target as HTMLInputElement).value)}
-                            />
+                            <Button selected={settings.virtualKeyboard} onClick={() => updateSettingValue('virtualKeyboard', true)}>
+                                Yes
+                            </Button>
+                            <Button selected={!settings.virtualKeyboard} onClick={() => updateSettingValue('virtualKeyboard', false)}>
+                                No
+                            </Button>
                         </div>
                     </div>
-                )}
+                    <div className="menu-item">
+                        <span className="title">Display shortcuts</span>
+                        <div>
+                            <Button selected={settings.displayShortcuts} onClick={() => updateSettingValue('displayShortcuts', true)}>
+                                Yes
+                            </Button>
+                            <Button selected={!settings.displayShortcuts} onClick={() => updateSettingValue('displayShortcuts', false)}>
+                                No
+                            </Button>
+                        </div>
+                    </div>
+                    {settings.displayShortcuts && (
+                        <div className="menu-submenu">
+                            <div className="menu-item">
+                                <span className="title">Shortcuts host</span>
+                                <div>
+                                    <Input
+                                        value={hostDraft}
+                                        placeholder="https://miomoto.de/m8-shortcuts/"
+                                        onChange={(e) => setHostDraft((e.target as HTMLInputElement).value)}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
-                <div className="menu-item">
-                    <span className="title">Keyboard mapping</span>
-                    <div>
-                        <Button onClick={() => setKeyboardSettingsOpen(true)}>Configure</Button>
+                    <div className="menu-item">
+                        <span className="title">Keyboard mapping</span>
+                        <div>
+                            <Button onClick={() => setKeyboardSettingsOpen(true)}>Configure</Button>
+                        </div>
                     </div>
                 </div>
 
-                <div className="menu-item">
-                    <span className="title">Help</span>
-                    <div>
-                        <Button onClick={() => setManualOpen(true)}>Manual</Button>
+                <div className="menu-section">
+                    <span className="section-title">Help</span>
+                    <div className="menu-item">
+                        <span className="title">Manual</span>
+                        <div>
+                            <Button onClick={() => setManualOpen(true)}>Open</Button>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -7,7 +7,7 @@
 
 .menu.opened {
     display: grid;
-    row-gap: 5px;
+    row-gap: 10px;
     width: 500px;
     z-index: 1000;
     padding: 40px 20px 20px 40px;
@@ -61,6 +61,30 @@
     display: none;
 }
 
+.menu.closed .menu-section {
+    display: none;
+}
+
+.menu-section {
+    display: grid;
+    row-gap: 6px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.menu-section:first-of-type {
+    border-top: 0;
+    padding-top: 0;
+}
+
+.section-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    opacity: 0.85;
+}
+
 .menu-item {
     display: flex;
     justify-content: space-between;
@@ -78,4 +102,12 @@
     gap: 8px;
     align-items: center;
     flex-wrap: wrap;
+}
+
+.menu-submenu {
+    display: grid;
+    row-gap: 6px;
+    margin-left: 10px;
+    padding: 8px 0 4px 10px;
+    border-left: 2px solid rgba(255, 255, 255, 0.25);
 }
