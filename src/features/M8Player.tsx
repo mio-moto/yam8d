@@ -130,8 +130,8 @@ const FullM8Player: FC<{
   const screenColor = rgbToHex(bgColor ?? { r: 0, g: 0, b: 0 })
 
   const [keysPressed, setKeysPressed] = useState(0)
-  const [mouseHeldKeys, setMouseHeldKeys] = useState(0)
   const { navigateTo } = useViewNavigator(bus)
+  const keysPressedRef = useRef(0)
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: <on model change to get correct refs>
   useLayoutEffect(() => {
@@ -216,6 +216,10 @@ const FullM8Player: FC<{
     }
   }, [bus])
 
+  useEffect(() => {
+    keysPressedRef.current = keysPressed
+  }, [keysPressed])
+
   // Register global view/cursor extractor once when bus is present
   useEffect(() => {
     if (!bus) return
@@ -233,11 +237,8 @@ const FullM8Player: FC<{
       const mask = pressKeys(keys)
       if (!mask) return
 
-      setMouseHeldKeys((prev) => {
-        const next = prev | mask
-        bus?.commands.sendKeys(next)
-        return next
-      })
+      const next = keysPressedRef.current | mask
+      bus?.commands.sendKeys(next)
     },
     [bus],
   )
@@ -247,11 +248,8 @@ const FullM8Player: FC<{
       const mask = pressKeys(keys)
       if (!mask) return
 
-      setMouseHeldKeys((prev) => {
-        const next = prev & ~mask
-        bus?.commands.sendKeys(next)
-        return next
-      })
+      const next = keysPressedRef.current & ~mask
+      bus?.commands.sendKeys(next)
     },
     [bus],
   )
@@ -266,7 +264,7 @@ const FullM8Player: FC<{
           onClick={() => { }}
           onMouseDown={onMouseDown}
           onMouseUp={onMouseUp}
-          keysPressed={keysPressed | mouseHeldKeys}
+          keysPressed={keysPressed}
           screenEdgeRef={screenEdgeRef}
         />
       ) : (
