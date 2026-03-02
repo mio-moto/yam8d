@@ -91,10 +91,17 @@ const manualClass = css`
 `
 
 interface MarkdownNode {
+    key: string
     type: 'h1' | 'h2' | 'h3' | 'p' | 'ul' | 'ol' | 'table' | 'hr'
     content?: string
     children?: MarkdownNode[]
     rows?: string[][]
+}
+
+const withOccurrence = (counts: Map<string, number>, base: string): string => {
+    const occurrence = counts.get(base) ?? 0
+    counts.set(base, occurrence + 1)
+    return occurrence === 0 ? base : `${base}:${occurrence}`
 }
 
 // Parse inline markdown elements (code, bold, links)
@@ -152,6 +159,8 @@ const parseInline = (text: string): React.ReactNode => {
 function parseMarkdown(md: string): MarkdownNode[] {
     const lines = md.split('\n')
     const nodes: MarkdownNode[] = []
+    const nodeKeyCounts = new Map<string, number>()
+    const nodeKey = (base: string): string => withOccurrence(nodeKeyCounts, base)
     let i = 0
 
     const parseTable = (startIdx: number): { node: MarkdownNode; endIdx: number } => {
@@ -172,7 +181,10 @@ function parseMarkdown(md: string): MarkdownNode[] {
             j++
         }
 
-        return { node: { type: 'table', rows }, endIdx: j - 1 }
+        return {
+            node: { key: nodeKey(`table:${rows.map((row) => row.join('|')).join('||')}`), type: 'table', rows },
+            endIdx: j - 1,
+        }
     }
 
     while (i < lines.length) {
@@ -186,24 +198,24 @@ function parseMarkdown(md: string): MarkdownNode[] {
 
         // Horizontal rule
         if (line === '---') {
-            nodes.push({ type: 'hr' })
+            nodes.push({ key: nodeKey('hr'), type: 'hr' })
             i++
             continue
         }
 
         // Headers
         if (line.startsWith('# ')) {
-            nodes.push({ type: 'h1', content: line.slice(2) })
+            nodes.push({ key: nodeKey(`h1:${line.slice(2)}`), type: 'h1', content: line.slice(2) })
             i++
             continue
         }
         if (line.startsWith('## ')) {
-            nodes.push({ type: 'h2', content: line.slice(3) })
+            nodes.push({ key: nodeKey(`h2:${line.slice(3)}`), type: 'h2', content: line.slice(3) })
             i++
             continue
         }
         if (line.startsWith('### ')) {
-            nodes.push({ type: 'h3', content: line.slice(4) })
+            nodes.push({ key: nodeKey(`h3:${line.slice(4)}`), type: 'h3', content: line.slice(4) })
             i++
             continue
         }
@@ -215,7 +227,16 @@ function parseMarkdown(md: string): MarkdownNode[] {
                 items.push(lines[i].trim().slice(2))
                 i++
             }
-            nodes.push({ type: 'ul', children: items.map((item) => ({ type: 'p' as const, content: item })) })
+            const listItemKeyCounts = new Map<string, number>()
+            nodes.push({
+                key: nodeKey(`ul:${items.join('|')}`),
+                type: 'ul',
+                children: items.map((item) => ({
+                    key: withOccurrence(listItemKeyCounts, `li:${item}`),
+                    type: 'p' as const,
+                    content: item,
+                })),
+            })
             continue
         }
 
@@ -227,7 +248,16 @@ function parseMarkdown(md: string): MarkdownNode[] {
                 items.push(lines[i].trim().replace(/^\d+\.\s/, ''))
                 i++
             }
-            nodes.push({ type: 'ol', children: items.map((item) => ({ type: 'p' as const, content: item })) })
+            const listItemKeyCounts = new Map<string, number>()
+            nodes.push({
+                key: nodeKey(`ol:${items.join('|')}`),
+                type: 'ol',
+                children: items.map((item) => ({
+                    key: withOccurrence(listItemKeyCounts, `li:${item}`),
+                    type: 'p' as const,
+                    content: item,
+                })),
+            })
             continue
         }
 
@@ -240,58 +270,66 @@ function parseMarkdown(md: string): MarkdownNode[] {
         }
 
         // Paragraph
-        nodes.push({ type: 'p', content: line })
+        nodes.push({ key: nodeKey(`p:${line}`), type: 'p', content: line })
         i++
     }
 
     return nodes
 }
 
-const renderNode = (node: MarkdownNode, key: number): React.ReactNode => {
+const renderNode = (node: MarkdownNode): React.ReactNode => {
     switch (node.type) {
         case 'h1':
-            return <h1 key={key}>{node.content}</h1>
+            return <h1 key={node.key}>{node.content}</h1>
         case 'h2':
-            return <h2 key={key}>{node.content}</h2>
+            return <h2 key={node.key}>{node.content}</h2>
         case 'h3':
-            return <h3 key={key}>{node.content}</h3>
+            return <h3 key={node.key}>{node.content}</h3>
         case 'p':
-            return <p key={key}>{node.content ? parseInline(node.content) : null}</p>
+            return <p key={node.key}>{node.content ? parseInline(node.content) : null}</p>
         case 'ul':
             return (
-                <ul key={key}>
-                    {node.children?.map((child, i) => (
-                        <li key={i}>{child.content ? parseInline(child.content) : null}</li>
+                <ul key={node.key}>
+                    {node.children?.map((child) => (
+                        <li key={child.key}>{child.content ? parseInline(child.content) : null}</li>
                     ))}
                 </ul>
             )
         case 'ol':
             return (
-                <ol key={key}>
-                    {node.children?.map((child, i) => (
-                        <li key={i}>{child.content ? parseInline(child.content) : null}</li>
+                <ol key={node.key}>
+                    {node.children?.map((child) => (
+                        <li key={child.key}>{child.content ? parseInline(child.content) : null}</li>
                     ))}
                 </ol>
             )
-        case 'table':
+        case 'table': {
+            const rowKeyCounts = new Map<string, number>()
             return (
-                <table key={key}>
+                <table key={node.key}>
                     <thead>
                         <tr>
-                            {node.rows?.[0]?.map((cell, i) => <th key={i}>{parseInline(cell)}</th>)}
+                            {node.rows?.[0]?.map((cell) => (
+                                <th key={withOccurrence(rowKeyCounts, `th:${cell}`)}>{parseInline(cell)}</th>
+                            ))}
                         </tr>
                     </thead>
                     <tbody>
-                        {node.rows?.slice(1)?.map((row, i) => (
-                            <tr key={i}>
-                                {row.map((cell, j) => <td key={j}>{parseInline(cell)}</td>)}
+                        {node.rows?.slice(1)?.map((row) => (
+                            <tr key={withOccurrence(rowKeyCounts, `tr:${row.join('|')}`)}>
+                                {row.map((cell) => (
+                                    <td key={withOccurrence(rowKeyCounts, `td:${row.join('|')}:${cell}`)}>
+                                        {parseInline(cell)}
+                                    </td>
+                                ))}
                             </tr>
                         ))}
                     </tbody>
                 </table>
             )
+        }
         case 'hr':
-            return <hr key={key} />
+            return <hr key={node.key} />
         default:
             return null
     }
@@ -300,5 +338,5 @@ const renderNode = (node: MarkdownNode, key: number): React.ReactNode => {
 export const Manual: FC = () => {
     const nodes = useMemo(() => parseMarkdown(manualRaw), [])
 
-    return <div className={manualClass}>{nodes.map((node, i) => renderNode(node, i))}</div>
+    return <div className={manualClass}>{nodes.map((node) => renderNode(node))}</div>
 }

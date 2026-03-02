@@ -483,7 +483,7 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
         gl.bindTexture(gl.TEXTURE_2D, jfaTextures[readIdx])
         gl.uniform1i(sdfJfa_uJFA, jfaUnits[readIdx])
         gl.uniform2f(sdfJfa_uTexelSize, 1.0 / scaledW, 1.0 / scaledH)
-        gl.uniform1f(sdfJfa_uStep, Math.pow(2, p))
+        gl.uniform1f(sdfJfa_uStep, 2 ** p)
         gl.uniform2f(sdfJfa_uSize, scaledW, scaledH)
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
         readIdx = writeIdx

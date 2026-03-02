@@ -84,9 +84,10 @@ export const useM8SdkHost = (bus: ConnectedBus | undefined, config: M8SdkConfig 
     const [clientConnected, setClientConnected] = useState(false)
     const busRef = useRef(bus)
 
-    const log = (msg: string) => {
-        if (config.debug) console.log(msg)
-    }
+    // const log = (msg: string) => {
+    //     if (config.debug) console.log(msg)
+    // }
+
     // Keep bus ref up to date
     useEffect(() => {
         busRef.current = bus
