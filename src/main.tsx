@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
+import './app/style/scrollbars.css'
 import { App } from './App.tsx'
 import { SettingsProvider } from './features/settings/settings.tsx'
 import { enableInputGate } from './features/inputs/inputGate'

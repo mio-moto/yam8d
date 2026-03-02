@@ -15,16 +15,18 @@ export const M8Body: FC<{
     strokeColor: string;
     screenColor?: string;
     onClick: (button: Record<string, boolean>) => void;
+    onMouseDown?: (button: Record<string, boolean>) => void;
+    onMouseUp?: (button: Record<string, boolean>) => void;
     keysPressed: number
     screenEdgeRef: Ref<SVGRectElement>
     model: number
 }
 >
-    = ({ strokeColor = '#d0d0d0', screenColor = '#000000', onClick, keysPressed = 0, screenEdgeRef, model }) => {
+    = ({ strokeColor = '#d0d0d0', screenColor = '#000000', onClick, onMouseDown, onMouseUp, keysPressed = 0, screenEdgeRef, model }) => {
         // const ser = useRef(screenEdgeRef)
         return (<>
-            {model === 1 && <Model01 strokeColor={strokeColor} screenColor={screenColor} onClick={onClick} keysPressed={keysPressed} screenEdgeRef={screenEdgeRef} />}
-            {model === 2 && <Model02 strokeColor={strokeColor} screenColor={screenColor} onClick={onClick} keysPressed={keysPressed} screenEdgeRef={screenEdgeRef} />}
+            {model === 1 && <Model01 strokeColor={strokeColor} screenColor={screenColor} onClick={onClick} onMouseDown={onMouseDown} onMouseUp={onMouseUp} keysPressed={keysPressed} screenEdgeRef={screenEdgeRef} />}
+            {model === 2 && <Model02 strokeColor={strokeColor} screenColor={screenColor} onClick={onClick} onMouseDown={onMouseDown} onMouseUp={onMouseUp} keysPressed={keysPressed} screenEdgeRef={screenEdgeRef} />}
         </>
         )
     }
@@ -33,11 +35,19 @@ export const Model02: FC<{
     strokeColor: string;
     screenColor?: string;
     onClick: (button: Record<string, boolean>) => void;
+    onMouseDown?: (button: Record<string, boolean>) => void;
+    onMouseUp?: (button: Record<string, boolean>) => void;
     keysPressed: number
     screenEdgeRef: Ref<SVGRectElement>
 }
 >
-    = ({ strokeColor = '#d0d0d0', screenColor = '#000000', onClick, keysPressed = 0, screenEdgeRef }) => {
+    = ({ strokeColor = '#d0d0d0', screenColor = '#000000', onClick, onMouseDown, onMouseUp, keysPressed = 0, screenEdgeRef }) => {
+        const bindButton = (button: Record<string, boolean>) => ({
+            onClick: () => onClick(button),
+            onMouseDown: () => onMouseDown?.(button),
+            onMouseUp: () => onMouseUp?.(button),
+        })
+
         return (
             <svg xmlns="http://www.w3.org/2000/svg" xmlSpace="preserve" className={svgClass} style={{
                 clipRule: 'evenodd',
@@ -96,14 +106,14 @@ export const Model02: FC<{
                     strokeLinecap: 'butt',
                 }}
                 />
-                <path className={cx('button up', isUp(keysPressed) && 'press')} onClick={() => onClick({ up: true })} d="M65.542 106.196v19.372a2.596 2.596 0 0 1-2.596 2.596H42.068a2.595 2.595 0 0 1-2.595-2.596v-19.372a2.595 2.595 0 0 1 2.595-2.596h20.878a2.596 2.596 0 0 1 2.596 2.596Z" />
-                <path className={cx('button down', isDown(keysPressed) && 'press')} onClick={() => onClick({ down: true })} d="M65.466 131.516v19.374a2.596 2.596 0 0 1-2.596 2.596H41.992a2.596 2.596 0 0 1-2.596-2.596v-19.374a2.596 2.596 0 0 1 2.596-2.596H62.87a2.596 2.596 0 0 1 2.596 2.596Z" />
-                <path className={cx('button left', isLeft(keysPressed) && 'press')} onClick={() => onClick({ left: true })} d="M38.632 131.516v19.374a2.596 2.596 0 0 1-2.596 2.596H15.158a2.596 2.596 0 0 1-2.596-2.596v-19.374a2.596 2.596 0 0 1 2.596-2.596h20.878a2.596 2.596 0 0 1 2.596 2.596Z" />
-                <path className={cx('button right', isRight(keysPressed) && 'press')} onClick={() => onClick({ right: true })} d="M92.296 131.516v19.374a2.596 2.596 0 0 1-2.596 2.596H68.822a2.596 2.596 0 0 1-2.596-2.596v-19.374a2.596 2.596 0 0 1 2.596-2.596H89.7a2.596 2.596 0 0 1 2.596 2.596Z" />
-                <path className={cx('button opt', isOpt(keysPressed) && 'press')} onClick={() => onClick({ opt: true })} d="M99.178 99.416v19.374a2.596 2.596 0 0 1-2.596 2.596H75.704a2.596 2.596 0 0 1-2.596-2.596V99.416a2.595 2.595 0 0 1 2.596-2.595h20.878a2.595 2.595 0 0 1 2.596 2.595Z" />
-                <path className={cx('button edit', isEdit(keysPressed) && 'press')} onClick={() => onClick({ edit: true })} d="M126.009 99.416v19.374a2.596 2.596 0 0 1-2.596 2.596h-20.878a2.596 2.596 0 0 1-2.596-2.596V99.416a2.595 2.595 0 0 1 2.596-2.595h20.878a2.595 2.595 0 0 1 2.596 2.595Z" />
-                <path className={cx('button shift', isShift(keysPressed) && 'press')} onClick={() => onClick({ shift: true })} d="M65.466 163.551v19.374a2.595 2.595 0 0 1-2.596 2.595H41.992a2.595 2.595 0 0 1-2.596-2.595v-19.374a2.596 2.596 0 0 1 2.596-2.596H62.87a2.596 2.596 0 0 1 2.596 2.596Z" />
-                <path className={cx('button play', isPlay(keysPressed) && 'press')} onClick={() => onClick({ play: true })} d="M92.296 163.551v19.374a2.595 2.595 0 0 1-2.596 2.595H68.822a2.595 2.595 0 0 1-2.596-2.595v-19.374a2.596 2.596 0 0 1 2.596-2.596H89.7a2.596 2.596 0 0 1 2.596 2.596Z" />
+                <path className={cx('button up', isUp(keysPressed) && 'press')} {...bindButton({ up: true })} d="M65.542 106.196v19.372a2.596 2.596 0 0 1-2.596 2.596H42.068a2.595 2.595 0 0 1-2.595-2.596v-19.372a2.595 2.595 0 0 1 2.595-2.596h20.878a2.596 2.596 0 0 1 2.596 2.596Z" />
+                <path className={cx('button down', isDown(keysPressed) && 'press')} {...bindButton({ down: true })} d="M65.466 131.516v19.374a2.596 2.596 0 0 1-2.596 2.596H41.992a2.596 2.596 0 0 1-2.596-2.596v-19.374a2.596 2.596 0 0 1 2.596-2.596H62.87a2.596 2.596 0 0 1 2.596 2.596Z" />
+                <path className={cx('button left', isLeft(keysPressed) && 'press')} {...bindButton({ left: true })} d="M38.632 131.516v19.374a2.596 2.596 0 0 1-2.596 2.596H15.158a2.596 2.596 0 0 1-2.596-2.596v-19.374a2.596 2.596 0 0 1 2.596-2.596h20.878a2.596 2.596 0 0 1 2.596 2.596Z" />
+                <path className={cx('button right', isRight(keysPressed) && 'press')} {...bindButton({ right: true })} d="M92.296 131.516v19.374a2.596 2.596 0 0 1-2.596 2.596H68.822a2.596 2.596 0 0 1-2.596-2.596v-19.374a2.596 2.596 0 0 1 2.596-2.596H89.7a2.596 2.596 0 0 1 2.596 2.596Z" />
+                <path className={cx('button opt', isOpt(keysPressed) && 'press')} {...bindButton({ opt: true })} d="M99.178 99.416v19.374a2.596 2.596 0 0 1-2.596 2.596H75.704a2.596 2.596 0 0 1-2.596-2.596V99.416a2.595 2.595 0 0 1 2.596-2.595h20.878a2.595 2.595 0 0 1 2.596 2.595Z" />
+                <path className={cx('button edit', isEdit(keysPressed) && 'press')} {...bindButton({ edit: true })} d="M126.009 99.416v19.374a2.596 2.596 0 0 1-2.596 2.596h-20.878a2.596 2.596 0 0 1-2.596-2.596V99.416a2.595 2.595 0 0 1 2.596-2.595h20.878a2.595 2.595 0 0 1 2.596 2.595Z" />
+                <path className={cx('button shift', isShift(keysPressed) && 'press')} {...bindButton({ shift: true })} d="M65.466 163.551v19.374a2.595 2.595 0 0 1-2.596 2.595H41.992a2.595 2.595 0 0 1-2.596-2.595v-19.374a2.596 2.596 0 0 1 2.596-2.596H62.87a2.596 2.596 0 0 1 2.596 2.596Z" />
+                <path className={cx('button play', isPlay(keysPressed) && 'press')} {...bindButton({ play: true })} d="M92.296 163.551v19.374a2.595 2.595 0 0 1-2.596 2.595H68.822a2.595 2.595 0 0 1-2.596-2.595v-19.374a2.596 2.596 0 0 1 2.596-2.596H89.7a2.596 2.596 0 0 1 2.596 2.596Z" />
             </svg>
         )
     }
@@ -113,11 +123,19 @@ export const Model01: FC<{
     strokeColor: string;
     screenColor?: string;
     onClick: (button: Record<string, boolean>) => void;
+    onMouseDown?: (button: Record<string, boolean>) => void;
+    onMouseUp?: (button: Record<string, boolean>) => void;
     keysPressed: number
     screenEdgeRef: Ref<SVGRectElement>
 }
 >
-    = ({ strokeColor = '#d0d0d0', screenColor = '#000000', onClick, keysPressed = 0, screenEdgeRef }) => {
+    = ({ strokeColor = '#d0d0d0', screenColor = '#000000', onClick, onMouseDown, onMouseUp, keysPressed = 0, screenEdgeRef }) => {
+        const bindButton = (button: Record<string, boolean>) => ({
+            onClick: () => onClick(button),
+            onMouseDown: () => onMouseDown?.(button),
+            onMouseUp: () => onMouseUp?.(button),
+        })
+
         return (
             <svg
                 width="100%"
@@ -144,42 +162,42 @@ export const Model01: FC<{
                 />
                 <path
                     className={cx('button opt', isOpt(keysPressed) && 'press')}
-                    onClick={() => onClick({ opt: true })}
+                    {...bindButton({ opt: true })}
                     d="M83.699,78.442c0,-0.181 -0.148,-0.328 -0.329,-0.328l-20.657,0c-0.181,0 -0.328,0.147 -0.328,0.328l0,19.439c0,0.181 0.147,0.328 0.328,0.328l20.657,0c0.181,0 0.329,-0.147 0.329,-0.328l0,-19.439Z"
                 />
                 <path
                     className={cx('button up', isUp(keysPressed) && 'press')}
-                    onClick={() => onClick({ up: true })}
+                    {...bindButton({ up: true })}
                     d="M55.919,83.23c0,-0.181 -0.147,-0.328 -0.328,-0.328l-20.657,0c-0.182,0 -0.329,0.147 -0.329,0.328l0,19.439c0,0.181 0.147,0.328 0.329,0.328l20.657,0c0.181,0 0.328,-0.147 0.328,-0.328l0,-19.439Z"
                 />
                 <path
                     className={cx('button down', isDown(keysPressed) && 'press')}
-                    onClick={() => onClick({ down: true })}
+                    {...bindButton({ down: true })}
                     d="M55.919,105.278c0,-0.181 -0.147,-0.328 -0.328,-0.328l-20.657,0c-0.182,0 -0.329,0.147 -0.329,0.328l0,19.439c0,0.181 0.147,0.328 0.329,0.328l20.657,0c0.181,0 0.328,-0.147 0.328,-0.328l0,-19.439Z"
                 />
                 <path
                     className={cx('button shift', isShift(keysPressed) && 'press')}
-                    onClick={() => onClick({ shift: true })}
+                    {...bindButton({ shift: true })}
                     d="M55.971,132.166c0,-0.181 -0.147,-0.328 -0.328,-0.328l-20.657,0c-0.182,0 -0.329,0.147 -0.329,0.328l0,19.439c0,0.181 0.147,0.328 0.329,0.328l20.657,0c0.181,0 0.328,-0.147 0.328,-0.328l0,-19.439Z"
                 />
                 <path
                     className={cx('button play', isPlay(keysPressed) && 'press')}
-                    onClick={() => onClick({ play: true })}
+                    {...bindButton({ play: true })}
                     d="M79.198,132.166c0,-0.181 -0.147,-0.328 -0.328,-0.328l-20.657,0c-0.182,0 -0.329,0.147 -0.329,0.328l0,19.439c0,0.181 0.147,0.328 0.329,0.328l20.657,0c0.181,0 0.328,-0.147 0.328,-0.328l0,-19.439Z"
                 />
                 <path
                     className={cx('button right', isRight(keysPressed) && 'press')}
-                    onClick={() => onClick({ right: true })}
+                    {...bindButton({ right: true })}
                     d="M79.198,105.278c0,-0.181 -0.147,-0.328 -0.328,-0.328l-20.657,0c-0.182,0 -0.329,0.147 -0.329,0.328l0,19.439c0,0.181 0.147,0.328 0.329,0.328l20.657,0c0.181,0 0.328,-0.147 0.328,-0.328l0,-19.439Z"
                 />
                 <path
                     className={cx('button left', isLeft(keysPressed) && 'press')}
-                    onClick={() => onClick({ left: true })}
+                    {...bindButton({ left: true })}
                     d="M32.692,105.304c0,-0.181 -0.147,-0.328 -0.328,-0.328l-20.657,0c-0.182,0 -0.329,0.147 -0.329,0.328l0,19.439c0,0.181 0.147,0.328 0.329,0.328l20.657,0c0.181,0 0.328,-0.147 0.328,-0.328l0,-19.439Z"
                 />
                 <path
                     className={cx('button edit', isEdit(keysPressed) && 'press')}
-                    onClick={() => onClick({ edit: true })}
+                    {...bindButton({ edit: true })}
                     d="M106.885,78.442c0,-0.181 -0.147,-0.328 -0.328,-0.328l-20.657,0c-0.182,0 -0.329,0.147 -0.329,0.328l0,19.439c0,0.181 0.147,0.328 0.329,0.328l20.657,0c0.181,0 0.328,-0.147 0.328,-0.328l0,-19.439Z"
                 />
                 <path

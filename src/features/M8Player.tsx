@@ -130,6 +130,7 @@ const FullM8Player: FC<{
   const screenColor = rgbToHex(bgColor ?? { r: 0, g: 0, b: 0 })
 
   const [keysPressed, setKeysPressed] = useState(0)
+  const [mouseHeldKeys, setMouseHeldKeys] = useState(0)
   const { navigateTo } = useViewNavigator(bus)
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: <on model change to get correct refs>
@@ -227,13 +228,30 @@ const FullM8Player: FC<{
     }
   }, [bus])
 
-  const onClick = useCallback(
+  const onMouseDown = useCallback(
     (keys: Parameters<typeof pressKeys>[0]) => {
-      bus?.commands.sendKeys(pressKeys(keys))
+      const mask = pressKeys(keys)
+      if (!mask) return
 
-      // TODO : make toggle button on click
-      // meanwhile send no key pressed
-      bus?.commands.sendKeys(0)
+      setMouseHeldKeys((prev) => {
+        const next = prev | mask
+        bus?.commands.sendKeys(next)
+        return next
+      })
+    },
+    [bus],
+  )
+
+  const onMouseUp = useCallback(
+    (keys: Parameters<typeof pressKeys>[0]) => {
+      const mask = pressKeys(keys)
+      if (!mask) return
+
+      setMouseHeldKeys((prev) => {
+        const next = prev & ~mask
+        bus?.commands.sendKeys(next)
+        return next
+      })
     },
     [bus],
   )
@@ -245,8 +263,10 @@ const FullM8Player: FC<{
           model={model}
           strokeColor={strokeColor}
           screenColor={screenColor}
-          onClick={onClick}
-          keysPressed={keysPressed}
+          onClick={() => { }}
+          onMouseDown={onMouseDown}
+          onMouseUp={onMouseUp}
+          keysPressed={keysPressed | mouseHeldKeys}
           screenEdgeRef={screenEdgeRef}
         />
       ) : (

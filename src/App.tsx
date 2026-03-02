@@ -16,6 +16,7 @@ import { VirtualKeyboard } from './features/virtualKeyboard/VirtualKeyboard'
 //import { ProgramChangeKeyboard } from './features/virtualKeyboard/ProgramChangeKeyboard'
 import { StatusPanel } from './features/debug/StatusPanel'
 import { ShortcutsDisplay } from './features/shortcuts/shortcutsIntegration'
+import { Manual } from './features/manual'
 // import { SdkTest } from './components/SdkTest'
 
 const appClass = css`
@@ -68,7 +69,10 @@ export const App: FC = () => {
 
   return (
     <>
-      {!connectedBus && <Button onClick={tryConnect}>Connect</Button>}
+      {!connectedBus && (<div style={{ display: 'grid', gap: '40px' }}>
+        <Button onClick={tryConnect}>Connect</Button>
+        <Manual></Manual>
+      </div>)}
       {connectedBus && (
         <>
           <Menu />
