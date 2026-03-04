@@ -70,6 +70,15 @@ export const useViewNavigator = (connection?: ConnectedBus) => {
     const samplesRef = useRef<PositionSample[]>([])
     const recentRectsRef = useRef<RectState[]>([])
 
+    const log = useCallback((message: string, data?: unknown) => {
+        if (!DEBUG_NAVIGATOR) return
+        if (data !== undefined) {
+            console.log(`[useViewNavigator] ${message}`, data)
+            return
+        }
+        console.log(`[useViewNavigator] ${message}`)
+    }, [])
+
     const clearMoveTimeout = useCallback(() => {
         if (moveTimeoutRef.current) {
             clearTimeout(moveTimeoutRef.current)
@@ -83,16 +92,7 @@ export const useViewNavigator = (connection?: ConnectedBus) => {
             log('move timeout fired', { timeoutMs: MOVE_TIMEOUT_MS, waitingForKeyAck: waitingForKeyAckRef.current })
             advanceRef.current?.('timeout')
         }, MOVE_TIMEOUT_MS)
-    }, [clearMoveTimeout])
-
-    const log = useCallback((message: string, data?: unknown) => {
-        if (!DEBUG_NAVIGATOR) return
-        if (data !== undefined) {
-            console.log(`[useViewNavigator] ${message}`, data)
-            return
-        }
-        console.log(`[useViewNavigator] ${message}`)
-    }, [])
+    }, [clearMoveTimeout, log])
 
     const advanceRef = useRef<((reason: 'start' | 'rect' | 'timeout') => void) | null>(null)
 
@@ -453,7 +453,7 @@ export const useViewNavigator = (connection?: ConnectedBus) => {
             rememberSample(rect, normalized)
             advance('start')
         })
-    }, [advance, connection, cursor, finish, getRect, normalizeTarget, rememberSample, resetState])
+    }, [advance, connection, cursor, finish, getRect, normalizeTarget, rememberSample, resetState, log])
 
     return { navigateTo }
 }
