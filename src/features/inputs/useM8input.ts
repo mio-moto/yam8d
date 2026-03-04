@@ -3,37 +3,52 @@ import type { ConnectedBus } from '../connection/connection.ts'
 import { useSettingsContext } from '../settings/settings.tsx'
 import { defaultInputMap } from './defaultInputMap'
 
-// const dirNames = {
-//     ArrowUp: 'Up',
-//     ArrowDown: 'Down',
-//     ArrowLeft: 'Left',
-//     ArrowRight: 'Right',
-// }
-
 const INPUT_MAP_SETTINGS = 'inputMap'
 
 const inputMap: Record<string, number> = {}
+
+type GamepadAxisState = {
+    isHat?: boolean
+    negative?: boolean
+    positive?: boolean
+}
+
+type GamepadState = {
+    buttons: boolean[]
+    axes: GamepadAxisState[]
+}
+
+const hatMap: Record<number, [boolean, boolean, boolean, boolean]> = {
+    0: [true, false, false, false],
+    1: [true, false, false, true],
+    2: [false, false, false, true],
+    3: [false, true, false, true],
+    4: [false, true, false, false],
+    5: [false, true, true, false],
+    6: [false, false, true, false],
+    7: [true, false, true, false],
+    8: [false, false, false, false],
+    15: [false, false, false, false],
+}
 
 export const useM8Input = (connection?: ConnectedBus) => {
     const { settings: settingsContextValues } = useSettingsContext()
     const pressedKeyMask = useRef(0)
 
     const handleInput = useCallback(
-        (ev: KeyboardEvent, isDown: boolean) => {
-            if (!ev || !ev.code) return
+        (inputCode: string, isDown: boolean) => {
+            if (!inputCode) return
 
-            const M8Key = inputMap[ev.code] as unknown as number
+            const m8Key = inputMap[inputCode]
 
-            // exit if the key pressed isn't found in the input map
-            if (!M8Key) return
-
-            ev.preventDefault()
+            // Exit if the input isn't found in the input map
+            if (!m8Key) return
 
             const before = pressedKeyMask.current
             if (isDown) {
-                pressedKeyMask.current = before | M8Key
+                pressedKeyMask.current = before | m8Key
             } else {
-                pressedKeyMask.current = before & ~M8Key
+                pressedKeyMask.current = before & ~m8Key
             }
 
             // Avoid unnecessary sends for key repeat
@@ -45,17 +60,19 @@ export const useM8Input = (connection?: ConnectedBus) => {
     )
 
     useEffect(() => {
-        // get config
+        // Get config
         Object.assign(inputMap, settingsContextValues[INPUT_MAP_SETTINGS] ?? defaultInputMap)
 
         const handleKeyDown = (ev: KeyboardEvent) => {
-            // const dir = dirNames[ev.code as keyof typeof dirNames]
-            // if (dir) console.log('move', dir)
-
-            handleInput(ev, true)
+            if (!ev.code) return
+            ev.preventDefault()
+            handleInput(ev.code, true)
         }
+
         const handleKeyUp = (ev: KeyboardEvent) => {
-            handleInput(ev, false)
+            if (!ev.code) return
+            ev.preventDefault()
+            handleInput(ev.code, false)
         }
 
         window.addEventListener('keydown', handleKeyDown)
@@ -66,191 +83,133 @@ export const useM8Input = (connection?: ConnectedBus) => {
             window.removeEventListener('keyup', handleKeyUp)
         }
     }, [handleInput, settingsContextValues])
-}
 
-/*
-let gamepadsRunning = false;
-const gamepadStates: { buttons: never[]; axes: {}[]; }[] = [];
-const hatMap = {
-    0: [true, false, false, false],
-    1: [true, false, false, true],
-    2: [false, false, false, true],
-    3: [false, true, false, true],
-    4: [false, true, false, false],
-    5: [false, true, true, false],
-    6: [false, false, true, false],
-    7: [true, false, true, false],
-    8: [false, false, false, false],
-    15: [false, false, false, false],
-};
+    useEffect(() => {
+        let frameId: number | null = null
+        let gamepadsRunning = false
+        const gamepadStates: Array<GamepadState | null> = []
 
-function pollGamepads() {
-    if (!gamepadsRunning)
-        return;
+        const pollGamepads = () => {
+            if (!gamepadsRunning) return
 
-    let somethingPresent = false;
-    for (const gamepad of navigator.getGamepads()) {
-        if (!gamepad || !gamepad.connected)
-            continue;
+            let somethingPresent = false
 
-        somethingPresent = true;
+            for (const gamepad of navigator.getGamepads()) {
+                if (!gamepad || !gamepad.connected) continue
 
-        let state = gamepadStates[gamepad.index];
-        if (!state) {
-            state = gamepadStates[gamepad.index] = {
-                buttons: [],
-                axes: Array(gamepad.axes.length).fill(null).map(_ => ({}))
-            };
-        }
+                somethingPresent = true
 
-        if (gamepad.mapping !== 'standard') {
-            for (let i = 0; i < gamepad.axes.length; i++) {
-                if (state.axes[i].isHat === false)
-                    continue;
-
-                // Heuristics to locate a d-pad or
-                // "hat switch" masquerading as an axis
-                const value = (gamepad.axes[i] + 1) * 3.5;
-                const error = Math.abs(Math.round(value) - value);
-                const hatPosition = hatMap[Math.round(value)];
-                if (error > 4.8e-7 || hatPosition === undefined) {
-                    // definitely not a hat based on this value
-                    state.axes[i].isHat = false;
-                    continue;
-                } else if (value === 0 && state.axes[i].isHat !== true) {
-                    // could be a hat but could also be an unpressed trigger
-                    continue;
-                } else {
-                    // almost certainly a hat - we're very close to a "special"
-                    // value and we haven't seen any invalid values
-                    state.axes[i].isHat = true;
+                let state = gamepadStates[gamepad.index]
+                if (!state) {
+                    state = {
+                        buttons: [],
+                        axes: Array.from({ length: gamepad.axes.length }, () => ({})),
+                    }
+                    gamepadStates[gamepad.index] = state
                 }
 
-                for (let b = 0; b < 4; b++) {
-                    const pressed = hatPosition[b];
-                    if (state.buttons[64 + b] !== pressed) {
-                        state.buttons[64 + b] = pressed;
-                        handleInput(`Gamepad${64 + b}`, pressed);
+                if (gamepad.mapping !== 'standard') {
+                    for (let i = 0; i < gamepad.axes.length; i++) {
+                        if (state.axes[i]?.isHat === false) continue
+
+                        // Heuristics to locate a d-pad / hat switch encoded as an axis
+                        const value = (gamepad.axes[i] + 1) * 3.5
+                        const rounded = Math.round(value)
+                        const error = Math.abs(rounded - value)
+                        const hatPosition = hatMap[rounded]
+
+                        if (error > 4.8e-7 || hatPosition === undefined) {
+                            state.axes[i] = { ...state.axes[i], isHat: false }
+                            continue
+                        }
+
+                        if (value === 0 && state.axes[i]?.isHat !== true) {
+                            // Could still be an unpressed trigger, wait for more data
+                            continue
+                        }
+
+                        state.axes[i] = { ...state.axes[i], isHat: true }
+
+                        for (let b = 0; b < 4; b++) {
+                            const pressed = hatPosition[b]
+                            const hatButtonIndex = 64 + b
+                            if (state.buttons[hatButtonIndex] !== pressed) {
+                                state.buttons[hatButtonIndex] = pressed
+                                handleInput(`Gamepad${hatButtonIndex}`, pressed)
+                            }
+                        }
+                    }
+                }
+
+                for (let i = 0; i < gamepad.axes.length; i++) {
+                    const axisState = state.axes[i] ?? {}
+                    const value = gamepad.axes[i]
+                    if (axisState.isHat === true || Math.abs(value) > 1) continue
+
+                    const negative = value <= -0.5
+                    const positive = value >= 0.5
+
+                    if (axisState.negative !== negative) {
+                        axisState.negative = negative
+                        handleInput(`GamepadAxis${i}-`, negative)
+                    }
+
+                    if (axisState.positive !== positive) {
+                        axisState.positive = positive
+                        handleInput(`GamepadAxis${i}+`, positive)
+                    }
+
+                    state.axes[i] = axisState
+                }
+
+                for (let i = 0; i < gamepad.buttons.length; i++) {
+                    const pressed = gamepad.buttons[i].pressed
+                    if (state.buttons[i] !== pressed) {
+                        state.buttons[i] = pressed
+                        handleInput(`Gamepad${i}`, pressed)
                     }
                 }
             }
-        }
 
-        for (let i = 0; i < gamepad.axes.length; i++) {
-            const value = gamepad.axes[i];
-            if (state.axes[i].isHat === true || Math.abs(value) > 1)
-                continue;
-
-            const negative = value <= -0.5;
-            const positive = value >= 0.5;
-            if (state.axes[i].negative !== negative) {
-                state.axes[i].negative = negative;
-                handleInput(`GamepadAxis${i}-`, negative);
-            }
-            if (state.axes[i].positive !== positive) {
-                state.axes[i].positive = positive;
-                handleInput(`GamepadAxis${i}+`, positive);
+            if (somethingPresent) {
+                frameId = requestAnimationFrame(pollGamepads)
+            } else {
+                gamepadsRunning = false
+                frameId = null
             }
         }
 
-        for (let i = 0; i < gamepad.buttons.length; i++) {
-            const pressed = gamepad.buttons[i].pressed;
-            if (state.buttons[i] !== pressed) {
-                state.buttons[i] = pressed;
-                handleInput(`Gamepad${i}`, pressed);
+        const handleGamepadConnected = (ev: GamepadEvent) => {
+            if (ev.gamepad.mapping !== 'standard') {
+                console.warn('Non-standard gamepad attached. Mappings may be inaccurate.')
+            }
+
+            if (!gamepadsRunning) {
+                gamepadsRunning = true
+                pollGamepads()
             }
         }
-    }
 
-    if (somethingPresent) {
-        requestAnimationFrame(pollGamepads);
-    } else {
-        gamepadsRunning = false;
-    }
-}
-
-on(window, 'gamepadconnected', e => {
-    if (e.gamepad.mapping !== 'standard') {
-        console.warn('Non-standard gamepad attached. Mappings may be funny.');
-    }
-
-    if (!gamepadsRunning) {
-        gamepadsRunning = true;
-        pollGamepads();
-    }
-});
-
-on(window, 'gamepaddisconnected', e => {
-    gamepadStates[e.gamepad.index] = null;
-});
-
-export let isMapping = false;
-let resolveMapping: ((value: unknown) => void) | null = null;
-let resolveCapture: ((arg0: null) => void) | null = null;
-
-export function startMapping() {
-    isMapping = true;
-    document.body.classList.add('mapping');
-    return new Promise(resolve => { resolveMapping = resolve });
-}
-
-export function stopMapping() {
-    cancelCapture();
-    document.body.classList.remove('mapping');
-    isMapping = false;
-    resolveMapping && resolveMapping();
-}
-
-export function captureNextInput() {
-    cancelCapture();
-    return new Promise(
-        resolve => { resolveCapture = resolve; })
-        .then(input => {
-            resolveCapture = null;
-            return input;
-        });
-}
-
-export function cancelCapture() {
-    resolveCapture && resolveCapture(null);
-}
-
-async function startMapKey(keyElement: { classList: { add: (arg0: string) => void; remove: (arg0: string) => void; }; }, action: any) {
-    const cancel = (e: { stopPropagation: () => void; }) => {
-        e.stopPropagation();
-        cancelCapture();
-    };
-
-    on(document.body, 'mousedown', cancel, true);
-    on(document.body, 'touchstart', cancel, true);
-    document.body.classList.add('capturing');
-    keyElement.classList.add('mapping');
-    try {
-        const input = await captureNextInput();
-        if (input) {
-            inputMap[input] = action;
-            Settings.save('inputMap', inputMap);
+        const handleGamepadDisconnected = (ev: GamepadEvent) => {
+            gamepadStates[ev.gamepad.index] = null
         }
-    } finally {
-        keyElement.classList.remove('mapping');
-        document.body.classList.remove('capturing');
-        off(document.body, 'touchstart', cancel, true);
-        off(document.body, 'mousedown', cancel, true);
-    }
-}
 
-export function resetMappings() {
-    for (const input of Object.keys(inputMap)) {
-        delete inputMap[input];
-    }
-    Object.assign(inputMap, defaultInputMap);
-    Settings.save('inputMap', inputMap);
-}
+        window.addEventListener('gamepadconnected', handleGamepadConnected)
+        window.addEventListener('gamepaddisconnected', handleGamepadDisconnected)
 
-export function clearMappings() {
-    for (const input of Object.keys(inputMap)) {
-        delete inputMap[input];
-    }
-    Settings.save('inputMap', inputMap);
+        // Some browsers require an initial poll to detect already-connected devices.
+        if (navigator.getGamepads().some((pad) => !!pad && pad.connected)) {
+            gamepadsRunning = true
+            pollGamepads()
+        }
+
+        return () => {
+            gamepadsRunning = false
+            if (frameId !== null) {
+                cancelAnimationFrame(frameId)
+            }
+            window.removeEventListener('gamepadconnected', handleGamepadConnected)
+            window.removeEventListener('gamepaddisconnected', handleGamepadDisconnected)
+        }
+    }, [handleInput])
 }
-*/

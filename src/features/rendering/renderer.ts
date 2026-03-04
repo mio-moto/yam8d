@@ -665,14 +665,17 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
           }
           textRenderer.renderText(!!processedFontTexture)
 
-          // Step 4: Waves at display res
-          waveRenderer.renderWave(true)
-
-          isQueued = false
-        })
-      }
-    }
-  })()
+	          // Step 4: Waves at display res
+	          waveRenderer.renderWave(true)
+	
+	          isQueued = false
+	          if (backgroundShader !== 'none') {
+	            queueFrame()
+	          }
+	        })
+	      }
+	    }
+	  })()
 
   const textRenderer = (() => {
     const textShader = buildProgram(gl, VertText, FragText)
