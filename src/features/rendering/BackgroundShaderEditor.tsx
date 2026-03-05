@@ -14,10 +14,11 @@ type SavedBackgroundShader = {
 const STORAGE_KEY = 'M8savedBackgroundShaders'
 
 const containerClass = css`
-  width: min(440px, 45vw);
-  min-width: 280px;
+  width: min(640px, 45vw);
+  min-width: 380px;
   display: grid;
-  grid-template-rows: auto auto auto 1fr auto;
+  height: 90vh;
+  grid-template-rows: auto auto 1fr auto auto auto auto;
   gap: 10px;
   align-self: stretch;
   padding: 14px;
@@ -28,8 +29,9 @@ const containerClass = css`
 
 const sourceClass = css`
   width: 100%;
-  min-height: 280px;
-  resize: vertical;
+  height: 100%;
+  min-height: 0;
+  resize: none;
   background: rgba(0, 0, 0, 0.5);
   color: #f2f2f2;
   border: 1px solid rgba(255, 255, 255, 0.25);
@@ -67,6 +69,12 @@ const statusClass = css`
   min-height: 18px;
   font-size: 12px;
   opacity: 0.9;
+`
+
+const hintClass = css`
+  font-size: 11px;
+  opacity: 0.75;
+  line-height: 1.35;
 `
 
 const validateFragmentShader = (fragmentSource: string): string | null => {
@@ -211,6 +219,9 @@ export const BackgroundShaderEditor: FC = () => {
         onChange={(event) => setSourceDraft(event.target.value)}
         spellCheck={false}
       />
+      <div className={hintClass}>
+        Available uniforms: <code>uTime</code>, <code>uResolution</code>, <code>uMouse</code> (x, y, down, _), <code>uAudioLevel</code> (0..1), <code>uAudioSpectrum</code> (sampler2D), <code>uAudioSpectrumBins</code>
+      </div>
       <div className={rowClass}>
         <input className={inputClass} value={nameDraft} onChange={(event) => setNameDraft(event.target.value)} placeholder="Shader name" />
         <Button onClick={saveCurrent}>Save</Button>

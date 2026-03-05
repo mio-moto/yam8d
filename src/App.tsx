@@ -89,11 +89,10 @@ export const App: FC = () => {
             {/* not ready <ProgramChangeKeyboard bus={connectedBus} strokeColor={style.themeColors.text.default} /> */}
             <div className={playerRowClass}>
               <M8Player bus={connectedBus} fullView={settings.fullM8View} />
-              {settings.showBackgroundShaderEditor && <BackgroundShaderEditor />}
             </div>
-            <StatusPanel />
             {/* <StatusPanel bus={connectedBus} /> */}
           </div>
+          {settings.showBackgroundShaderEditor && <BackgroundShaderEditor />}
           {settings.displayShortcuts && <ShortcutsDisplay bus={connectedBus} />}
           {/* <SdkTest bus={connectedBus} /> */}
         </>

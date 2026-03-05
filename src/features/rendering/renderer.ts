@@ -285,12 +285,125 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
   let customProgram: WebGLProgram | null = null
   let custom_uTime: WebGLUniformLocation | null = null
   let custom_uResolution: WebGLUniformLocation | null = null
+  let custom_uMouse: WebGLUniformLocation | null = null
+  let custom_uAudioLevel: WebGLUniformLocation | null = null
+  let custom_uAudioSpectrum: WebGLUniformLocation | null = null
+  let custom_uAudioSpectrumBins: WebGLUniformLocation | null = null
+
+  const AUDIO_SPECTRUM_TEX_UNIT = 11
+
+  let mouseX = 0
+  let mouseY = 0
+  let mouseDown = 0
+
+  const updateMouse = (event: PointerEvent) => {
+    const rect = element.getBoundingClientRect()
+    if (rect.width <= 0 || rect.height <= 0) return
+    const px = ((event.clientX - rect.left) / rect.width) * displayWidth
+    const py = ((event.clientY - rect.top) / rect.height) * displayHeight
+    mouseX = Math.max(0, Math.min(displayWidth, px))
+    mouseY = Math.max(0, Math.min(displayHeight, displayHeight - py))
+  }
+
+  element.addEventListener('pointermove', updateMouse)
+  element.addEventListener('pointerdown', (event) => {
+    mouseDown = 1
+    updateMouse(event)
+  })
+  element.addEventListener('pointerup', (event) => {
+    mouseDown = 0
+    updateMouse(event)
+  })
+  element.addEventListener('pointerleave', () => {
+    mouseDown = 0
+  })
+
+  let micAudioContext: AudioContext | null = null
+  let micAnalyser: AnalyserNode | null = null
+  let micData: Uint8Array<ArrayBuffer> | null = null
+  let micFreqData: Uint8Array<ArrayBuffer> | null = null
+  let audioSpectrumTexture: WebGLTexture | null = null
+  let audioSpectrumBins = 0
+  let micInitState: 'idle' | 'starting' | 'ready' | 'error' = 'idle'
+
+  const ensureMicInput = () => {
+    if (micInitState !== 'idle') return
+    if (!navigator.mediaDevices?.getUserMedia) {
+      micInitState = 'error'
+      return
+    }
+    micInitState = 'starting'
+    navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+      try {
+        micAudioContext = new AudioContext()
+        const source = micAudioContext.createMediaStreamSource(stream)
+        micAnalyser = micAudioContext.createAnalyser()
+        micAnalyser.fftSize = 512
+        micAnalyser.minDecibels = -100
+        micAnalyser.maxDecibels = -10
+        micAnalyser.smoothingTimeConstant = 0.10
+        source.connect(micAnalyser)
+        micData = new Uint8Array(new ArrayBuffer(micAnalyser.fftSize))
+        micFreqData = new Uint8Array(new ArrayBuffer(micAnalyser.frequencyBinCount))
+        if (micAudioContext.state !== 'running') {
+          void micAudioContext.resume()
+        }
+        micInitState = 'ready'
+      } catch {
+        micInitState = 'error'
+      }
+    }).catch(() => {
+      micInitState = 'error'
+    })
+  }
+
+  const getMicAudioLevel = () => {
+    if (!micAnalyser || !micData) return 0
+    micAnalyser.getByteTimeDomainData(micData)
+    let sum = 0
+    for (let i = 0; i < micData.length; i++) {
+      const sample = (micData[i] - 128) / 128
+      sum += sample * sample
+    }
+    return Math.min(1, Math.sqrt(sum / micData.length) * 2.5)
+  }
+
+  const getMicSpectrumData = () => {
+    if (!micAnalyser || !micFreqData) return null  // removed micAudioContext check
+    // removed the state !== 'running' guard entirely
+    micAnalyser.getByteFrequencyData(micFreqData)
+    return {
+      data: micFreqData,
+      sampleRate: micAudioContext?.sampleRate ?? 44100,
+    }
+  }
+
+
+  const ensureSpectrumTexture = (binCount: number) => {
+    if (binCount <= 0) return
+    if (audioSpectrumTexture && audioSpectrumBins === binCount) return
+    if (audioSpectrumTexture) gl.deleteTexture(audioSpectrumTexture)
+    audioSpectrumTexture = gl.createTexture()
+    audioSpectrumBins = binCount
+    gl.activeTexture(gl.TEXTURE0 + AUDIO_SPECTRUM_TEX_UNIT)
+    gl.bindTexture(gl.TEXTURE_2D, audioSpectrumTexture)
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, binCount, 1, 0, gl.RED, gl.UNSIGNED_BYTE, null)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+  }
+
 
   const setCustomBackgroundShader = (fragmentSource: string) => {
     try {
       const nextProgram = buildProgram(gl, VertPostprocess, fragmentSource)
       const nextTime = gl.getUniformLocation(nextProgram, 'uTime')
       const nextResolution = gl.getUniformLocation(nextProgram, 'uResolution')
+      const nextMouse = gl.getUniformLocation(nextProgram, 'uMouse')
+      const nextAudioLevel = gl.getUniformLocation(nextProgram, 'uAudioLevel')
+      const nextAudioSpectrum = gl.getUniformLocation(nextProgram, 'uAudioSpectrum')
+      const nextAudioSpectrumBins = gl.getUniformLocation(nextProgram, 'uAudioSpectrumBins')
 
       if (customProgram) {
         gl.deleteProgram(customProgram)
@@ -299,6 +412,10 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
       customProgram = nextProgram
       custom_uTime = nextTime
       custom_uResolution = nextResolution
+      custom_uMouse = nextMouse
+      custom_uAudioLevel = nextAudioLevel
+      custom_uAudioSpectrum = nextAudioSpectrum
+      custom_uAudioSpectrumBins = nextAudioSpectrumBins
       backgroundStartTime = performance.now() / 1000
       queueFrame()
       return null
@@ -323,10 +440,28 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
       gl.uniform2f(plasma_uResolution, displayWidth, displayHeight)
     } else if (backgroundShader === 'custom') {
       if (!customProgram) return
+      ensureMicInput()
       // biome-ignore lint/correctness/useHookAtTopLevel: ain't a hook
       gl.useProgram(customProgram)
       if (custom_uTime) gl.uniform1f(custom_uTime, performance.now() / 1000 - backgroundStartTime)
       if (custom_uResolution) gl.uniform2f(custom_uResolution, displayWidth, displayHeight)
+      if (custom_uMouse) gl.uniform4f(custom_uMouse, mouseX, mouseY, mouseDown, 0.0)
+      if (custom_uAudioLevel) gl.uniform1f(custom_uAudioLevel, getMicAudioLevel())
+      const spectrum = getMicSpectrumData()
+      if (custom_uAudioSpectrum && custom_uAudioSpectrumBins) {
+        if (spectrum) {
+          ensureSpectrumTexture(spectrum.data.length)
+          if (audioSpectrumTexture) {
+            gl.activeTexture(gl.TEXTURE0 + AUDIO_SPECTRUM_TEX_UNIT)
+            gl.bindTexture(gl.TEXTURE_2D, audioSpectrumTexture)
+            gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, spectrum.data.length, 1, gl.RED, gl.UNSIGNED_BYTE, spectrum.data)
+            gl.uniform1i(custom_uAudioSpectrum, AUDIO_SPECTRUM_TEX_UNIT)
+            gl.uniform1f(custom_uAudioSpectrumBins, spectrum.data.length)
+          }
+        } else {
+          gl.uniform1f(custom_uAudioSpectrumBins, 0)
+        }
+      }
     }
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
     gl.enable(gl.BLEND)
@@ -665,17 +800,17 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
           }
           textRenderer.renderText(!!processedFontTexture)
 
-	          // Step 4: Waves at display res
-	          waveRenderer.renderWave(true)
-	
-	          isQueued = false
-	          if (backgroundShader !== 'none') {
-	            queueFrame()
-	          }
-	        })
-	      }
-	    }
-	  })()
+          // Step 4: Waves at display res
+          waveRenderer.renderWave(true)
+
+          isQueued = false
+          if (backgroundShader !== 'none') {
+            queueFrame()
+          }
+        })
+      }
+    }
+  })()
 
   const textRenderer = (() => {
     const textShader = buildProgram(gl, VertText, FragText)
