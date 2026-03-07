@@ -201,6 +201,7 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
   let processedGlyphPad = 0
   let processedGlyphW = 0
   let processedGlyphH = 0
+  let processedGlyphRenderPad = 0
   let processedAtlasIsSdf = false
   let processedSdfPxRange = 8
 
@@ -503,7 +504,7 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
   //   1. Extract padded glyph from source
   //   2. Build SDF from original upscaled glyph
   //   3. If smoothRendering: apply final blur+threshold shaping on SDF
-  //   4. Blit glyph centre to output atlas
+  //   4. Blit glyph with a preserved postprocess fringe to output atlas
   //
   // JFA positions encoded as (pixel_coord / 255) in RGBA8 — no float FBO needed.
   // Max scaled glyph dim ≤ 255 px (worst case ~208 px at scale=8).
@@ -524,22 +525,34 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
     const blurPad = smoothRendering ? 6 : 0
     const pad = Math.max(sdfPad, blurPad)
 
-    // Output atlas dimensions
-    // Extra per-slot padding in the final atlas to reduce cross-glyph sampling at small scales.
-    const atlasPad = 4
-    const glyphScaledW = glyphW * scale
-    const glyphScaledH = glyphH * scale
-    const slotW = glyphScaledW + 2 * atlasPad
-    const slotH = glyphScaledH + 2 * atlasPad
-    const atlasW = numGlyphs * slotW
-    const atlasH = slotH
-
     // Padded glyph dimensions (for processing)
     const paddedW = glyphW + 2 * pad
     const paddedH = glyphH + 2 * pad
     const scaledW = paddedW * scale
     const scaledH = paddedH * scale
     const padPx = pad * scale
+
+    // Preserve some of the postprocessed fringe in the atlas so reconstructed glyphs
+    // do not clamp back to the original bitmap box too abruptly.
+    const preservedFringePx = Math.min(
+      padPx,
+      Math.max(
+        scale,
+        Math.round((smoothRendering ? smoothBlurRadius * scale * 0.5 : sdfSpread * 0.75)),
+      ),
+    )
+
+    // Output atlas dimensions.
+    // atlasPad isolates neighboring glyphs; preservedFringePx is part of the sampled glyph region.
+    const atlasPad = 4
+    const glyphScaledW = glyphW * scale
+    const glyphScaledH = glyphH * scale
+    const sampledGlyphW = glyphScaledW + 2 * preservedFringePx
+    const sampledGlyphH = glyphScaledH + 2 * preservedFringePx
+    const slotW = sampledGlyphW + 2 * atlasPad
+    const slotH = sampledGlyphH + 2 * atlasPad
+    const atlasW = numGlyphs * slotW
+    const atlasH = slotH
 
     // Output atlas texture
     if (processedFontTexture) gl.deleteTexture(processedFontTexture)
@@ -560,8 +573,9 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
     processedAtlasH = atlasH
     processedGlyphStride = slotW
     processedGlyphPad = atlasPad
-    processedGlyphW = glyphScaledW
-    processedGlyphH = glyphScaledH
+    processedGlyphW = sampledGlyphW
+    processedGlyphH = sampledGlyphH
+    processedGlyphRenderPad = preservedFringePx / scale
     processedAtlasIsSdf = !smoothRendering
     processedSdfPxRange = sdfSpread
 
@@ -728,14 +742,15 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
       }
 
-      // --- Blit glyph centre (without padding) to atlas slot ---
+      // --- Blit glyph with preserved postprocess fringe to atlas slot ---
       gl.bindFramebuffer(gl.READ_FRAMEBUFFER, smoothRendering ? blurResultFbo : sdfFbo)
       gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, atlasFbo)
       const dstX = g * slotW + atlasPad
       const dstY = atlasPad
       gl.blitFramebuffer(
-        padPx, padPx, padPx + glyphScaledW, padPx + glyphScaledH,
-        dstX, dstY, dstX + glyphScaledW, dstY + glyphScaledH,
+        padPx - preservedFringePx, padPx - preservedFringePx,
+        padPx + glyphScaledW + preservedFringePx, padPx + glyphScaledH + preservedFringePx,
+        dstX, dstY, dstX + sampledGlyphW, dstY + sampledGlyphH,
         gl.COLOR_BUFFER_BIT, gl.NEAREST,
       )
     }
@@ -902,8 +917,10 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
           gl.uniform1f(gl.getUniformLocation(textShader, 'fontGlyphStride'), processedGlyphStride)
           gl.uniform1f(gl.getUniformLocation(textShader, 'fontGlyphPad'), processedGlyphPad)
           gl.uniform2f(gl.getUniformLocation(textShader, 'fontGlyphSize'), processedGlyphW, processedGlyphH)
+          gl.uniform2f(gl.getUniformLocation(textShader, 'fontRenderPad'), processedGlyphRenderPad, processedGlyphRenderPad)
         } else {
           gl.uniform2f(gl.getUniformLocation(textShader, 'fontAtlasSize'), fontAtlasOrigW, fontAtlasOrigH)
+          gl.uniform2f(gl.getUniformLocation(textShader, 'fontRenderPad'), 0.0, 0.0)
         }
 
         if (textColorsUpdated) {

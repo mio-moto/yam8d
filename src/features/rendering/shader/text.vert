@@ -56,6 +56,7 @@ uniform int useSmooth;
 uniform float fontGlyphStride;
 uniform float fontGlyphPad;
 uniform vec2 fontGlyphSize;
+uniform vec2 fontRenderPad;
 
 out vec3 colorV;
 out vec2 fontCoord;
@@ -79,7 +80,14 @@ void main() {
         pos = pos + posOffsetRow0;
     }
 
-    pos = ((corners[gl_VertexID] * size + pos) + camOffset) * camScale;
+    vec2 renderSize = size;
+    vec2 renderPos = pos;
+    if (useSmooth == 1) {
+        renderSize += fontRenderPad * 2.0;
+        renderPos -= fontRenderPad;
+    }
+
+    pos = ((corners[gl_VertexID] * renderSize + renderPos) + camOffset) * camScale;
 
     gl_Position = vec4(char == 0.0 ? vec2(2.0) : pos, 0.0, 1.0);
     colorV = color;
