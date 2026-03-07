@@ -103,6 +103,10 @@ export const M8Screen = ({ bus, onClick }: { bus?: ConnectedBus | null; onClick?
         renderRef.current?.setBackgroundShader(settings.backgroundShader)
     }, [settings.backgroundShader])
 
+    useEffect(() => {
+        renderRef.current?.setAudioSpectrumBands(settings.backgroundShaderSpectrumBands)
+    }, [settings.backgroundShaderSpectrumBands])
+
     return (
         <canvas
             className="element"

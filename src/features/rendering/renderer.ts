@@ -18,10 +18,8 @@ import FragText from './shader/text.frag?raw'
 import VertText from './shader/text.vert?raw'
 import FragWave from './shader/wave.frag?raw'
 import VertWave from './shader/wave.vert?raw'
-import FragApollonian from './shader/apollonian.frag?raw'
-import FragPlasma from './shader/plasma.frag?raw'
 
-export type BackgroundShader = 'none' | 'apollonian' | 'plasma' | 'custom'
+export type BackgroundShader = boolean
 
 export type ScreenLayout = 1 | 2 | 3 | 4 | 5
 type ScreenConfig = {
@@ -271,16 +269,8 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
   const sdfDist_uSpread = gl.getUniformLocation(sdfDistProgram, 'uSpread')
 
   // --- Background shaders ---
-  let backgroundShader: BackgroundShader = 'none'
+  let backgroundShader = false
   let backgroundStartTime = performance.now() / 1000
-
-  const apollonianProgram = buildProgram(gl, VertPostprocess, FragApollonian)
-  const apollonian_uTime = gl.getUniformLocation(apollonianProgram, 'uTime')
-  const apollonian_uResolution = gl.getUniformLocation(apollonianProgram, 'uResolution')
-
-  const plasmaProgram = buildProgram(gl, VertPostprocess, FragPlasma)
-  const plasma_uTime = gl.getUniformLocation(plasmaProgram, 'uTime')
-  const plasma_uResolution = gl.getUniformLocation(plasmaProgram, 'uResolution')
 
   let customProgram: WebGLProgram | null = null
   let custom_uTime: WebGLUniformLocation | null = null
@@ -321,9 +311,13 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
   let micAudioContext: AudioContext | null = null
   let micAnalyser: AnalyserNode | null = null
   let micData: Uint8Array<ArrayBuffer> | null = null
-  let micFreqData: Uint8Array<ArrayBuffer> | null = null
+  let micFreqData: Float32Array<ArrayBuffer> | null = null
+  let remappedSpectrumData: Float32Array<ArrayBuffer> | null = null
+  let remappedSpectrumBytes: Uint8Array<ArrayBuffer> | null = null
   let audioSpectrumTexture: WebGLTexture | null = null
   let audioSpectrumBins = 0
+  let spectrumBandCount: 64 | 128 | 256 = 128
+  let useFloatSpectrumTexture = true
   let micInitState: 'idle' | 'starting' | 'ready' | 'error' = 'idle'
 
   const ensureMicInput = () => {
@@ -332,22 +326,36 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
       micInitState = 'error'
       return
     }
+
     micInitState = 'starting'
-    navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+
+    navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+      }
+    }).then((stream) => {
       try {
         micAudioContext = new AudioContext()
         const source = micAudioContext.createMediaStreamSource(stream)
+
         micAnalyser = micAudioContext.createAnalyser()
-        micAnalyser.fftSize = 512
-        micAnalyser.minDecibels = -100
+        micAnalyser.fftSize = 2048
+        micAnalyser.minDecibels = -90
         micAnalyser.maxDecibels = -10
-        micAnalyser.smoothingTimeConstant = 0.10
+        micAnalyser.smoothingTimeConstant = 0.1
+
         source.connect(micAnalyser)
-        micData = new Uint8Array(new ArrayBuffer(micAnalyser.fftSize))
-        micFreqData = new Uint8Array(new ArrayBuffer(micAnalyser.frequencyBinCount))
+        micData = new Uint8Array(micAnalyser.fftSize)
+        micFreqData = new Float32Array(new ArrayBuffer(Float32Array.BYTES_PER_ELEMENT * micAnalyser.frequencyBinCount))
+        remappedSpectrumData = new Float32Array(new ArrayBuffer(Float32Array.BYTES_PER_ELEMENT * spectrumBandCount))
+        remappedSpectrumBytes = new Uint8Array(new ArrayBuffer(spectrumBandCount))
+
         if (micAudioContext.state !== 'running') {
           void micAudioContext.resume()
         }
+
         micInitState = 'ready'
       } catch {
         micInitState = 'error'
@@ -369,12 +377,39 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
   }
 
   const getMicSpectrumData = () => {
-    if (!micAnalyser || !micFreqData) return null  // removed micAudioContext check
-    // removed the state !== 'running' guard entirely
-    micAnalyser.getByteFrequencyData(micFreqData)
+    if (!micAnalyser || !micFreqData || !micAudioContext) return null
+    if (micAudioContext.state !== 'running') {
+      void micAudioContext.resume()
+      return null
+    }
+    micAnalyser.getFloatFrequencyData(micFreqData)
+    const sampleRate = micAudioContext?.sampleRate ?? 44100
+    const nyquist = sampleRate * 0.5
+    const minHz = 20.0
+    const minDb = micAnalyser.minDecibels
+    const maxDb = micAnalyser.maxDecibels
+    if (!remappedSpectrumData || remappedSpectrumData.length !== spectrumBandCount) {
+      remappedSpectrumData = new Float32Array(new ArrayBuffer(Float32Array.BYTES_PER_ELEMENT * spectrumBandCount))
+    }
+    if (!remappedSpectrumBytes || remappedSpectrumBytes.length !== spectrumBandCount) {
+      remappedSpectrumBytes = new Uint8Array(new ArrayBuffer(spectrumBandCount))
+    }
+    for (let band = 0; band < spectrumBandCount; band++) {
+      const bandStartHz = minHz * (nyquist / minHz) ** (band / spectrumBandCount)
+      const bandEndHz = minHz * (nyquist / minHz) ** ((band + 1) / spectrumBandCount)
+      const startIndex = Math.max(0, Math.floor((bandStartHz / nyquist) * micFreqData.length))
+      const endIndex = Math.min(micFreqData.length, Math.max(startIndex + 1, Math.ceil((bandEndHz / nyquist) * micFreqData.length)))
+      let peak = minDb
+      for (let i = startIndex; i < endIndex; i++) {
+        peak = Math.max(peak, micFreqData[i])
+      }
+      remappedSpectrumData[band] = Math.min(1, Math.max(0, (peak - minDb) / (maxDb - minDb)))
+      remappedSpectrumBytes[band] = Math.round(remappedSpectrumData[band] * 255)
+    }
     return {
-      data: micFreqData,
-      sampleRate: micAudioContext?.sampleRate ?? 44100,
+      data: remappedSpectrumData,
+      bytes: remappedSpectrumBytes,
+      sampleRate,
     }
   }
 
@@ -387,7 +422,11 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
     audioSpectrumBins = binCount
     gl.activeTexture(gl.TEXTURE0 + AUDIO_SPECTRUM_TEX_UNIT)
     gl.bindTexture(gl.TEXTURE_2D, audioSpectrumTexture)
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, binCount, 1, 0, gl.RED, gl.UNSIGNED_BYTE, null)
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, binCount, 1, 0, gl.RED, gl.FLOAT, null)
+    useFloatSpectrumTexture = gl.getError() === gl.NO_ERROR
+    if (!useFloatSpectrumTexture) {
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, binCount, 1, 0, gl.RED, gl.UNSIGNED_BYTE, null)
+    }
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
@@ -425,42 +464,34 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
   }
 
   const renderBackground = () => {
-    if (backgroundShader === 'none') return
+    if (!backgroundShader) return
     gl.disable(gl.BLEND)
     gl.bindVertexArray(postprocessVao)
-    if (backgroundShader === 'apollonian') {
-      // biome-ignore lint/correctness/useHookAtTopLevel: ain't a hook
-      gl.useProgram(apollonianProgram)
-      gl.uniform1f(apollonian_uTime, performance.now() / 1000 - backgroundStartTime)
-      gl.uniform2f(apollonian_uResolution, displayWidth, displayHeight)
-    } else if (backgroundShader === 'plasma') {
-      // biome-ignore lint/correctness/useHookAtTopLevel: ain't a hook
-      gl.useProgram(plasmaProgram)
-      gl.uniform1f(plasma_uTime, performance.now() / 1000 - backgroundStartTime)
-      gl.uniform2f(plasma_uResolution, displayWidth, displayHeight)
-    } else if (backgroundShader === 'custom') {
-      if (!customProgram) return
-      ensureMicInput()
-      // biome-ignore lint/correctness/useHookAtTopLevel: ain't a hook
-      gl.useProgram(customProgram)
-      if (custom_uTime) gl.uniform1f(custom_uTime, performance.now() / 1000 - backgroundStartTime)
-      if (custom_uResolution) gl.uniform2f(custom_uResolution, displayWidth, displayHeight)
-      if (custom_uMouse) gl.uniform4f(custom_uMouse, mouseX, mouseY, mouseDown, 0.0)
-      if (custom_uAudioLevel) gl.uniform1f(custom_uAudioLevel, getMicAudioLevel())
-      const spectrum = getMicSpectrumData()
-      if (custom_uAudioSpectrum && custom_uAudioSpectrumBins) {
-        if (spectrum) {
-          ensureSpectrumTexture(spectrum.data.length)
-          if (audioSpectrumTexture) {
-            gl.activeTexture(gl.TEXTURE0 + AUDIO_SPECTRUM_TEX_UNIT)
-            gl.bindTexture(gl.TEXTURE_2D, audioSpectrumTexture)
-            gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, spectrum.data.length, 1, gl.RED, gl.UNSIGNED_BYTE, spectrum.data)
-            gl.uniform1i(custom_uAudioSpectrum, AUDIO_SPECTRUM_TEX_UNIT)
-            gl.uniform1f(custom_uAudioSpectrumBins, spectrum.data.length)
+    if (!customProgram) return
+    ensureMicInput()
+    // biome-ignore lint/correctness/useHookAtTopLevel: ain't a hook
+    gl.useProgram(customProgram)
+    if (custom_uTime) gl.uniform1f(custom_uTime, performance.now() / 1000 - backgroundStartTime)
+    if (custom_uResolution) gl.uniform2f(custom_uResolution, displayWidth, displayHeight)
+    if (custom_uMouse) gl.uniform4f(custom_uMouse, mouseX, mouseY, mouseDown, 0.0)
+    if (custom_uAudioLevel) gl.uniform1f(custom_uAudioLevel, getMicAudioLevel())
+    const spectrum = getMicSpectrumData()
+    if (custom_uAudioSpectrum && custom_uAudioSpectrumBins) {
+      if (spectrum) {
+        ensureSpectrumTexture(spectrum.data.length)
+        if (audioSpectrumTexture) {
+          gl.activeTexture(gl.TEXTURE0 + AUDIO_SPECTRUM_TEX_UNIT)
+          gl.bindTexture(gl.TEXTURE_2D, audioSpectrumTexture)
+          if (useFloatSpectrumTexture) {
+            gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, spectrum.data.length, 1, gl.RED, gl.FLOAT, spectrum.data)
+          } else {
+            gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, spectrum.bytes.length, 1, gl.RED, gl.UNSIGNED_BYTE, spectrum.bytes)
           }
-        } else {
-          gl.uniform1f(custom_uAudioSpectrumBins, 0)
+          gl.uniform1i(custom_uAudioSpectrum, AUDIO_SPECTRUM_TEX_UNIT)
+          gl.uniform1f(custom_uAudioSpectrumBins, spectrum.data.length)
         }
+      } else {
+        gl.uniform1f(custom_uAudioSpectrumBins, 0)
       }
     }
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
@@ -787,7 +818,7 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
           gl.uniform1f(blurH_uBlurRadius, 0)
           gl.uniform4f(blurH_uUvClamp, 0.0, 0.0, 1.0, 1.0)
           const bg = rectRenderer.getBackgroundColor()
-          const useChromaKey = backgroundShader !== 'none'
+          const useChromaKey = backgroundShader
           gl.uniform1i(blurH_uUseChromaKey, useChromaKey ? 1 : 0)
           gl.uniform3f(blurH_uChromaKeyColor, bg.r, bg.g, bg.b)
           gl.uniform1f(blurH_uChromaKeyThreshold, 1.5 / 255.0)
@@ -804,7 +835,7 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
           waveRenderer.renderWave(true)
 
           isQueued = false
-          if (backgroundShader !== 'none') {
+          if (backgroundShader) {
             queueFrame()
           }
         })
@@ -982,7 +1013,7 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
         gl.bindFramebuffer(gl.FRAMEBUFFER, rectsFramebuffer)
         gl.viewport(0, 0, width, height)
         // Make background transparent when any background shader is enabled so it shows through
-        const alpha = backgroundShader !== 'none' ? 0.0 : 1.0
+        const alpha = backgroundShader ? 0.0 : 1.0
         gl.clearColor(background.r, background.g, background.b, alpha)
         gl.clear(gl.COLOR_BUFFER_BIT)
         rectsClear = false
@@ -1173,9 +1204,21 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
       queueFrame()
     },
     setBackgroundShader: (shader: BackgroundShader) => {
-      backgroundShader = shader === 'custom' && !customProgram ? 'none' : shader
+      backgroundShader = shader && !!customProgram
       backgroundStartTime = performance.now() / 1000
       rectRenderer.invalidate()
+      queueFrame()
+    },
+    setAudioSpectrumBands: (bands: 64 | 128 | 256) => {
+      if (spectrumBandCount === bands) return
+      spectrumBandCount = bands
+      remappedSpectrumData = new Float32Array(new ArrayBuffer(Float32Array.BYTES_PER_ELEMENT * spectrumBandCount))
+      remappedSpectrumBytes = new Uint8Array(new ArrayBuffer(spectrumBandCount))
+      if (audioSpectrumTexture) {
+        gl.deleteTexture(audioSpectrumTexture)
+        audioSpectrumTexture = null
+        audioSpectrumBins = 0
+      }
       queueFrame()
     },
     setCustomBackgroundShader,

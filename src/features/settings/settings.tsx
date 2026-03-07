@@ -1,8 +1,11 @@
 import React, { useCallback, useState } from 'react'
 import { defaultInputMap } from '../inputs/defaultInputMap'
 import { defaultKeyMap } from '../virtualKeyboard/useVirtualKeyboard'
+import DefaultCustomBackgroundShaderSource from '../rendering/shader/default_spectrum.frag?raw'
 
 const SETTINGS = 'M8settings'
+export const DEFAULT_CUSTOM_BACKGROUND_SHADER_NAME = 'Spectrum Depth Demo'
+export const DEFAULT_CUSTOM_BACKGROUND_SHADER = DefaultCustomBackgroundShaderSource
 
 export type Settings = {
     fullM8View: boolean
@@ -14,8 +17,9 @@ export type Settings = {
     smoothBlurRadius: number
     smoothThreshold: number
     smoothSmoothness: number
-    backgroundShader: 'none' | 'apollonian' | 'plasma' | 'custom'
+    backgroundShader: boolean
     customBackgroundShader: string
+    backgroundShaderSpectrumBands: 64 | 128 | 256
     showBackgroundShaderEditor: boolean
     inputMap: typeof defaultInputMap
     keyMap: typeof defaultKeyMap
@@ -36,29 +40,43 @@ const defaultSettings: Settings = {
     smoothBlurRadius: 5.6,
     smoothThreshold: 0.50,
     smoothSmoothness: 0.10,
-    backgroundShader: 'none',
-    customBackgroundShader: `#version 300 es
-precision mediump float;
-out vec4 fragColor;
-uniform float uTime;
-uniform vec2 uResolution;
-
-void main() {
-  vec2 uv = gl_FragCoord.xy / max(uResolution.xy, vec2(1.0));
-  vec3 color = 0.5 + 0.5 * cos(uTime + uv.xyx + vec3(0.0, 2.0, 4.0));
-  fragColor = vec4(color, 1.0);
-}
-`,
+    backgroundShader: false,
+    customBackgroundShader: DEFAULT_CUSTOM_BACKGROUND_SHADER,
+    backgroundShaderSpectrumBands: 128,
     showBackgroundShaderEditor: false,
 
     inputMap: defaultInputMap,
     keyMap: defaultKeyMap,
 }
 
-if (!localStorage[SETTINGS]) localStorage[SETTINGS] = JSON.stringify(defaultSettings)
+const loadInitialSettings = (): Settings => {
+    if (typeof window === 'undefined' || !window.localStorage) {
+        return defaultSettings
+    }
 
-const storedSettings: Partial<Settings> = JSON.parse(localStorage[SETTINGS] ?? '{}')
-const initialSettings: Settings = { ...defaultSettings, ...storedSettings }
+    const raw = window.localStorage.getItem(SETTINGS)
+    if (!raw) {
+        window.localStorage.setItem(SETTINGS, JSON.stringify(defaultSettings))
+        return defaultSettings
+    }
+
+    const storedSettings: Partial<Settings> = JSON.parse(raw)
+    const normalizedStoredSettings: Partial<Settings> = {
+        ...storedSettings,
+        backgroundShader: typeof storedSettings.backgroundShader === 'boolean'
+            ? storedSettings.backgroundShader
+            : storedSettings.backgroundShader === 'custom' || storedSettings.backgroundShader === 'apollonian' || storedSettings.backgroundShader === 'plasma',
+        backgroundShaderSpectrumBands: storedSettings.backgroundShaderSpectrumBands === 64 || storedSettings.backgroundShaderSpectrumBands === 128 || storedSettings.backgroundShaderSpectrumBands === 256
+            ? storedSettings.backgroundShaderSpectrumBands
+            : 128,
+    }
+if (!normalizedStoredSettings.customBackgroundShader) {
+    normalizedStoredSettings.customBackgroundShader = DEFAULT_CUSTOM_BACKGROUND_SHADER
+}
+    const initialSettings: Settings = { ...defaultSettings, ...normalizedStoredSettings }
+    window.localStorage.setItem(SETTINGS, JSON.stringify(initialSettings))
+    return initialSettings
+}
 
 const SettingsContext = React.createContext<SettingsContextValue>({
     settings: defaultSettings,
@@ -66,7 +84,7 @@ const SettingsContext = React.createContext<SettingsContextValue>({
 })
 
 export const SettingsProvider = ({ children }: { children?: React.ReactNode }) => {
-    const [settingsContextValues, setSettingsContextValues] = useState<Settings>(initialSettings)
+    const [settingsContextValues, setSettingsContextValues] = useState<Settings>(() => loadInitialSettings())
     const updateSettingValue = useCallback(
         <K extends keyof Settings>(settingName: K, value: Settings[K]) => {
             setSettingsContextValues((prev) => {
@@ -74,7 +92,9 @@ export const SettingsProvider = ({ children }: { children?: React.ReactNode }) =
                     ...prev,
                     [settingName]: value,
                 }
-                localStorage[SETTINGS] = JSON.stringify(newSettingsValues)
+                if (typeof window !== 'undefined' && window.localStorage) {
+                    window.localStorage.setItem(SETTINGS, JSON.stringify(newSettingsValues))
+                }
                 return newSettingsValues
             })
         },

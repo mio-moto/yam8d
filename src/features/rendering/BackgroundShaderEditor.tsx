@@ -1,7 +1,7 @@
 import { css } from '@linaria/core'
 import { type FC, useEffect, useMemo, useState } from 'react'
 import { Button } from '../../components/Button'
-import { useSettingsContext } from '../settings/settings'
+import { DEFAULT_CUSTOM_BACKGROUND_SHADER, DEFAULT_CUSTOM_BACKGROUND_SHADER_NAME, useSettingsContext } from '../settings/settings'
 import VertPostprocess from './shader/postprocess.vert?raw'
 
 type SavedBackgroundShader = {
@@ -12,13 +12,14 @@ type SavedBackgroundShader = {
 }
 
 const STORAGE_KEY = 'M8savedBackgroundShaders'
+const LEGACY_SAVED_SHADER_NAMES = new Set([DEFAULT_CUSTOM_BACKGROUND_SHADER_NAME])
 
 const containerClass = css`
   width: min(640px, 45vw);
   min-width: 380px;
   display: grid;
   height: 90vh;
-  grid-template-rows: auto auto 1fr auto auto auto auto;
+  grid-template-rows: auto 1fr auto auto auto auto auto;
   gap: 10px;
   align-self: stretch;
   padding: 14px;
@@ -28,8 +29,8 @@ const containerClass = css`
 `
 
 const sourceClass = css`
-  width: 100%;
-  height: 100%;
+  width: 96%;
+  height: 97%;
   min-height: 0;
   resize: none;
   background: rgba(0, 0, 0, 0.5);
@@ -72,7 +73,7 @@ const statusClass = css`
 `
 
 const hintClass = css`
-  font-size: 11px;
+  font-size: 13px;
   opacity: 0.75;
   line-height: 1.35;
 `
@@ -117,7 +118,7 @@ const validateFragmentShader = (fragmentSource: string): string | null => {
 
 export const BackgroundShaderEditor: FC = () => {
   const { settings, updateSettingValue } = useSettingsContext()
-  const [nameDraft, setNameDraft] = useState('My shader')
+  const [nameDraft, setNameDraft] = useState(DEFAULT_CUSTOM_BACKGROUND_SHADER_NAME)
   const [sourceDraft, setSourceDraft] = useState(settings.customBackgroundShader)
   const [selectedId, setSelectedId] = useState('')
   const [status, setStatus] = useState('')
@@ -129,12 +130,36 @@ export const BackgroundShaderEditor: FC = () => {
 
   useEffect(() => {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return
+    if (!raw) {
+      const defaults: SavedBackgroundShader[] = [{
+        id: 'default-spectrum-demo',
+        name: DEFAULT_CUSTOM_BACKGROUND_SHADER_NAME,
+        source: DEFAULT_CUSTOM_BACKGROUND_SHADER,
+        updatedAt: 0,
+      }]
+      setSavedShaders(defaults)
+      setSelectedId(defaults[0].id)
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(defaults))
+      return
+    }
     try {
       const parsed = JSON.parse(raw) as SavedBackgroundShader[]
       if (Array.isArray(parsed)) {
-        setSavedShaders(parsed)
-        if (parsed.length > 0) setSelectedId(parsed[0].id)
+        const next = parsed.map((shader) =>
+          LEGACY_SAVED_SHADER_NAMES.has(shader.name) && shader.id === 'default-spectrum-demo'
+            ? { ...shader, source: DEFAULT_CUSTOM_BACKGROUND_SHADER }
+            : shader,
+        )
+        const hasDefault = next.some((shader) => shader.name === DEFAULT_CUSTOM_BACKGROUND_SHADER_NAME)
+        const seeded = hasDefault ? next : [{
+          id: 'default-spectrum-demo',
+          name: DEFAULT_CUSTOM_BACKGROUND_SHADER_NAME,
+          source: DEFAULT_CUSTOM_BACKGROUND_SHADER,
+          updatedAt: 0,
+        }, ...next]
+        setSavedShaders(seeded)
+        if (seeded.length > 0) setSelectedId(seeded[0].id)
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded))
       }
     } catch {
       setSavedShaders([])
@@ -155,7 +180,7 @@ export const BackgroundShaderEditor: FC = () => {
       return
     }
     updateSettingValue('customBackgroundShader', sourceDraft)
-    updateSettingValue('backgroundShader', 'custom')
+    updateSettingValue('backgroundShader', true)
     setStatus('Custom shader applied.')
   }
 
@@ -202,17 +227,6 @@ export const BackgroundShaderEditor: FC = () => {
   return (
     <aside className={containerClass}>
       <strong>Background Shader (WebGL2 fragment)</strong>
-      <div className={rowClass}>
-        <Button selected={settings.backgroundShader === 'none'} onClick={() => updateSettingValue('backgroundShader', 'none')}>
-          None
-        </Button>
-        <Button selected={settings.backgroundShader === 'apollonian'} onClick={() => updateSettingValue('backgroundShader', 'apollonian')}>
-          Apollonian
-        </Button>
-        <Button selected={settings.backgroundShader === 'plasma'} onClick={() => updateSettingValue('backgroundShader', 'plasma')}>
-          Plasma
-        </Button>
-      </div>
       <textarea
         className={sourceClass}
         value={sourceDraft}
@@ -220,7 +234,19 @@ export const BackgroundShaderEditor: FC = () => {
         spellCheck={false}
       />
       <div className={hintClass}>
-        Available uniforms: <code>uTime</code>, <code>uResolution</code>, <code>uMouse</code> (x, y, down, _), <code>uAudioLevel</code> (0..1), <code>uAudioSpectrum</code> (sampler2D), <code>uAudioSpectrumBins</code>
+        Available uniforms: <code>uTime</code>, <code>uResolution</code>, <code>uMouse</code> (x, y, down, _), <code>uAudioLevel</code> (0..1), <code>uAudioSpectrum</code> (sampler2D float), <code>uAudioSpectrumBins</code>. Spectrum is log-remapped.
+      </div>
+      <div className={rowClass}>
+        <span>Spectrum bands</span>
+        <select
+          className={selectClass}
+          value={settings.backgroundShaderSpectrumBands}
+          onChange={(event) => updateSettingValue('backgroundShaderSpectrumBands', Number.parseInt(event.target.value, 10) as 64 | 128 | 256)}
+        >
+          <option value="64">64</option>
+          <option value="128">128</option>
+          <option value="256">256</option>
+        </select>
       </div>
       <div className={rowClass}>
         <input className={inputClass} value={nameDraft} onChange={(event) => setNameDraft(event.target.value)} placeholder="Shader name" />

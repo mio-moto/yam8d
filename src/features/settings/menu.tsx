@@ -128,6 +128,37 @@ export const Menu: FC = () => {
                 role="button"
             />
             <div className={opened ? 'menu opened' : 'menu closed'} ref={menuRef}>
+
+                <div className="menu-section">
+                    <span className="section-title">Tools</span>
+
+                    <div className="menu-item">
+                        <span className="title">Display shortcuts</span>
+                        <div>
+                            <Button selected={settings.displayShortcuts} onClick={() => updateSettingValue('displayShortcuts', true)}>
+                                Yes
+                            </Button>
+                            <Button selected={!settings.displayShortcuts} onClick={() => updateSettingValue('displayShortcuts', false)}>
+                                No
+                            </Button>
+                        </div>
+                    </div>
+                    {settings.displayShortcuts && (
+                        <div className="menu-submenu">
+                            <div className="menu-item">
+                                <span className="title">Shortcuts host</span>
+                                <div>
+                                    <Input
+                                        value={hostDraft}
+                                        placeholder="https://miomoto.de/m8-shortcuts/"
+                                        onChange={(e) => setHostDraft((e.target as HTMLInputElement).value)}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
                 <div className="menu-section">
                     <span className="section-title">Display</span>
                     <div className="menu-item">
@@ -216,37 +247,35 @@ export const Menu: FC = () => {
                     <div className="menu-item">
                         <span className="title">Background shader</span>
                         <div>
-                            <Button selected={settings.backgroundShader === 'none'} onClick={() => updateSettingValue('backgroundShader', 'none')}>
-                                None
+                            <Button selected={settings.backgroundShader} onClick={() => updateSettingValue('backgroundShader', true)}>
+                                Yes
                             </Button>
-                            <Button selected={settings.backgroundShader === 'apollonian'} onClick={() => updateSettingValue('backgroundShader', 'apollonian')}>
-                                Apollonian
-                            </Button>
-                            <Button selected={settings.backgroundShader === 'plasma'} onClick={() => updateSettingValue('backgroundShader', 'plasma')}>
-                                Plasma
-                            </Button>
-                            <Button selected={settings.backgroundShader === 'custom'} onClick={() => updateSettingValue('backgroundShader', 'custom')}>
-                                Custom
+                            <Button selected={!settings.backgroundShader} onClick={() => updateSettingValue('backgroundShader', false)}>
+                                No
                             </Button>
                         </div>
                     </div>
-                    <div className="menu-item">
-                        <span className="title">Shader editor panel</span>
-                        <div>
-                            <Button
-                                selected={settings.showBackgroundShaderEditor}
-                                onClick={() => updateSettingValue('showBackgroundShaderEditor', true)}
-                            >
-                                Open
-                            </Button>
-                            <Button
-                                selected={!settings.showBackgroundShaderEditor}
-                                onClick={() => updateSettingValue('showBackgroundShaderEditor', false)}
-                            >
-                                Close
-                            </Button>
+                    {settings.backgroundShader && (
+                        <div className="menu-submenu">
+                            <div className="menu-item">
+                                <span className="title">Shader editor panel</span>
+                                <div>
+                                    <Button
+                                        selected={settings.showBackgroundShaderEditor}
+                                        onClick={() => updateSettingValue('showBackgroundShaderEditor', true)}
+                                    >
+                                        Open
+                                    </Button>
+                                    <Button
+                                        selected={!settings.showBackgroundShaderEditor}
+                                        onClick={() => updateSettingValue('showBackgroundShaderEditor', false)}
+                                    >
+                                        Close
+                                    </Button>
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
 
                 {/* kept for WebGL -> Canvas switch
@@ -263,7 +292,7 @@ export const Menu: FC = () => {
         </div> */}
 
                 <div className="menu-section">
-                    <span className="section-title">Input & shortcuts</span>
+                    <span className="section-title">Input</span>
                     <div className="menu-item">
                         <span className="title">Virtual midi keyboard</span>
                         <div>
@@ -275,32 +304,6 @@ export const Menu: FC = () => {
                             </Button>
                         </div>
                     </div>
-                    <div className="menu-item">
-                        <span className="title">Display shortcuts</span>
-                        <div>
-                            <Button selected={settings.displayShortcuts} onClick={() => updateSettingValue('displayShortcuts', true)}>
-                                Yes
-                            </Button>
-                            <Button selected={!settings.displayShortcuts} onClick={() => updateSettingValue('displayShortcuts', false)}>
-                                No
-                            </Button>
-                        </div>
-                    </div>
-                    {settings.displayShortcuts && (
-                        <div className="menu-submenu">
-                            <div className="menu-item">
-                                <span className="title">Shortcuts host</span>
-                                <div>
-                                    <Input
-                                        value={hostDraft}
-                                        placeholder="https://miomoto.de/m8-shortcuts/"
-                                        onChange={(e) => setHostDraft((e.target as HTMLInputElement).value)}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
                     <div className="menu-item">
                         <span className="title">Keyboard mapping</span>
                         <div>
