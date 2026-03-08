@@ -7,6 +7,29 @@ const SETTINGS = 'M8settings'
 export const DEFAULT_CUSTOM_BACKGROUND_SHADER_NAME = 'Spectrum Depth Demo'
 export const DEFAULT_CUSTOM_BACKGROUND_SHADER = DefaultCustomBackgroundShaderSource
 
+const normalizeSettings = (settings: Settings): Settings => {
+    if (!settings.backgroundShader && settings.showBackgroundShaderEditor) {
+        return {
+            ...settings,
+            showBackgroundShaderEditor: false,
+        }
+    }
+
+    return settings
+}
+
+const normalizeBackgroundShaderValue = (value: unknown): boolean => {
+    if (typeof value === 'boolean') {
+        return value
+    }
+
+    if (typeof value === 'string') {
+        return value === 'custom' || value === 'apollonian' || value === 'plasma'
+    }
+
+    return false
+}
+
 export type Settings = {
     fullM8View: boolean
     virtualKeyboard: boolean
@@ -63,17 +86,15 @@ const loadInitialSettings = (): Settings => {
     const storedSettings: Partial<Settings> = JSON.parse(raw)
     const normalizedStoredSettings: Partial<Settings> = {
         ...storedSettings,
-        backgroundShader: typeof storedSettings.backgroundShader === 'boolean'
-            ? storedSettings.backgroundShader
-            : storedSettings.backgroundShader === 'custom' || storedSettings.backgroundShader === 'apollonian' || storedSettings.backgroundShader === 'plasma',
+        backgroundShader: normalizeBackgroundShaderValue(storedSettings.backgroundShader),
         backgroundShaderSpectrumBands: storedSettings.backgroundShaderSpectrumBands === 64 || storedSettings.backgroundShaderSpectrumBands === 128 || storedSettings.backgroundShaderSpectrumBands === 256
             ? storedSettings.backgroundShaderSpectrumBands
             : 128,
     }
-if (!normalizedStoredSettings.customBackgroundShader) {
-    normalizedStoredSettings.customBackgroundShader = DEFAULT_CUSTOM_BACKGROUND_SHADER
-}
-    const initialSettings: Settings = { ...defaultSettings, ...normalizedStoredSettings }
+    if (!normalizedStoredSettings.customBackgroundShader) {
+        normalizedStoredSettings.customBackgroundShader = DEFAULT_CUSTOM_BACKGROUND_SHADER
+    }
+    const initialSettings = normalizeSettings({ ...defaultSettings, ...normalizedStoredSettings })
     window.localStorage.setItem(SETTINGS, JSON.stringify(initialSettings))
     return initialSettings
 }
@@ -88,10 +109,10 @@ export const SettingsProvider = ({ children }: { children?: React.ReactNode }) =
     const updateSettingValue = useCallback(
         <K extends keyof Settings>(settingName: K, value: Settings[K]) => {
             setSettingsContextValues((prev) => {
-                const newSettingsValues: Settings = {
+                const newSettingsValues = normalizeSettings({
                     ...prev,
                     [settingName]: value,
-                }
+                })
                 if (typeof window !== 'undefined' && window.localStorage) {
                     window.localStorage.setItem(SETTINGS, JSON.stringify(newSettingsValues))
                 }
