@@ -280,6 +280,55 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
   let custom_uAudioLevel: WebGLUniformLocation | null = null
   let custom_uAudioSpectrum: WebGLUniformLocation | null = null
   let custom_uAudioSpectrumBins: WebGLUniformLocation | null = null
+  let custom_uPreviousFrame: WebGLUniformLocation | null = null
+  let custom_uFrameCount: WebGLUniformLocation | null = null
+
+  // --- Ping-pong double buffer for background shader feedback ---
+  const BG_PING_PONG_TEX_UNITS = [12, 13] as const
+  let bgPingPongTextures: [WebGLTexture | null, WebGLTexture | null] = [null, null]
+  let bgPingPongFbos: [WebGLFramebuffer | null, WebGLFramebuffer | null] = [null, null]
+  let bgPingPongWidth = 0
+  let bgPingPongHeight = 0
+  let bgPingPongReadIdx = 0
+  let bgFrameCount = 0
+
+  const ensureBgPingPongBuffers = (width: number, height: number) => {
+    if (bgPingPongWidth === width && bgPingPongHeight === height && bgPingPongTextures[0] && bgPingPongTextures[1]) return
+
+    for (let i = 0; i < 2; i++) {
+      if (bgPingPongTextures[i]) gl.deleteTexture(bgPingPongTextures[i])
+      if (bgPingPongFbos[i]) gl.deleteFramebuffer(bgPingPongFbos[i])
+
+      bgPingPongTextures[i] = gl.createTexture()
+      gl.activeTexture(gl.TEXTURE0 + BG_PING_PONG_TEX_UNITS[i])
+      gl.bindTexture(gl.TEXTURE_2D, bgPingPongTextures[i])
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+
+      bgPingPongFbos[i] = gl.createFramebuffer()
+      gl.bindFramebuffer(gl.FRAMEBUFFER, bgPingPongFbos[i])
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, bgPingPongTextures[i], 0)
+    }
+
+    bgPingPongWidth = width
+    bgPingPongHeight = height
+    bgPingPongReadIdx = 0
+    bgFrameCount = 0
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+  }
+
+  const destroyBgPingPongBuffers = () => {
+    for (let i = 0; i < 2; i++) {
+      if (bgPingPongTextures[i]) { gl.deleteTexture(bgPingPongTextures[i]); bgPingPongTextures[i] = null }
+      if (bgPingPongFbos[i]) { gl.deleteFramebuffer(bgPingPongFbos[i]); bgPingPongFbos[i] = null }
+    }
+    bgPingPongWidth = 0
+    bgPingPongHeight = 0
+    bgFrameCount = 0
+  }
 
   const AUDIO_SPECTRUM_TEX_UNIT = 11
 
@@ -444,6 +493,8 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
       const nextAudioLevel = gl.getUniformLocation(nextProgram, 'uAudioLevel')
       const nextAudioSpectrum = gl.getUniformLocation(nextProgram, 'uAudioSpectrum')
       const nextAudioSpectrumBins = gl.getUniformLocation(nextProgram, 'uAudioSpectrumBins')
+      const nextPreviousFrame = gl.getUniformLocation(nextProgram, 'uPreviousFrame')
+      const nextFrameCount = gl.getUniformLocation(nextProgram, 'uFrameCount')
 
       if (customProgram) {
         gl.deleteProgram(customProgram)
@@ -456,7 +507,12 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
       custom_uAudioLevel = nextAudioLevel
       custom_uAudioSpectrum = nextAudioSpectrum
       custom_uAudioSpectrumBins = nextAudioSpectrumBins
+      custom_uPreviousFrame = nextPreviousFrame
+      custom_uFrameCount = nextFrameCount
       backgroundStartTime = performance.now() / 1000
+      bgFrameCount = 0
+      // Reset ping-pong buffers so the new shader starts with a clean slate
+      destroyBgPingPongBuffers()
       queueFrame()
       return null
     } catch (error) {
@@ -470,12 +526,32 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
     gl.bindVertexArray(postprocessVao)
     if (!customProgram) return
     ensureMicInput()
+
+    // Ensure ping-pong buffers match current display size
+    ensureBgPingPongBuffers(displayWidth, displayHeight)
+
+    const writeIdx = 1 - bgPingPongReadIdx
+    const readTexUnit = BG_PING_PONG_TEX_UNITS[bgPingPongReadIdx]
+
+    // Render into the write FBO
+    gl.bindFramebuffer(gl.FRAMEBUFFER, bgPingPongFbos[writeIdx])
+    gl.viewport(0, 0, displayWidth, displayHeight)
+
     // biome-ignore lint/correctness/useHookAtTopLevel: ain't a hook
     gl.useProgram(customProgram)
     if (custom_uTime) gl.uniform1f(custom_uTime, performance.now() / 1000 - backgroundStartTime)
     if (custom_uResolution) gl.uniform2f(custom_uResolution, displayWidth, displayHeight)
     if (custom_uMouse) gl.uniform4f(custom_uMouse, mouseX, mouseY, mouseDown, 0.0)
     if (custom_uAudioLevel) gl.uniform1f(custom_uAudioLevel, getMicAudioLevel())
+    if (custom_uFrameCount) gl.uniform1i(custom_uFrameCount, bgFrameCount)
+
+    // Bind previous frame texture
+    if (custom_uPreviousFrame) {
+      gl.activeTexture(gl.TEXTURE0 + readTexUnit)
+      gl.bindTexture(gl.TEXTURE_2D, bgPingPongTextures[bgPingPongReadIdx])
+      gl.uniform1i(custom_uPreviousFrame, readTexUnit)
+    }
+
     const spectrum = getMicSpectrumData()
     if (custom_uAudioSpectrum && custom_uAudioSpectrumBins) {
       if (spectrum) {
@@ -496,6 +572,21 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
       }
     }
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+
+    // Blit the result from the write FBO to the default framebuffer (screen)
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, bgPingPongFbos[writeIdx])
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null)
+    gl.blitFramebuffer(
+      0, 0, displayWidth, displayHeight,
+      0, 0, displayWidth, displayHeight,
+      gl.COLOR_BUFFER_BIT, gl.NEAREST,
+    )
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+
+    // Swap: the current write becomes the next read
+    bgPingPongReadIdx = writeIdx
+    bgFrameCount++
+
     gl.enable(gl.BLEND)
   }
 
@@ -781,6 +872,8 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
     displayHeight = newHeight
     element.width = displayWidth
     element.height = displayHeight
+    // Ping-pong buffers will be lazily recreated at the new size in ensureBgPingPongBuffers
+    destroyBgPingPongBuffers()
     queueFrame()
   }
 
@@ -1223,6 +1316,9 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
     setBackgroundShader: (shader: BackgroundShader) => {
       backgroundShader = shader && !!customProgram
       backgroundStartTime = performance.now() / 1000
+      bgFrameCount = 0
+      // Destroy ping-pong buffers so they are recreated fresh when re-enabled
+      destroyBgPingPongBuffers()
       rectRenderer.invalidate()
       queueFrame()
     },
