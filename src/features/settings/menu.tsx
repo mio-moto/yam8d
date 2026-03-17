@@ -172,17 +172,20 @@ export const Menu: FC = () => {
                             </Button>
                         </div>
                     </div>
-                    <div className="menu-item">
-                        <span className="title">Zoom View</span>
-                        <div>
-                            <Button selected={!settings.fullM8View} onClick={() => updateSettingValue('fullM8View', false)}>
-                                Yes
-                            </Button>
-                            <Button selected={settings.fullM8View} onClick={() => updateSettingValue('fullM8View', true)}>
-                                No
-                            </Button>
+                    {settings.showM8Body && <div className="menu-submenu">
+                        <div className="menu-item">
+                            <span className="title">Zoom View</span>
+                            <div>
+                                <Button selected={!settings.fullM8View} onClick={() => updateSettingValue('fullM8View', false)}>
+                                    Yes
+                                </Button>
+                                <Button selected={settings.fullM8View} onClick={() => updateSettingValue('fullM8View', true)}>
+                                    No
+                                </Button>
+                            </div>
                         </div>
                     </div>
+                    }
                 </div>
 
                 <div className="menu-section">

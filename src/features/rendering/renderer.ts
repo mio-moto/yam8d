@@ -174,6 +174,8 @@ const buildProgram = (context: WebGL2RenderingContext, vert: string, frag: strin
   return linkProgram(context, compileShader(context, vert, context.VERTEX_SHADER), compileShader(context, frag, context.FRAGMENT_SHADER))
 }
 
+const hasUniform = (uniform: WebGLUniformLocation | null) => uniform !== null
+
 export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout: ScreenLayout, initialSmoothRendering = true) => {
   if (!element) {
     return
@@ -282,11 +284,15 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
   let custom_uAudioSpectrumBins: WebGLUniformLocation | null = null
   let custom_uPreviousFrame: WebGLUniformLocation | null = null
   let custom_uFrameCount: WebGLUniformLocation | null = null
+  let customUsesAudioLevel = false
+  let customUsesAudioSpectrum = false
+  let customUsesMouse = false
+  let isFrameQueued = false
 
   // --- Ping-pong double buffer for background shader feedback ---
   const BG_PING_PONG_TEX_UNITS = [12, 13] as const
-  let bgPingPongTextures: [WebGLTexture | null, WebGLTexture | null] = [null, null]
-  let bgPingPongFbos: [WebGLFramebuffer | null, WebGLFramebuffer | null] = [null, null]
+  const bgPingPongTextures: [WebGLTexture | null, WebGLTexture | null] = [null, null]
+  const bgPingPongFbos: [WebGLFramebuffer | null, WebGLFramebuffer | null] = [null, null]
   let bgPingPongWidth = 0
   let bgPingPongHeight = 0
   let bgPingPongReadIdx = 0
@@ -509,6 +515,9 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
       custom_uAudioSpectrumBins = nextAudioSpectrumBins
       custom_uPreviousFrame = nextPreviousFrame
       custom_uFrameCount = nextFrameCount
+      customUsesAudioLevel = hasUniform(nextAudioLevel)
+      customUsesAudioSpectrum = hasUniform(nextAudioSpectrum) && hasUniform(nextAudioSpectrumBins)
+      customUsesMouse = hasUniform(nextMouse)
       backgroundStartTime = performance.now() / 1000
       bgFrameCount = 0
       // Reset ping-pong buffers so the new shader starts with a clean slate
@@ -525,7 +534,9 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
     gl.disable(gl.BLEND)
     gl.bindVertexArray(postprocessVao)
     if (!customProgram) return
-    ensureMicInput()
+    if (customUsesAudioLevel || customUsesAudioSpectrum) {
+      ensureMicInput()
+    }
 
     // Ensure ping-pong buffers match current display size
     ensureBgPingPongBuffers(displayWidth, displayHeight)
@@ -541,8 +552,8 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
     gl.useProgram(customProgram)
     if (custom_uTime) gl.uniform1f(custom_uTime, performance.now() / 1000 - backgroundStartTime)
     if (custom_uResolution) gl.uniform2f(custom_uResolution, displayWidth, displayHeight)
-    if (custom_uMouse) gl.uniform4f(custom_uMouse, mouseX, mouseY, mouseDown, 0.0)
-    if (custom_uAudioLevel) gl.uniform1f(custom_uAudioLevel, getMicAudioLevel())
+    if (customUsesMouse && custom_uMouse) gl.uniform4f(custom_uMouse, mouseX, mouseY, mouseDown, 0.0)
+    if (customUsesAudioLevel && custom_uAudioLevel) gl.uniform1f(custom_uAudioLevel, getMicAudioLevel())
     if (custom_uFrameCount) gl.uniform1i(custom_uFrameCount, bgFrameCount)
 
     // Bind previous frame texture
@@ -552,8 +563,8 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
       gl.uniform1i(custom_uPreviousFrame, readTexUnit)
     }
 
-    const spectrum = getMicSpectrumData()
-    if (custom_uAudioSpectrum && custom_uAudioSpectrumBins) {
+    const spectrum = customUsesAudioSpectrum ? getMicSpectrumData() : null
+    if (customUsesAudioSpectrum && custom_uAudioSpectrum && custom_uAudioSpectrumBins) {
       if (spectrum) {
         ensureSpectrumTexture(spectrum.data.length)
         if (audioSpectrumTexture) {
@@ -878,10 +889,9 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
   }
 
   const queueFrame = (() => {
-    let isQueued = false
     return () => {
-      if (!isQueued) {
-        isQueued = true
+      if (!isFrameQueued) {
+        isFrameQueued = true
         requestAnimationFrame(() => {
           // Guard against one-frame scale glitches when tab visibility/DPR/layout changes
           // are observed after RAF resumes.
@@ -893,7 +903,7 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
             displayHeight = expectedHeight
             element.width = displayWidth
             element.height = displayHeight
-            isQueued = false
+            isFrameQueued = false
             queueFrame()
             return
           }
@@ -942,7 +952,7 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
           // Step 4: Waves at display res
           waveRenderer.renderWave(true)
 
-          isQueued = false
+          isFrameQueued = false
           if (backgroundShader) {
             queueFrame()
           }
@@ -953,6 +963,24 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
 
   const textRenderer = (() => {
     const textShader = buildProgram(gl, VertText, FragText)
+    const textUniforms = {
+      size: gl.getUniformLocation(textShader, 'size'),
+      spacing: gl.getUniformLocation(textShader, 'spacing'),
+      posOffset: gl.getUniformLocation(textShader, 'posOffset'),
+      rowOffset: gl.getUniformLocation(textShader, 'rowOffset'),
+      posOffsetRow0: gl.getUniformLocation(textShader, 'posOffsetRow0'),
+      camSize: gl.getUniformLocation(textShader, 'camSize'),
+      useSmooth: gl.getUniformLocation(textShader, 'useSmooth'),
+      useSdf: gl.getUniformLocation(textShader, 'useSdf'),
+      sdfThreshold: gl.getUniformLocation(textShader, 'sdfThreshold'),
+      sdfSoftness: gl.getUniformLocation(textShader, 'sdfSoftness'),
+      sdfPxRange: gl.getUniformLocation(textShader, 'sdfPxRange'),
+      fontAtlasSize: gl.getUniformLocation(textShader, 'fontAtlasSize'),
+      fontGlyphStride: gl.getUniformLocation(textShader, 'fontGlyphStride'),
+      fontGlyphPad: gl.getUniformLocation(textShader, 'fontGlyphPad'),
+      fontGlyphSize: gl.getUniformLocation(textShader, 'fontGlyphSize'),
+      fontRenderPad: gl.getUniformLocation(textShader, 'fontRenderPad'),
+    }
     gl.useProgram(textShader)
     gl.uniform1i(gl.getUniformLocation(textShader, 'font'), 1)
 
@@ -994,26 +1022,26 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
           font: { spacingX: posScaleX, spacingY: posScaleY, sizeX, sizeY, offsetX, offsetY, rowOffset, row0Offset },
           screen: { width, height },
         } = screenLayoutConfig[screenLayout]
-        gl.uniform2f(gl.getUniformLocation(textShader, 'size'), sizeX, sizeY)
-        gl.uniform2f(gl.getUniformLocation(textShader, 'spacing'), posScaleX, posScaleY)
-        gl.uniform2f(gl.getUniformLocation(textShader, 'posOffset'), offsetX, offsetY)
-        gl.uniform1f(gl.getUniformLocation(textShader, 'rowOffset'), rowOffset)
-        gl.uniform2f(gl.getUniformLocation(textShader, 'posOffsetRow0'), 0.0, row0Offset)
-        gl.uniform2f(gl.getUniformLocation(textShader, 'camSize'), width, height)
-        gl.uniform1i(gl.getUniformLocation(textShader, 'useSmooth'), smooth ? 1 : 0)
-        gl.uniform1i(gl.getUniformLocation(textShader, 'useSdf'), smooth && processedAtlasIsSdf ? 1 : 0)
-        gl.uniform1f(gl.getUniformLocation(textShader, 'sdfThreshold'), 0.5)
-        gl.uniform1f(gl.getUniformLocation(textShader, 'sdfSoftness'), 0.0)
-        gl.uniform1f(gl.getUniformLocation(textShader, 'sdfPxRange'), processedSdfPxRange)
+        if (textUniforms.size) gl.uniform2f(textUniforms.size, sizeX, sizeY)
+        if (textUniforms.spacing) gl.uniform2f(textUniforms.spacing, posScaleX, posScaleY)
+        if (textUniforms.posOffset) gl.uniform2f(textUniforms.posOffset, offsetX, offsetY)
+        if (textUniforms.rowOffset) gl.uniform1f(textUniforms.rowOffset, rowOffset)
+        if (textUniforms.posOffsetRow0) gl.uniform2f(textUniforms.posOffsetRow0, 0.0, row0Offset)
+        if (textUniforms.camSize) gl.uniform2f(textUniforms.camSize, width, height)
+        if (textUniforms.useSmooth) gl.uniform1i(textUniforms.useSmooth, smooth ? 1 : 0)
+        if (textUniforms.useSdf) gl.uniform1i(textUniforms.useSdf, smooth && processedAtlasIsSdf ? 1 : 0)
+        if (textUniforms.sdfThreshold) gl.uniform1f(textUniforms.sdfThreshold, 0.5)
+        if (textUniforms.sdfSoftness) gl.uniform1f(textUniforms.sdfSoftness, 0.0)
+        if (textUniforms.sdfPxRange) gl.uniform1f(textUniforms.sdfPxRange, processedSdfPxRange)
         if (smooth) {
-          gl.uniform2f(gl.getUniformLocation(textShader, 'fontAtlasSize'), processedAtlasW, processedAtlasH)
-          gl.uniform1f(gl.getUniformLocation(textShader, 'fontGlyphStride'), processedGlyphStride)
-          gl.uniform1f(gl.getUniformLocation(textShader, 'fontGlyphPad'), processedGlyphPad)
-          gl.uniform2f(gl.getUniformLocation(textShader, 'fontGlyphSize'), processedGlyphW, processedGlyphH)
-          gl.uniform2f(gl.getUniformLocation(textShader, 'fontRenderPad'), processedGlyphRenderPad, processedGlyphRenderPad)
+          if (textUniforms.fontAtlasSize) gl.uniform2f(textUniforms.fontAtlasSize, processedAtlasW, processedAtlasH)
+          if (textUniforms.fontGlyphStride) gl.uniform1f(textUniforms.fontGlyphStride, processedGlyphStride)
+          if (textUniforms.fontGlyphPad) gl.uniform1f(textUniforms.fontGlyphPad, processedGlyphPad)
+          if (textUniforms.fontGlyphSize) gl.uniform2f(textUniforms.fontGlyphSize, processedGlyphW, processedGlyphH)
+          if (textUniforms.fontRenderPad) gl.uniform2f(textUniforms.fontRenderPad, processedGlyphRenderPad, processedGlyphRenderPad)
         } else {
-          gl.uniform2f(gl.getUniformLocation(textShader, 'fontAtlasSize'), fontAtlasOrigW, fontAtlasOrigH)
-          gl.uniform2f(gl.getUniformLocation(textShader, 'fontRenderPad'), 0.0, 0.0)
+          if (textUniforms.fontAtlasSize) gl.uniform2f(textUniforms.fontAtlasSize, fontAtlasOrigW, fontAtlasOrigH)
+          if (textUniforms.fontRenderPad) gl.uniform2f(textUniforms.fontRenderPad, 0.0, 0.0)
         }
 
         if (textColorsUpdated) {
@@ -1071,6 +1099,7 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
     const rectShapes = new Uint16Array(1024 * 6)
     const rectColors = new Uint8Array(rectShapes.buffer, 8)
     const rectShader = buildProgram(gl, VertRect, FragRect)
+    const rectSizeUniform = gl.getUniformLocation(rectShader, 'size')
 
     const rectVao = gl.createVertexArray()
     gl.bindVertexArray(rectVao)
@@ -1100,6 +1129,7 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, rectsTexture, 0)
 
     const blitShader = buildProgram(gl, VertBlit, FragBlit)
+    const blitSizeUniform = gl.getUniformLocation(blitShader, 'size')
     gl.useProgram(blitShader)
     gl.uniform1i(gl.getUniformLocation(blitShader, 'src'), 0)
     let rectsClear = true
@@ -1136,7 +1166,7 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
         gl.bindVertexArray(rectVao)
         gl.bindBuffer(gl.ARRAY_BUFFER, rectShapeBuffer)
         gl.bufferSubData(gl.ARRAY_BUFFER, 0, rectShapes.subarray(0, rectCount * 6))
-        gl.uniform2f(gl.getUniformLocation(rectShader, 'size'), width, height)
+        if (rectSizeUniform) gl.uniform2f(rectSizeUniform, width, height)
         gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, rectCount)
         rectCount = 0
       }
@@ -1145,7 +1175,7 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
         gl.viewport(0, 0, displayWidth, displayHeight)
         // biome-ignore lint/correctness/useHookAtTopLevel: ain't a hook
         gl.useProgram(blitShader)
-        gl.uniform2f(gl.getUniformLocation(blitShader, 'size'), width, height)
+        if (blitSizeUniform) gl.uniform2f(blitSizeUniform, width, height)
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
       }
     }
@@ -1207,6 +1237,9 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
 
     const waveShader = buildProgram(gl, VertWave, FragWave)
     const colorUniform = gl.getUniformLocation(waveShader, 'color')
+    const waveProgramTypeUniform = gl.getUniformLocation(waveShader, 'programType')
+    const waveSizeUniform = gl.getUniformLocation(waveShader, 'size')
+    const wavePointScaleUniform = gl.getUniformLocation(waveShader, 'pointScale')
     const waveVao = gl.createVertexArray()
     gl.bindVertexArray(waveVao)
 
@@ -1228,9 +1261,9 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
         } = screenLayoutConfig[screenLayout]
         // biome-ignore lint/correctness/useHookAtTopLevel: ain't a hook
         gl.useProgram(waveShader)
-        gl.uniform1i(gl.getUniformLocation(waveShader, 'programType'), programType)
-        gl.uniform2f(gl.getUniformLocation(waveShader, 'size'), width, height)
-        gl.uniform1f(gl.getUniformLocation(waveShader, 'pointScale'), smooth ? displayWidth / width : 1.0)
+        if (waveProgramTypeUniform) gl.uniform1i(waveProgramTypeUniform, programType)
+        if (waveSizeUniform) gl.uniform2f(waveSizeUniform, width, height)
+        if (wavePointScaleUniform) gl.uniform1f(wavePointScaleUniform, smooth ? displayWidth / width : 1.0)
         gl.uniform3fv(colorUniform, waveColor)
         gl.bindVertexArray(waveVao)
 

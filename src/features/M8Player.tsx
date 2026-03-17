@@ -11,6 +11,7 @@ import { M8Body } from './rendering/M8Body'
 import { useBackgroundColor, useSystemInfo } from './state/viewStore'
 import { rgbToHex } from '../utils/colorTools'
 import { useSettingsContext } from '../features/settings/settings'
+import { RecordingControls } from './recording/RecordingControls'
 
 // import { useCursorRect } from './state/viewStore'
 // import { rectLogger } from './debug/rectAnalyserLogger'
@@ -119,6 +120,7 @@ const FullM8Player: FC<{
   const { settings } = useSettingsContext()
 
   const screenEdgeRef = useRef<SVGRectElement | null>(null)
+  const screenCanvasRef = useRef<HTMLCanvasElement | null>(null)
   // screen ref
   const screenRef = useRef<HTMLDivElement | null>(null)
   // M8 body ref (as parent for the screen)
@@ -255,31 +257,35 @@ const FullM8Player: FC<{
   )
 
   return (
-    <div ref={parentRef} className={cx(containerClass, fullView && 'M8-full-view')}>
-      {settings.showM8Body ? (
-        <M8Body
-          model={model}
-          strokeColor={strokeColor}
-          screenColor={screenColor}
-          onClick={() => { }}
-          onMouseDown={onMouseDown}
-          onMouseUp={onMouseUp}
-          keysPressed={keysPressed}
-          screenEdgeRef={screenEdgeRef}
-        />
-      ) : (
-        <div
-          // When body is hidden, provide a placeholder element to anchor the screen overlay
-          ref={screenEdgeRef as unknown as React.Ref<HTMLDivElement>}
-          style={{ width: '100%', height: '66vh', filter: 'drop-shadow(0 0 0.75rem crimson)' }}
-        />
-      )}
+    <>
+      <RecordingControls getCanvas={() => screenCanvasRef.current} />
+      <div ref={parentRef} className={cx(containerClass, fullView && 'M8-full-view')}>
+        {settings.showM8Body ? (
+          <M8Body
+            model={model}
+            strokeColor={strokeColor}
+            screenColor={screenColor}
+            onClick={() => { }}
+            onMouseDown={onMouseDown}
+            onMouseUp={onMouseUp}
+            keysPressed={keysPressed}
+            screenEdgeRef={screenEdgeRef}
+          />
+        ) : (
+          <div
+            // When body is hidden, provide a placeholder element to anchor the screen overlay
+            ref={screenEdgeRef as unknown as React.Ref<HTMLDivElement>}
+            style={{ width: '100%', height: '66vh', filter: 'drop-shadow(0 0 0.75rem crimson)' }}
+          />
+        )}
 
-      <div ref={screenRef} className={screen} onClick={onScreenClick}>
-        <M8Screen bus={bus} onClick={onScreenClick} />
+        <div ref={screenRef} className={screen} onClick={onScreenClick}>
+          <M8Screen ref={screenCanvasRef} bus={bus} onClick={onScreenClick} />
+        </div>
       </div>
-    </div>
+    </>
   )
+
 }
 
 export const M8Player: FC<{

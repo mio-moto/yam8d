@@ -22,7 +22,7 @@ import { BackgroundShaderEditor } from './features/rendering/BackgroundShaderEdi
 
 const appClass = css`
     min-width: 38vw;
-    max-width: 64vw;
+    max-width: 69vw;
     width: -webkit-fill-available;
   // display: flex;
   // flex-direction: column;
@@ -85,16 +85,16 @@ export const App: FC = () => {
         <>
           <Menu />
           <div className={appClass}>
-            {settings.virtualKeyboard && <VirtualKeyboard bus={connectedBus} strokeColor={style.themeColors.text.default}></VirtualKeyboard>}
             {/* not ready <ProgramChangeKeyboard bus={connectedBus} strokeColor={style.themeColors.text.default} /> */}
+            {settings.virtualKeyboard && <VirtualKeyboard bus={connectedBus} strokeColor={style.themeColors.text.default}></VirtualKeyboard>}
             <div className={playerRowClass}>
               <M8Player bus={connectedBus} fullView={settings.fullM8View} />
             </div>
-            {/* <StatusPanel bus={connectedBus} /> */}
           </div>
           {settings.showBackgroundShaderEditor && <BackgroundShaderEditor />}
           {settings.displayShortcuts && <ShortcutsDisplay bus={connectedBus} />}
           {/* <SdkTest bus={connectedBus} /> */}
+          {/* <StatusPanel bus={connectedBus} /> */}
         </>
       )}
     </>

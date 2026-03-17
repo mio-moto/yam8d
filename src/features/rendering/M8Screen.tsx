@@ -1,4 +1,4 @@
-import { type MouseEventHandler, useEffect, useRef } from 'react'
+import { forwardRef, type MouseEventHandler, useEffect, useImperativeHandle, useRef } from 'react'
 import type { ConnectedBus } from '../connection/connection'
 import type { CharacterCommand, RectCommand, SystemCommand, WaveCommand } from '../connection/protocol'
 import { useSettingsContext } from '../settings/settings'
@@ -11,10 +11,12 @@ const makeScreenLayout = ({ model, fontMode }: SystemCommand): ScreenLayout => {
     return (fontMode + 1) as ScreenLayout
 }
 
-export const M8Screen = ({ bus, onClick }: { bus?: ConnectedBus | null; onClick?: MouseEventHandler<HTMLCanvasElement> | undefined | null }) => {
+export const M8Screen = forwardRef<HTMLCanvasElement, { bus?: ConnectedBus | null; onClick?: MouseEventHandler<HTMLCanvasElement> | undefined | null }>(function M8Screen({ bus, onClick }, ref) {
     const innerRef = useRef<HTMLCanvasElement | null>(null)
     const renderRef = useRef<ReturnType<typeof renderer>>(undefined)
     const { settings } = useSettingsContext()
+
+    useImperativeHandle(ref, () => innerRef.current as HTMLCanvasElement, [])
 
     useEffect(() => {
         if (!innerRef.current) {
@@ -121,4 +123,4 @@ export const M8Screen = ({ bus, onClick }: { bus?: ConnectedBus | null; onClick?
             }}
         ></canvas>
     )
-}
+})
