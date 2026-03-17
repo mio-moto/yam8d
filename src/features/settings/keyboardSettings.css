@@ -45,8 +45,8 @@
 
 /* Visual feedback when key is pressed without mapping selected */
 [data-code].pressed {
-    fill: white;
-    fill-opacity: 1;
+    fill: white !important;
+    fill-opacity: 1 !important;
 }
 
 /* Virtual keyboard: note assignment (aqua — distinct from M8 teal) */

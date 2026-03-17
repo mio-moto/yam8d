@@ -84,7 +84,7 @@ function formatKey(code: string | null): string {
         .replace('Equal', '=')
 }
 
-// ─── Interactive piano SVG ────────────────────────────────────────────────────
+// --- Interactive piano SVG ----------------------------------------------------
 
 interface PianoSVGProps {
     assignedKeys: Map<number, string>   // noteIndex → keyCode
@@ -168,7 +168,7 @@ const PianoSVG: FC<PianoSVGProps> = ({ assignedKeys, selectedNote, pressedNote, 
     return <div ref={containerRef} className="vk-setup-piano" />
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// --- Styles -------------------------------------------------------------------
 
 const containerClass = css`
     display: flex;
@@ -324,7 +324,7 @@ const actionsClass = css`
     justify-content: flex-end;
 `
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// --- Helpers ------------------------------------------------------------------
 
 function buildReverseMap(inputMap: InputMapValue): Map<string, M8ButtonName> {
     const reverseMap = new Map<string, M8ButtonName>()
@@ -346,7 +346,7 @@ function vkControlColor(side: 'oct' | 'vel'): string {
     return side === 'oct' ? VK_OCT_COLOR : VK_VEL_COLOR
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// --- Component ----------------------------------------------------------------
 
 export const KeyboardSettings: FC = () => {
     const { settings, updateSettingValue } = useSettingsContext()

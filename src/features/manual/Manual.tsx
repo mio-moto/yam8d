@@ -4,47 +4,55 @@ import { useMemo } from 'react'
 import manualRaw from '../../../MANUAL.md?raw'
 
 const manualClass = css`
-    padding: 24px;
-    max-width: 600px;
+    padding: 28px 32px;
+    max-width: 760px;
+    width: 100%;
     color: inherit;
-    font-size: 14px;
-    line-height: 1.6;
+    font-family: "Kode", monospace;
+    font-size: 16px;
+    line-height: 1.75;
+    text-align: left;
     overflow-y: auto;
-    max-height: 80vh;
+    max-height: 82vh;
 
     h1 {
-        font-size: 24px;
-        margin-bottom: 16px;
+        font-size: 26px;
+        margin-bottom: 18px;
         border-bottom: 1px solid currentColor;
-        padding-bottom: 8px;
+        padding-bottom: 10px;
+        text-align: left;
     }
 
     h2 {
-        font-size: 18px;
-        margin-top: 24px;
+        font-size: 20px;
+        margin-top: 28px;
         margin-bottom: 12px;
+        text-align: left;
     }
 
     h3 {
-        font-size: 16px;
-        margin-top: 16px;
+        font-size: 17px;
+        margin-top: 18px;
         margin-bottom: 8px;
+        text-align: left;
     }
 
     p {
-        margin-bottom: 12px;
+        margin-bottom: 14px;
+        text-align: left;
     }
 
     table {
         width: 100%;
         border-collapse: collapse;
-        margin-bottom: 16px;
+        margin-bottom: 18px;
+        text-align: left;
     }
 
     th,
     td {
         text-align: left;
-        padding: 8px 12px;
+        padding: 8px 14px;
         border: 1px solid rgba(128, 128, 128, 0.3);
     }
 
@@ -57,17 +65,19 @@ const manualClass = css`
         background: rgba(128, 128, 128, 0.15);
         padding: 2px 6px;
         border-radius: 4px;
-        font-family: monospace;
+        font-family: "Kode", monospace;
     }
 
     ul,
     ol {
-        margin-bottom: 12px;
-        padding-left: 24px;
+        margin-bottom: 14px;
+        padding-left: 28px;
+        text-align: left;
     }
 
     li {
-        margin-bottom: 4px;
+        margin-bottom: 6px;
+        text-align: left;
     }
 
     a {
@@ -77,6 +87,15 @@ const manualClass = css`
 
     a:hover {
         opacity: 0.8;
+    }
+
+    img {
+        display: block;
+        width: 100%;
+        height: auto;
+        border: 1px solid rgba(128, 128, 128, 0.3);
+        margin: 10px 0;
+        background: rgba(0, 0, 0, 0.25);
     }
 
     strong {
@@ -111,6 +130,25 @@ const parseInline = (text: string): React.ReactNode => {
     let key = 0
 
     while (remaining.length > 0) {
+        // Inline image
+        const imageMatch = remaining.match(/!\[([^\]]*)\]\(([^\s)]+)(?:\s+"([^"]+)")?\)/)
+        if (imageMatch && imageMatch.index !== undefined) {
+            if (imageMatch.index > 0) {
+                parts.push(parseInline(remaining.slice(0, imageMatch.index)))
+            }
+            parts.push(
+                <img
+                    key={`img-${key++}`}
+                    src={imageMatch[2]}
+                    alt={imageMatch[1]}
+                    title={imageMatch[3]}
+                    loading="lazy"
+                />,
+            )
+            remaining = remaining.slice(imageMatch.index + imageMatch[0].length)
+            continue
+        }
+
         // Inline code
         const codeMatch = remaining.match(/`([^`]+)`/)
         if (codeMatch && codeMatch.index !== undefined) {

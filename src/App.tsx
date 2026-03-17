@@ -2,7 +2,6 @@ import { css } from '@linaria/core'
 import './App.css'
 import { type FC, useCallback, useState } from 'react'
 import { style } from './app/style/style'
-import { Button } from './components/Button'
 // import { DebugMenu, DebugPortalContextProvider } from './components/DebugMenu'
 import type { ConnectedBus } from './features/connection/connection'
 import { device } from './features/connection/device'
@@ -16,7 +15,7 @@ import { VirtualKeyboard } from './features/virtualKeyboard/VirtualKeyboard'
 //import { ProgramChangeKeyboard } from './features/virtualKeyboard/ProgramChangeKeyboard'
 // import { StatusPanel } from './features/debug/StatusPanel'
 import { ShortcutsDisplay } from './features/shortcuts/shortcutsIntegration'
-import { Manual } from './features/manual'
+import { WelcomeSplash } from './features/WelcomeSplash'
 import { BackgroundShaderEditor } from './features/rendering/BackgroundShaderEditor'
 // import { SdkTest } from './components/SdkTest'
 
@@ -77,10 +76,7 @@ export const App: FC = () => {
 
   return (
     <>
-      {!connectedBus && (<div style={{ display: 'grid', gap: '40px' }}>
-        <Button onClick={tryConnect}>Connect</Button>
-        <Manual></Manual>
-      </div>)}
+      {!connectedBus && <WelcomeSplash onConnect={tryConnect} />}
       {connectedBus && (
         <>
           <Menu />
