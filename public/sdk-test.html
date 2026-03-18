@@ -4,6 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>M8 SDK Test Page</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Kode+Mono:wght@400;500;600;700&display=swap"
+    />
     <style>
       * {
         box-sizing: border-box;
@@ -11,38 +15,94 @@
         padding: 0;
       }
 
+      :root {
+        --anthracite-900: #2e383c;
+        --anthracite-700: #4d6167;
+        --anthracite-500: #68858e;
+        --teal-700: #229fb7;
+        --teal-500: #2ec5e6;
+        --teal-300: #59d7f0;
+        --lime-500: #00d585;
+        --ochre-500: #ff5d38;
+        --bg-0: #030a0d;
+        --bg-1: #081318;
+        --bg-2: #102028;
+        --panel: rgba(14, 31, 38, 0.9);
+        --panel-border: rgba(46, 197, 230, 0.25);
+        --text-primary: #d4dadc;
+        --text-muted: #93a7ad;
+      }
+
       body {
-        font-family:
-          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        background: #1a1a2e;
-        color: #eee;
-        padding: 20px;
-        min-height: 100vh;
+        font-family: "Kode Mono", "Consolas", monospace;
+        background:
+          radial-gradient(
+            circle at 12% 18%,
+            rgba(46, 197, 230, 0.16),
+            transparent 30%
+          ),
+          radial-gradient(
+            circle at 88% 82%,
+            rgba(0, 213, 133, 0.13),
+            transparent 32%
+          ),
+          linear-gradient(160deg, var(--bg-0), var(--bg-1) 48%, var(--bg-2));
+        color: var(--text-primary);
+        padding: 24px;
+        min-height: 100svh;
+        display: flex;
+        justify-content: center;
+      }
+
+      .layout {
+        width: min(1280px, 100%);
+        display: grid;
+        grid-template-columns: 1.15fr 0.85fr;
+        gap: 18px;
+        align-items: start;
       }
 
       h1 {
-        color: #ff6b6b;
-        margin-bottom: 20px;
+        color: var(--teal-300);
+        margin-bottom: 6px;
         font-size: 24px;
+        letter-spacing: 0.06em;
+      }
+
+      .subtitle {
+        color: var(--text-muted);
+        font-size: 13px;
+        margin-bottom: 16px;
+      }
+
+      .stack {
+        display: grid;
+        gap: 14px;
       }
 
       .status {
-        background: #16213e;
+        background: linear-gradient(
+          180deg,
+          rgba(9, 23, 30, 0.94),
+          rgba(7, 19, 25, 0.92)
+        );
         padding: 15px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-        border-left: 4px solid #e94560;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 93, 56, 0.4);
+        box-shadow: 0 0 0 1px rgba(255, 93, 56, 0.14) inset;
       }
 
       .status.connected {
-        border-left-color: #4ecca3;
+        border-color: rgba(0, 213, 133, 0.45);
+        box-shadow: 0 0 0 1px rgba(0, 213, 133, 0.18) inset;
       }
 
       .status h2 {
-        font-size: 14px;
+        font-size: 12px;
         text-transform: uppercase;
-        color: #888;
+        color: var(--text-muted);
         margin-bottom: 10px;
+        letter-spacing: 0.08em;
       }
 
       .state-grid {
@@ -53,19 +113,20 @@
       }
 
       .state-item {
-        background: #0f3460;
+        background: rgba(8, 22, 29, 0.88);
         padding: 8px 12px;
         border-radius: 4px;
+        border: 1px solid var(--panel-border);
       }
 
       .state-item .label {
-        color: #888;
+        color: var(--text-muted);
         font-size: 11px;
         text-transform: uppercase;
       }
 
       .state-item .value {
-        color: #4ecca3;
+        color: var(--teal-300);
         font-family: monospace;
       }
 
@@ -77,52 +138,61 @@
       }
 
       button {
-        background: #e94560;
-        color: white;
-        border: none;
+        background: linear-gradient(180deg, var(--teal-700), var(--teal-500));
+        color: #021015;
+        border: 1px solid rgba(46, 197, 230, 0.4);
         padding: 12px 16px;
         border-radius: 6px;
         cursor: pointer;
         font-size: 13px;
-        transition: background 0.2s;
+        font-weight: 600;
+        transition:
+          transform 0.15s ease,
+          filter 0.15s ease;
       }
 
       button:hover {
-        background: #ff6b6b;
+        transform: translateY(-1px);
+        filter: brightness(1.08);
       }
 
       button:disabled {
-        background: #444;
+        background: #344247;
+        color: #90a0a6;
         cursor: not-allowed;
+        transform: none;
+        filter: none;
       }
 
       .section {
-        background: #16213e;
+        background: var(--panel);
         padding: 15px;
         border-radius: 8px;
-        margin-bottom: 15px;
+        border: 1px solid var(--panel-border);
       }
 
       .section h3 {
-        font-size: 14px;
-        color: #888;
+        font-size: 12px;
+        color: var(--text-muted);
         margin-bottom: 12px;
         text-transform: uppercase;
+        letter-spacing: 0.08em;
       }
 
       .log {
-        background: #0a0a0a;
+        background: rgba(2, 9, 12, 0.98);
         padding: 10px;
         border-radius: 4px;
         font-family: monospace;
         font-size: 12px;
         max-height: 200px;
         overflow-y: auto;
+        border: 1px solid rgba(46, 197, 230, 0.2);
       }
 
       .log-entry {
         padding: 4px 0;
-        border-bottom: 1px solid #222;
+        border-bottom: 1px solid rgba(147, 167, 173, 0.2);
       }
 
       .log-entry:last-child {
@@ -130,17 +200,18 @@
       }
 
       .log-entry.info {
-        color: #4ecca3;
+        color: var(--teal-300);
       }
       .log-entry.warn {
-        color: #ffa500;
+        color: #ffbd59;
       }
       .log-entry.error {
-        color: #e94560;
+        color: var(--ochre-500);
       }
 
       .input-group {
         display: flex;
+        flex-wrap: wrap;
         gap: 10px;
         margin-bottom: 10px;
       }
@@ -148,130 +219,310 @@
       input[type="text"],
       input[type="number"] {
         flex: 1;
-        background: #0f3460;
-        border: 1px solid #1a1a2e;
-        color: white;
+        min-width: 140px;
+        background: rgba(9, 25, 31, 0.9);
+        border: 1px solid rgba(46, 197, 230, 0.2);
+        color: var(--text-primary);
         padding: 10px;
         border-radius: 4px;
-        font-family: monospace;
+        font-family: "Kode Mono", monospace;
       }
 
       input:focus {
         outline: none;
-        border-color: #e94560;
+        border-color: var(--teal-500);
+      }
+
+      .checkbox-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 8px 0 12px;
+        color: var(--text-muted);
+        font-size: 12px;
+      }
+
+      .manual {
+        background: linear-gradient(
+          180deg,
+          rgba(6, 16, 20, 0.92),
+          rgba(5, 13, 17, 0.95)
+        );
+        border: 1px solid rgba(104, 133, 142, 0.32);
+      }
+
+      .manual p {
+        color: var(--text-muted);
+        font-size: 13px;
+        line-height: 1.5;
+        margin-bottom: 10px;
+      }
+
+      .method-card {
+        margin-top: 10px;
+        padding: 10px;
+        border-radius: 6px;
+        background: rgba(8, 21, 27, 0.9);
+        border: 1px solid rgba(46, 197, 230, 0.2);
+      }
+
+      .method-card h4 {
+        color: var(--teal-300);
+        font-size: 13px;
+        margin-bottom: 6px;
+      }
+
+      .method-card pre {
+        background: rgba(2, 8, 11, 0.95);
+        border: 1px solid rgba(46, 197, 230, 0.18);
+        border-radius: 6px;
+        color: #b5f2ff;
+        padding: 10px;
+        overflow-x: auto;
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .note {
+        color: #9dd6e5;
+        font-size: 12px;
+      }
+
+      @media (max-width: 1080px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
       }
     </style>
   </head>
   <body>
-    <h1>🎛️ M8 SDK Test Client</h1>
+    <main class="layout">
+      <section class="stack">
+        <header>
+          <h1>M8 SDK Test Client</h1>
+          <p class="subtitle">
+            Interactive test harness and implementation manual for iframe SDK
+            integrations.
+          </p>
+        </header>
 
-    <div id="status" class="status">
-      <h2>Connection Status</h2>
-      <div id="connection-state">Connecting...</div>
-    </div>
-
-    <div class="section">
-      <h3>Current State</h3>
-      <div class="state-grid" id="state-grid">
-        <div class="state-item">
-          <div class="label">View Name</div>
-          <div class="value" id="view-name">-</div>
+        <div id="status" class="status">
+          <h2>Connection Status</h2>
+          <div id="connection-state">Connecting...</div>
         </div>
-        <div class="state-item">
-          <div class="label">Cursor Position</div>
-          <div class="value" id="cursor-pos">-</div>
+
+        <div class="section">
+          <h3>Current State</h3>
+          <div class="state-grid" id="state-grid">
+            <div class="state-item">
+              <div class="label">View Name</div>
+              <div class="value" id="view-name">-</div>
+            </div>
+            <div class="state-item">
+              <div class="label">Cursor Position</div>
+              <div class="value" id="cursor-pos">-</div>
+            </div>
+            <div class="state-item">
+              <div class="label">Text Under Cursor</div>
+              <div class="value" id="text-cursor">-</div>
+            </div>
+            <div class="state-item">
+              <div class="label">Device Model</div>
+              <div class="value" id="device-model">-</div>
+            </div>
+          </div>
         </div>
-        <div class="state-item">
-          <div class="label">Text Under Cursor</div>
-          <div class="value" id="text-cursor">-</div>
+
+        <div class="section">
+          <h3>View Navigation</h3>
+          <div class="controls">
+            <button onclick="navigateToView('song')">Song (F1)</button>
+            <button onclick="navigateToView('chain')">Chain (F2)</button>
+            <button onclick="navigateToView('phrase')">Phrase (F3)</button>
+            <button onclick="navigateToView('table')">Table (F4)</button>
+            <button onclick="navigateToView('instrumentpool')">
+              Instr Pool (F5)
+            </button>
+            <button onclick="navigateToView('inst')">Instrument (F6)</button>
+            <button onclick="navigateToView('instmods')">Inst Mods (F7)</button>
+            <button onclick="navigateToView('effectsettings')">
+              FX Settings (F8)
+            </button>
+            <button onclick="navigateToView('project')">Project (F9)</button>
+          </div>
         </div>
-        <div class="state-item">
-          <div class="label">Device Model</div>
-          <div class="value" id="device-model">-</div>
+
+        <div class="section">
+          <h3>Coordinate Navigation</h3>
+          <div class="input-group">
+            <input
+              type="number"
+              id="nav-x"
+              placeholder="X (0-39)"
+              min="0"
+              max="39"
+              value="10"
+            />
+            <input
+              type="number"
+              id="nav-y"
+              placeholder="Y (0-23)"
+              min="0"
+              max="23"
+              value="5"
+            />
+            <button onclick="navigateToCoords()">Navigate</button>
+          </div>
         </div>
-      </div>
-    </div>
 
-    <div class="section">
-      <h3>View Navigation</h3>
-      <div class="controls">
-        <button onclick="navigateToView('song')">Song (F1)</button>
-        <button onclick="navigateToView('chain')">Chain (F2)</button>
-        <button onclick="navigateToView('phrase')">Phrase (F3)</button>
-        <button onclick="navigateToView('table')">Table (F4)</button>
-        <button onclick="navigateToView('instrumentpool')">
-          Instr Pool (F5)
-        </button>
-        <button onclick="navigateToView('inst')">Instrument (F6)</button>
-        <button onclick="navigateToView('instmods')">Inst Mods (F7)</button>
-        <button onclick="navigateToView('effectsettings')">
-          FX Settings (F8)
-        </button>
-        <button onclick="navigateToView('project')">Project (F9)</button>
-      </div>
-    </div>
+        <div class="section">
+          <h3>Value Manipulation</h3>
+          <div class="input-group">
+            <input
+              type="text"
+              id="hex-value"
+              placeholder="Hex value (e.g., 3F, FF, 00)"
+              value="3F"
+            />
+            <button onclick="setValueToHex()">Set Hex</button>
+          </div>
 
-    <div class="section">
-      <h3>Coordinate Navigation</h3>
-      <div class="input-group">
-        <input
-          type="number"
-          id="nav-x"
-          placeholder="X (0-39)"
-          min="0"
-          max="39"
-          value="10"
-        />
-        <input
-          type="number"
-          id="nav-y"
-          placeholder="Y (0-23)"
-          min="0"
-          max="23"
-          value="5"
-        />
-        <button onclick="navigateToCoords()">Navigate</button>
-      </div>
-    </div>
+          <div class="input-group">
+            <input
+              type="number"
+              id="int-value"
+              placeholder="Integer value"
+              value="63"
+            />
+            <button onclick="setValueToInt()">Set Int</button>
+          </div>
 
-    <div class="section">
-      <h3>Value Manipulation</h3>
-      <div class="input-group">
-        <input
-          type="text"
-          id="hex-value"
-          placeholder="Hex value (e.g., 3F, FF, 00)"
-          value="3F"
-        />
-        <button onclick="setValueToHex()">Set Value</button>
-      </div>
-    </div>
+          <div class="input-group">
+            <input
+              type="text"
+              id="note-value"
+              placeholder="Note (e.g., C-1, C#4, G-B)"
+              value="C#4"
+            />
+            <button onclick="setNote()">Set Note</button>
+          </div>
 
-    <div class="section">
-      <h3>Key Press</h3>
-      <div class="controls">
-        <button onclick="sendKey(['left'])">Left</button>
-        <button onclick="sendKey(['right'])">Right</button>
-        <button onclick="sendKey(['up'])">Up</button>
-        <button onclick="sendKey(['down'])">Down</button>
-        <button onclick="sendKey(['shift'])">Shift</button>
-        <button onclick="sendKey(['play'])">Play</button>
-        <button onclick="sendKey(['opt'])">Opt</button>
-        <button onclick="sendKey(['edit'])">Edit</button>
-        <button onclick="sendKey(['left', 'shift'])">Left+Shift</button>
-        <button onclick="sendKey(['right', 'shift'])">Right+Shift</button>
-        <button onclick="sendKey(['edit', 'up'])">Edit+Up</button>
-        <button onclick="sendKey(['edit', 'down'])">Edit+Down</button>
-        <button onclick="sendKey(['edit', 'left'])">Edit+Left</button>
-        <button onclick="sendKey(['edit', 'right'])">Edit+Right</button>
-      </div>
-    </div>
+          <div class="input-group">
+            <input
+              type="text"
+              id="string-value"
+              placeholder="String target"
+              value="sine"
+            />
+            <button onclick="setValueToString()">Set String</button>
+          </div>
+          <label class="checkbox-row">
+            <input type="checkbox" id="string-exact" checked />
+            Exact match (disable for partial contains search)
+          </label>
+          <label class="checkbox-row">
+            <input type="checkbox" id="string-in-line" />
+            Search in full current line (not only text under cursor)
+          </label>
+          <p class="note">
+            Note: setValueToString first anchors to bottom using edit+down, then
+            scans with edit+right.
+          </p>
+        </div>
 
-    <div class="section">
-      <h3>Event Log</h3>
-      <div class="log" id="log"></div>
-      <button onclick="clearLog()" style="margin-top: 10px">Clear Log</button>
-    </div>
+        <div class="section">
+          <h3>Key Press</h3>
+          <div class="controls">
+            <button onclick="sendKey(['left'])">Left</button>
+            <button onclick="sendKey(['right'])">Right</button>
+            <button onclick="sendKey(['up'])">Up</button>
+            <button onclick="sendKey(['down'])">Down</button>
+            <button onclick="sendKey(['shift'])">Shift</button>
+            <button onclick="sendKey(['play'])">Play</button>
+            <button onclick="sendKey(['opt'])">Opt</button>
+            <button onclick="sendKey(['edit'])">Edit</button>
+            <button onclick="sendKey(['left', 'shift'])">Left+Shift</button>
+            <button onclick="sendKey(['right', 'shift'])">Right+Shift</button>
+            <button onclick="sendKey(['edit', 'up'])">Edit+Up</button>
+            <button onclick="sendKey(['edit', 'down'])">Edit+Down</button>
+            <button onclick="sendKey(['edit', 'left'])">Edit+Left</button>
+            <button onclick="sendKey(['edit', 'right'])">Edit+Right</button>
+          </div>
+        </div>
+
+        <div class="section">
+          <h3>Event Log</h3>
+          <div class="log" id="log"></div>
+          <button onclick="clearLog()" style="margin-top: 10px">
+            Clear Log
+          </button>
+        </div>
+      </section>
+
+      <aside class="stack">
+        <section class="section manual">
+          <h3>Implementation Manual</h3>
+          <p>
+            This page demonstrates the full host/client contract. The iframe
+            connects through post-me, receives state events, and invokes host
+            methods to drive the M8 cursor and values.
+          </p>
+          <div class="method-card">
+            <h4>1) Connect and Fetch Initial State</h4>
+            <pre>
+const m8 = await createM8Client({ debug: false });
+const state = await m8.fetchState();
+console.log(state.viewName, state.textUnderCursor);</pre
+            >
+          </div>
+          <div class="method-card">
+            <h4>2) Numeric Value APIs</h4>
+            <pre>
+await m8.setValueToHex(0x3f);
+await m8.setValueToInt(63);
+</pre>
+            <p class="note">
+              Host behavior: edit+up/down is coarse movement, edit+left/right is
+              fine movement.
+            </p>
+          </div>
+          <div class="method-card">
+            <h4>3) Note API</h4>
+            <pre>
+await m8.setNote("C#4");
+// valid pattern: [A-G][#-][0-9A-F]
+// examples: C-1, D#3, G-B
+</pre>
+            <p class="note">
+              If a scale restricts notes, movement may stop at the closest
+              reachable note.
+            </p>
+          </div>
+          <div class="method-card">
+            <h4>4) String/List API</h4>
+            <pre>
+// exact full-text match
+await m8.setValueToString("sine", true);
+
+// partial match anywhere in the text
+await m8.setValueToString("sin", false);
+
+// search in full current line instead of cursor text only
+await m8.setValueToString("filter", false, true);
+</pre>
+          </div>
+          <div class="method-card">
+            <h4>5) Recommended Event Wiring</h4>
+            <pre>
+m8.onStateChange((state) => renderState(state));
+m8.onViewChange((name, title) => log("view", name ?? title));
+m8.onTextUpdate((text) => log("text", text));
+m8.onKeyPress((keys) => log("keys", keys));
+</pre>
+          </div>
+        </section>
+      </aside>
+    </main>
 
     <!-- Load the SDK client -->
     <script type="module">
@@ -465,6 +716,64 @@
           }
         }
 
+        async setValueToInt(value) {
+          if (!this.isConnected) throw new Error("Not connected");
+          const parsed = Number.parseInt(String(value), 10);
+          if (Number.isNaN(parsed)) {
+            log(`Invalid integer value: ${value}`, "error");
+            return false;
+          }
+          log(`Calling setValueToInt: ${parsed}`);
+          try {
+            const result = await this.remoteHandle.call(
+              "setValueToInt",
+              parsed,
+            );
+            log(`setValueToInt result: ${result}`);
+            return result;
+          } catch (error) {
+            log(`setValueToInt error: ${error.message}`, "error");
+            throw error;
+          }
+        }
+
+        async setNote(noteString) {
+          if (!this.isConnected) throw new Error("Not connected");
+          log(`Calling setNote: ${noteString}`);
+          try {
+            const result = await this.remoteHandle.call("setNote", noteString);
+            log(`setNote result: ${result}`);
+            return result;
+          } catch (error) {
+            log(`setNote error: ${error.message}`, "error");
+            throw error;
+          }
+        }
+
+        async setValueToString(
+          targetString,
+          exact = true,
+          searchInCurrentLine = false,
+        ) {
+          if (!this.isConnected) throw new Error("Not connected");
+          log(
+            `Calling setValueToString: "${targetString}" (exact=${exact}, inLine=${searchInCurrentLine})`,
+          );
+          try {
+            const result = await this.remoteHandle.call(
+              "setValueToString",
+              targetString,
+              exact,
+              searchInCurrentLine,
+            );
+            log(`setValueToString result: ${result}`);
+            return result;
+          } catch (error) {
+            log(`setValueToString error: ${error.message}`, "error");
+            throw error;
+          }
+        }
+
         async sendKeyPress(keys) {
           if (!this.isConnected) throw new Error("Not connected");
           log(`Calling sendKeyPress: [${keys.join(", ")}]`);
@@ -520,9 +829,45 @@
         const hex = document.getElementById("hex-value").value;
         try {
           const result = await window.m8Client.setValueToHex(hex);
-          log(`Set value result: ${result ? "success" : "failed"}`);
+          log(`Set hex result: ${result ? "success" : "failed"}`);
         } catch (error) {
           log(`Set value failed: ${error.message}`, "error");
+        }
+      };
+
+      window.setValueToInt = async () => {
+        const value = document.getElementById("int-value").value;
+        try {
+          const result = await window.m8Client.setValueToInt(value);
+          log(`Set int result: ${result ? "success" : "failed"}`);
+        } catch (error) {
+          log(`Set int failed: ${error.message}`, "error");
+        }
+      };
+
+      window.setNote = async () => {
+        const noteString = document.getElementById("note-value").value;
+        try {
+          const result = await window.m8Client.setNote(noteString);
+          log(`Set note result: ${result ? "exact" : "closest/failed"}`);
+        } catch (error) {
+          log(`Set note failed: ${error.message}`, "error");
+        }
+      };
+
+      window.setValueToString = async () => {
+        const targetString = document.getElementById("string-value").value;
+        const exact = document.getElementById("string-exact").checked;
+        const inLine = document.getElementById("string-in-line").checked;
+        try {
+          const result = await window.m8Client.setValueToString(
+            targetString,
+            exact,
+            inLine,
+          );
+          log(`Set string result: ${result ? "success" : "failed"}`);
+        } catch (error) {
+          log(`Set string failed: ${error.message}`, "error");
         }
       };
 

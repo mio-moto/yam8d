@@ -39,6 +39,9 @@ export interface M8Client {
      * edit+up/down = ±16, edit+left/right = ±1
      */
     setValueToHex(targetHex: number): Promise<boolean>
+    setValueToInt(targetInt: number): Promise<boolean>
+    setNote(noteString: string): Promise<boolean>
+    setValueToString(targetString: string, exact?: boolean, searchInCurrentLine?: boolean): Promise<boolean>
 
     // Key press
     /**
@@ -214,6 +217,28 @@ class M8ClientImpl implements M8Client {
         // Validate range
         targetHex = Math.max(0, Math.min(255, Math.floor(targetHex)))
         return this.remoteHandle.call('setValueToHex', targetHex)
+    }
+
+    async setValueToInt(targetInt: number): Promise<boolean> {
+        if (!this.remoteHandle) {
+            throw new Error('[M8SDK Client] Not connected')
+        }
+        targetInt = Math.floor(targetInt)
+        return this.remoteHandle.call('setValueToInt', targetInt)
+    }
+
+    async setNote(noteString: string): Promise<boolean> {
+        if (!this.remoteHandle) {
+            throw new Error('[M8SDK Client] Not connected')
+        }
+        return this.remoteHandle.call('setNote', noteString)
+    }
+
+    async setValueToString(targetString: string, exact: boolean = true, searchInCurrentLine: boolean = false): Promise<boolean> {
+        if (!this.remoteHandle) {
+            throw new Error('[M8SDK Client] Not connected')
+        }
+        return this.remoteHandle.call('setValueToString', targetString, exact, searchInCurrentLine)
     }
 
     // Key press

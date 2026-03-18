@@ -74,6 +74,53 @@ const parseHexValue = (text: string | null): number | null => {
     return Number.isNaN(parsed) ? null : parsed
 }
 
+// Parse integer value from text (handles formats like "123", "-12", "+7", "--")
+// Returns 0 for '--' which is commonly used as an empty numeric placeholder in M8 UI
+const parseIntValue = (text: string | null): number | null => {
+    if (!text) return null
+    const cleaned = text.trim()
+    if (cleaned === '--') return 0
+    const match = cleaned.match(/^[+-]?\d+/)
+    if (!match) return null
+    const parsed = Number.parseInt(match[0], 10)
+    return Number.isNaN(parsed) ? null : parsed
+}
+
+const NOTE_ORDER = ['C-', 'C#', 'D-', 'D#', 'E-', 'F-', 'F#', 'G-', 'G#', 'A-', 'A#', 'B-'] as const
+
+type ParsedNote = {
+    label: string
+    noteName: string
+    octave: number
+    semitoneIndex: number
+}
+
+const parseNoteValue = (text: string | null): ParsedNote | null => {
+    if (!text) return null
+    const match = text.trim().toUpperCase().match(/([A-G][#-][0-9A-F])/)
+    if (!match) return null
+
+    const label = match[1]
+    const noteName = label.slice(0, 2)
+    const octave = Number.parseInt(label.slice(2, 3), 16)
+    const noteOffset = NOTE_ORDER.indexOf(noteName as (typeof NOTE_ORDER)[number])
+
+    if (noteOffset < 0 || Number.isNaN(octave)) {
+        return null
+    }
+
+    return {
+        label,
+        noteName,
+        octave,
+        semitoneIndex: octave * 12 + noteOffset,
+    }
+}
+
+const normalizeForSearch = (text: string | null): string => {
+    return text?.trim().toLowerCase() ?? ''
+}
+
 // Wait for a specific duration
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
@@ -110,9 +157,42 @@ export const useM8SdkHost = (bus: ConnectedBus | undefined, config: M8SdkConfig 
         await wait(delayMs)
     }, [sendKeys])
 
-    // Get current text under cursor (kept for potential future use)
-    const _getTextUnderCursor = useCallback(() => {
-        return store.get(textUnderCursorAtom)
+    // Prefer atom-change synchronization over fixed sleeps when reading post-key values.
+    const waitForTextUnderCursorChange = useCallback((previousValue: string | null, timeoutMs: number = 500): Promise<string | null> => {
+        return new Promise(resolve => {
+            let settled = false
+            let unsubscribe: (() => void) | null = null
+            let timeout: ReturnType<typeof setTimeout> | null = null
+
+            const finish = (value: string | null) => {
+                if (settled) return
+                settled = true
+                if (timeout !== null) {
+                    clearTimeout(timeout)
+                }
+                unsubscribe?.()
+                resolve(value)
+            }
+
+            // If the value already changed before we started waiting (race with key press timing),
+            // resolve immediately instead of subscribing and timing out.
+            const currentValue = store.get(textUnderCursorAtom)
+            if (currentValue !== previousValue) {
+                finish(currentValue)
+                return
+            }
+
+            unsubscribe = store.sub(textUnderCursorAtom, () => {
+                const next = store.get(textUnderCursorAtom)
+                if (next !== previousValue) {
+                    finish(next)
+                }
+            })
+
+            timeout = setTimeout(() => {
+                finish(store.get(textUnderCursorAtom))
+            }, timeoutMs)
+        })
     }, [store])
 
     // Precalculate the key sequence needed to reach target value from current value
@@ -161,6 +241,37 @@ export const useM8SdkHost = (bus: ConnectedBus | undefined, config: M8SdkConfig 
         return sequence
     }, [])
 
+    // Precalculate note moves in semitone space.
+    // Uses edit+up/down for octave jumps (±12) and edit+left/right for semitone steps (±1).
+    const calculateNoteKeySequence = useCallback((currentIndex: number, targetIndex: number): number[] => {
+        const sequence: number[] = []
+        let current = currentIndex
+
+        while (current !== targetIndex) {
+            const diff = targetIndex - current
+            const direction = diff > 0 ? 1 : -1
+
+            if (Math.abs(diff) >= 12) {
+                const key = direction > 0 ? M8KeyMask.Up : M8KeyMask.Down
+                sequence.push(M8KeyMask.Edit | key)
+                sequence.push(0)
+                current += direction * 12
+            } else {
+                const key = direction > 0 ? M8KeyMask.Right : M8KeyMask.Left
+                sequence.push(M8KeyMask.Edit | key)
+                sequence.push(0)
+                current += direction
+            }
+
+            // Safety cap for malformed input.
+            if (sequence.length > 2048) {
+                break
+            }
+        }
+
+        return sequence
+    }, [])
+
     // Implementation of setValueToHex using edit+navigation keys
     // Precalculates the entire key sequence and sends it to the macroRunner
     const setValueToHexImpl = useCallback(async (targetHex: number): Promise<boolean> => {
@@ -192,8 +303,9 @@ export const useM8SdkHost = (bus: ConnectedBus | undefined, config: M8SdkConfig 
         // If initial value is '--', we need to press edit first to recall the last value
         if (isInitialDashDash) {
             console.log('[M8SDK] Initial value is "--", pressing edit to recall last value')
+            const beforePrime = currentText
             await pressAndRelease(M8KeyMask.Edit)
-            await wait(100)
+            await waitForTextUnderCursorChange(beforePrime, 250)
 
             // Read the actual value after pressing edit (not always 00!)
             const newText = store.get(textUnderCursorAtom)
@@ -211,8 +323,9 @@ export const useM8SdkHost = (bus: ConnectedBus | undefined, config: M8SdkConfig 
             startValue = newValue
         } else {
             // Normal case: enter edit mode
+            const beforeEnterEdit = currentText
             await pressAndRelease(M8KeyMask.Edit)
-            await wait(50)
+            await waitForTextUnderCursorChange(beforeEnterEdit, 250)
         }
 
         // Precalculate the key sequence (starting from the actual current value after edit mode)
@@ -226,7 +339,7 @@ export const useM8SdkHost = (bus: ConnectedBus | undefined, config: M8SdkConfig 
         }
 
         // Wait for final value to settle
-        await wait(100)
+        await waitForTextUnderCursorChange(currentText, 250)
 
         // Read final value using the atom
         const finalText = store.get(textUnderCursorAtom)
@@ -245,6 +358,7 @@ export const useM8SdkHost = (bus: ConnectedBus | undefined, config: M8SdkConfig 
                 const diff = targetHex - current
                 const absDiff = Math.abs(diff)
                 const direction = diff > 0 ? 1 : -1
+                const beforeStepText = store.get(textUnderCursorAtom)
 
                 if (absDiff >= 16) {
                     // Large step
@@ -258,7 +372,7 @@ export const useM8SdkHost = (bus: ConnectedBus | undefined, config: M8SdkConfig 
                     await pressAndRelease(keys)
                 }
 
-                await wait(80)
+                await waitForTextUnderCursorChange(beforeStepText, 250)
                 const newText = store.get(textUnderCursorAtom)
                 const newValue = parseHexValue(newText)
                 if (newValue !== null) {
@@ -278,7 +392,303 @@ export const useM8SdkHost = (bus: ConnectedBus | undefined, config: M8SdkConfig 
         console.log(`[M8SDK] Value setting ${success ? 'succeeded' : 'failed'}. Final value: "${finalText?.trim() ?? 'N/A'}" (${finalValue?.toString(16).padStart(2, '0').toUpperCase() ?? 'N/A'})`)
 
         return success
-    }, [pressAndRelease, store, calculateKeySequence])
+    }, [pressAndRelease, store, calculateKeySequence, waitForTextUnderCursorChange])
+
+    // Implementation of setValueToInt using edit+navigation keys
+    const setValueToIntImpl = useCallback(async (targetInt: number): Promise<boolean> => {
+        if (!busRef.current) return false
+
+        targetInt = Math.floor(targetInt)
+
+        const currentText = store.get(textUnderCursorAtom)
+        const currentValue = parseIntValue(currentText)
+        if (currentValue === null) {
+            console.warn('[M8SDK] Could not parse current integer value under cursor:', currentText)
+            return false
+        }
+
+        if (currentValue === targetInt) {
+            return true
+        }
+
+        // Enter edit mode
+        await pressAndRelease(M8KeyMask.Edit)
+        await waitForTextUnderCursorChange(currentText, 250)
+
+        let current = currentValue
+        let bestValue = currentValue
+        let bestDistance = Math.abs(currentValue - targetInt)
+        let valueTwoStepsAgo: number | null = null
+        const timeoutMs = 5000
+        const startedAt = Date.now()
+
+        while (current !== targetInt && Date.now() - startedAt < timeoutMs) {
+            const diff = targetInt - current
+            const absDiff = Math.abs(diff)
+            const direction = diff > 0 ? 1 : -1
+            const beforeStepText = store.get(textUnderCursorAtom)
+            const previousValue = current
+
+            if (absDiff >= 16) {
+                const key = direction > 0 ? M8KeyMask.Up : M8KeyMask.Down
+                await pressAndRelease(M8KeyMask.Edit | key, 35)
+            } else {
+                const key = direction > 0 ? M8KeyMask.Right : M8KeyMask.Left
+                await pressAndRelease(M8KeyMask.Edit | key, 35)
+            }
+
+            await waitForTextUnderCursorChange(beforeStepText, 250)
+            const newValue = parseIntValue(store.get(textUnderCursorAtom))
+            if (newValue === null || newValue === current) {
+                break
+            }
+
+            const newDistance = Math.abs(newValue - targetInt)
+            if (newDistance < bestDistance) {
+                bestDistance = newDistance
+                bestValue = newValue
+            }
+
+            // Detect 2-value bounce (A -> B -> A), especially when crossing target.
+            const isOscillating = valueTwoStepsAgo !== null && newValue === valueTwoStepsAgo
+            const crossesTarget = (previousValue - targetInt) * (newValue - targetInt) < 0
+
+            current = newValue
+            if (isOscillating && crossesTarget) {
+                break
+            }
+
+            valueTwoStepsAgo = previousValue
+        }
+
+        // If exact target was not reached, move back to the nearest value observed.
+        if (current !== bestValue) {
+            const snapStartedAt = Date.now()
+            while (current !== bestValue && Date.now() - snapStartedAt < 1500) {
+                const diffToBest = bestValue - current
+                const absDiffToBest = Math.abs(diffToBest)
+                const directionToBest = diffToBest > 0 ? 1 : -1
+                const beforeSnapStepText = store.get(textUnderCursorAtom)
+
+                if (absDiffToBest >= 16) {
+                    const key = directionToBest > 0 ? M8KeyMask.Up : M8KeyMask.Down
+                    await pressAndRelease(M8KeyMask.Edit | key, 35)
+                } else {
+                    const key = directionToBest > 0 ? M8KeyMask.Right : M8KeyMask.Left
+                    await pressAndRelease(M8KeyMask.Edit | key, 35)
+                }
+
+                await waitForTextUnderCursorChange(beforeSnapStepText, 250)
+                const snappedValue = parseIntValue(store.get(textUnderCursorAtom))
+                if (snappedValue === null || snappedValue === current) {
+                    break
+                }
+                current = snappedValue
+            }
+        }
+
+        await pressAndRelease(M8KeyMask.Edit)
+
+        const finalValue = parseIntValue(store.get(textUnderCursorAtom))
+        return finalValue === targetInt
+    }, [pressAndRelease, store, waitForTextUnderCursorChange])
+
+    // Implementation of setNote using edit+up/down for octave and edit+left/right for semitone
+    // If the exact note is unreachable (for example due to scale), this stops on the closest note found.
+    const setNoteImpl = useCallback(async (targetNoteString: string): Promise<boolean> => {
+        if (!busRef.current) return false
+
+        const parsedTarget = parseNoteValue(targetNoteString)
+        if (!parsedTarget) {
+            console.warn('[M8SDK] Invalid note format. Expected like C-1, C#1, D#A:', targetNoteString)
+            return false
+        }
+
+        let currentText = store.get(textUnderCursorAtom)
+        if (currentText?.trim() === '---') {
+            console.log('[M8SDK] Initial note is "---", priming with edit key')
+            await pressAndRelease(M8KeyMask.Edit)
+            await waitForTextUnderCursorChange(currentText, 250)
+            currentText = store.get(textUnderCursorAtom)
+        }
+
+        let currentNote = parseNoteValue(currentText)
+        if (!currentNote) {
+            console.warn('[M8SDK] Could not parse current note under cursor:', currentText)
+            return false
+        }
+
+        if (currentNote.semitoneIndex === parsedTarget.semitoneIndex) {
+            return true
+        }
+
+        // First attempt: precomputed semitone/octave path (fast path).
+        await pressAndRelease(M8KeyMask.Edit)
+        await waitForTextUnderCursorChange(currentText, 250)
+
+        const precomputedSequence = calculateNoteKeySequence(currentNote.semitoneIndex, parsedTarget.semitoneIndex)
+        if (precomputedSequence.length > 0) {
+            for (const keys of precomputedSequence) {
+                busRef.current?.commands.sendKeys(keys)
+                await wait(25)
+            }
+
+            await waitForTextUnderCursorChange(currentText, 280)
+            const precomputedFinal = parseNoteValue(store.get(textUnderCursorAtom))
+            if (precomputedFinal?.semitoneIndex === parsedTarget.semitoneIndex) {
+                await pressAndRelease(M8KeyMask.Edit)
+                return true
+            }
+
+            // Precomputed path can miss when scale quantization makes exact steps unreachable.
+            currentNote = precomputedFinal ?? currentNote
+        }
+
+        // Fallback: iterative closest-note search.
+
+        const seen = new Set<string>()
+        seen.add(currentNote.label)
+
+        const timeoutMs = 7000
+        const startedAt = Date.now()
+
+        while (Date.now() - startedAt < timeoutMs) {
+            const diff = parsedTarget.semitoneIndex - currentNote.semitoneIndex
+            if (diff === 0) {
+                break
+            }
+
+            const useOctaveStep = Math.abs(diff) >= 12
+            const positiveDirection = diff > 0
+            const key = useOctaveStep
+                ? (positiveDirection ? M8KeyMask.Up : M8KeyMask.Down)
+                : (positiveDirection ? M8KeyMask.Right : M8KeyMask.Left)
+            const reverseKey = useOctaveStep
+                ? (positiveDirection ? M8KeyMask.Down : M8KeyMask.Up)
+                : (positiveDirection ? M8KeyMask.Left : M8KeyMask.Right)
+
+            const previousNote = currentNote
+            const previousDistance = Math.abs(previousNote.semitoneIndex - parsedTarget.semitoneIndex)
+
+            const beforeStepText = store.get(textUnderCursorAtom)
+            await pressAndRelease(M8KeyMask.Edit | key, 35)
+            await waitForTextUnderCursorChange(beforeStepText, 250)
+
+            const newNote = parseNoteValue(store.get(textUnderCursorAtom))
+            if (!newNote) {
+                break
+            }
+            if (newNote.label === previousNote.label) {
+                break
+            }
+
+            currentNote = newNote
+            const currentDistance = Math.abs(currentNote.semitoneIndex - parsedTarget.semitoneIndex)
+
+            if (currentDistance > previousDistance) {
+                // Overshot into a worse candidate, step back and stop on the closer one.
+                const beforeReverseStep = store.get(textUnderCursorAtom)
+                await pressAndRelease(M8KeyMask.Edit | reverseKey, 35)
+                await waitForTextUnderCursorChange(beforeReverseStep, 250)
+                const steppedBack = parseNoteValue(store.get(textUnderCursorAtom))
+                if (steppedBack) {
+                    currentNote = steppedBack
+                }
+                break
+            }
+
+            if (seen.has(currentNote.label)) {
+                break
+            }
+            seen.add(currentNote.label)
+        }
+
+        await pressAndRelease(M8KeyMask.Edit)
+
+        const finalNote = parseNoteValue(store.get(textUnderCursorAtom))
+        return finalNote?.semitoneIndex === parsedTarget.semitoneIndex
+    }, [pressAndRelease, store, waitForTextUnderCursorChange, calculateNoteKeySequence])
+
+    // Implementation of setValueToString by anchoring at bottom and scanning forward one step at a time.
+    const setValueToStringImpl = useCallback(async (targetString: string, exact: boolean = true, searchInCurrentLine: boolean = false): Promise<boolean> => {
+        if (!busRef.current) return false
+
+        const normalizedTarget = normalizeForSearch(targetString)
+        if (!normalizedTarget) {
+            return false
+        }
+
+        // Some fields start at "---" and need one edit press before they expose real values.
+        const initialCursorText = store.get(textUnderCursorAtom)
+        if (initialCursorText?.trim() === '---') {
+            console.log('[M8SDK] Initial string value is "---", priming with edit key')
+            await pressAndRelease(M8KeyMask.Edit)
+            await waitForTextUnderCursorChange(initialCursorText, 250)
+        }
+
+        const getSearchSource = (): string | null => {
+            return searchInCurrentLine ? store.get(currentLineAtom) : store.get(textUnderCursorAtom)
+        }
+
+        const matches = (value: string | null): boolean => {
+            const normalizedValue = normalizeForSearch(value)
+            if (!normalizedValue) return false
+            return exact ? normalizedValue === normalizedTarget : normalizedValue.includes(normalizedTarget)
+        }
+
+        const beforeEnterEdit = store.get(textUnderCursorAtom)
+        await pressAndRelease(M8KeyMask.Edit)
+        await waitForTextUnderCursorChange(beforeEnterEdit, 250)
+
+        // 1) Go to the bottom: keep sending edit+down until value stops changing.
+        let currentText = store.get(textUnderCursorAtom)
+        const maxBottomConfirmationRetries = 1
+        let bottomNoChangeCount = 0
+        for (let i = 0; i < 512; i++) {
+            const beforeStepText = currentText
+            await pressAndRelease(M8KeyMask.Edit | M8KeyMask.Down, 35)
+            const nextText = await waitForTextUnderCursorChange(beforeStepText, 250)
+            if (normalizeForSearch(nextText) === normalizeForSearch(currentText)) {
+                bottomNoChangeCount += 1
+            } else {
+                bottomNoChangeCount = 0
+                currentText = nextText
+            }
+
+            // Once bottom is detected (no change), allow only one confirmation retry.
+            if (bottomNoChangeCount > maxBottomConfirmationRetries) {
+                break
+            }
+        }
+
+        // 2) Walk forward with edit+right and compare text at each step.
+        const seen = new Set<string>()
+        for (let i = 0; i < 1024; i++) {
+            const searchSource = getSearchSource()
+            if (matches(searchSource)) {
+                await pressAndRelease(M8KeyMask.Edit)
+                return true
+            }
+
+            const normalizedText = normalizeForSearch(searchSource)
+            if (normalizedText) {
+                if (seen.has(normalizedText)) {
+                    break
+                }
+                seen.add(normalizedText)
+            }
+
+            const beforeStepText = store.get(textUnderCursorAtom)
+            await pressAndRelease(M8KeyMask.Edit | M8KeyMask.Right, 35)
+            const nextText = await waitForTextUnderCursorChange(beforeStepText, 250)
+            if (normalizeForSearch(nextText) === normalizedText) {
+                break
+            }
+        }
+
+        await pressAndRelease(M8KeyMask.Edit)
+        return false
+    }, [pressAndRelease, store, waitForTextUnderCursorChange])
 
     // Store navigateTo in ref to avoid stale closures in the effect
     const navigateToRef = useRef(navigateTo)
@@ -414,6 +824,30 @@ export const useM8SdkHost = (bus: ConnectedBus | undefined, config: M8SdkConfig 
                         }
                         console.log('[M8SDK] Executing setValueToHex:', hex)
                         return setValueToHexImpl(hex)
+                    },
+                    setValueToInt: async (targetInt: number): Promise<boolean> => {
+                        if (!busRef.current) {
+                            console.warn('[M8SDK] setValueToInt: no bus connection')
+                            return false
+                        }
+                        console.log('[M8SDK] Executing setValueToInt:', targetInt)
+                        return setValueToIntImpl(targetInt)
+                    },
+                    setNote: async (noteString: string): Promise<boolean> => {
+                        if (!busRef.current) {
+                            console.warn('[M8SDK] setNote: no bus connection')
+                            return false
+                        }
+                        console.log('[M8SDK] Executing setNote:', noteString)
+                        return setNoteImpl(noteString)
+                    },
+                    setValueToString: async (targetString: string, exact: boolean = true, searchInCurrentLine: boolean = false): Promise<boolean> => {
+                        if (!busRef.current) {
+                            console.warn('[M8SDK] setValueToString: no bus connection')
+                            return false
+                        }
+                        console.log('[M8SDK] Executing setValueToString:', { targetString, exact, searchInCurrentLine })
+                        return setValueToStringImpl(targetString, exact, searchInCurrentLine)
                     },
                     sendKeyPress: async (keys: ('left' | 'right' | 'up' | 'down' | 'shift' | 'play' | 'opt' | 'edit')[]): Promise<void> => {
                         if (!busRef.current) {

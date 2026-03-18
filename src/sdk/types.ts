@@ -46,6 +46,9 @@ export interface M8HostMethods {
 
     // Value manipulation
     setValueToHex(targetHex: number): Promise<boolean>
+    setValueToInt(targetInt: number): Promise<boolean>
+    setNote(noteString: string): Promise<boolean>
+    setValueToString(targetString: string, exact?: boolean, searchInCurrentLine?: boolean): Promise<boolean>
 
     // Key press
     /** Send a key press to the M8. Keys: left, right, up, down, shift, play, opt, edit */

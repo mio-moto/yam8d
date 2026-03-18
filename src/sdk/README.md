@@ -8,7 +8,7 @@ The M8 SDK enables bidirectional communication between the yam8d host applicatio
 
 ## Architecture
 
-```
+```text
 ┌─────────────────┐         post-me           ┌─────────────────┐
 │   yam8d Host    │  ═══════════════════════► │  iframe Client  │
 │                 │   WindowMessenger         │                 │
@@ -49,6 +49,10 @@ await m8.navigateTo(10, 15);
 
 // Set a value using edit+navigation keys
 await m8.setValueToHex(0x3f);
+await m8.setValueToInt(63);
+await m8.setNote("c#4");
+await m8.setValueToString("sine", false);
+await m8.setValueToString("cutoff", false, true); // search in full current line
 
 // Subscribe to state changes
 const unsubscribe = m8.onStateChange((state) => {
@@ -69,8 +73,12 @@ m8.disconnect();
 | `navigateToView(viewName: string)` | Navigate to a view by name      | `Promise<boolean>` |
 | `navigateTo(x: number, y: number)` | Navigate to grid coordinates    | `Promise<void>`    |
 | `setValueToHex(hex: number)`       | Set value using edit+navigation | `Promise<boolean>` |
+| `setValueToInt(targetInt: number)` | Set decimal integer value       | `Promise<boolean>` |
+| `setNote(noteString: string)`      | Set note (for example `C#4`)    | `Promise<boolean>` |
 | `getState()`                       | Get full M8 state               | `Promise<M8State>` |
 | `sendKeys(keys: number)`           | Send key combination            | `void`             |
+
+Additional host method: `setValueToString(targetString: string, exact?: boolean, searchInCurrentLine?: boolean): Promise<boolean>`.
 
 ### Client State (reactive)
 
@@ -135,6 +143,7 @@ import type {
 
 - The SDK currently uses `remoteOrigin: '*'` for the iframe
 - For production, specify allowed origins in the config:
+
   ```typescript
   useM8SdkHost(bus, {
     allowedOrigins: ["https://trusted-domain.com"],
