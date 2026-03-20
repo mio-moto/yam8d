@@ -35,18 +35,12 @@
 }
 
 [data-code]:hover {
-    fill-opacity: 0.85 !important;
+    fill-opacity: 0.85;
 }
 
 [data-code].has-mapping {
     stroke: rgba(255, 255, 255, 0.25);
     stroke-width: 1px;
-}
-
-/* Visual feedback when key is pressed without mapping selected */
-[data-code].pressed {
-    fill: white !important;
-    fill-opacity: 1 !important;
 }
 
 /* Virtual keyboard: note assignment (aqua — distinct from M8 teal) */
@@ -100,4 +94,11 @@
 .vk-setup-key.pressed {
     stroke: #f2c266;
     stroke-width: 1.2;
+}
+
+/* Visual feedback when key is pressed without mapping selected */
+[data-code].pressed,
+[data-code].pressed:hover {
+    fill: white;
+    fill-opacity: 1;
 }

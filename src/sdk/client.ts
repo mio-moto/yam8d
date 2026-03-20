@@ -166,9 +166,10 @@ class M8ClientImpl implements M8Client {
         })
 
         // Listen for cursor movements
-        this.remoteHandle.addEventListener('cursorMoved', (payload: { pos: M8State['cursorPos']; rect: M8State['cursorRect'] }) => {
+        this.remoteHandle.addEventListener('cursorMoved', (payload: { pos: M8State['cursorPos']; rect: M8State['cursorRect']; selectionMode: boolean }) => {
             this._state.cursorPos = payload.pos
             this._state.cursorRect = payload.rect
+            this._state.selectionMode = payload.selectionMode
             this.cursorMoveCallbacks.forEach(cb => { cb(payload.pos, payload.rect) })
         })
 
@@ -320,6 +321,7 @@ function getDefaultState(): M8State {
         deviceModel: null,
         fontMode: null,
         systemInfo: null,
+        selectionMode: false,
         macroRunning: false,
     }
 }

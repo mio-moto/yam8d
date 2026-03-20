@@ -916,7 +916,15 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
           // Step 0: Clear + background shader
           gl.bindFramebuffer(gl.FRAMEBUFFER, null)
           gl.viewport(0, 0, displayWidth, displayHeight)
-          gl.clearColor(0, 0, 0, 1)
+          // When no background shader, clear to the M8 background color so that
+          // the alpha=0 areas of the rects FBO composite correctly (no black flash).
+          const bgForClear = rectRenderer.getBackgroundColor()
+          gl.clearColor(
+            backgroundShader ? 0 : bgForClear.r,
+            backgroundShader ? 0 : bgForClear.g,
+            backgroundShader ? 0 : bgForClear.b,
+            1,
+          )
           gl.clear(gl.COLOR_BUFFER_BIT)
           renderBackground()
 
@@ -1152,9 +1160,9 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
       if (rectsClear) {
         gl.bindFramebuffer(gl.FRAMEBUFFER, rectsFramebuffer)
         gl.viewport(0, 0, width, height)
-        // Make background transparent when any background shader is enabled so it shows through
-        const alpha = backgroundShader ? 0.0 : 1.0
-        gl.clearColor(background.r, background.g, background.b, alpha)
+        // Alpha in the rects FBO is handled by the chroma-key shader at blit time;
+        // always clear opaque so non-keyed blits composite correctly.
+        gl.clearColor(background.r, background.g, background.b, 1.0)
         gl.clear(gl.COLOR_BUFFER_BIT)
         rectsClear = false
       }
@@ -1352,7 +1360,10 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
       bgFrameCount = 0
       // Destroy ping-pong buffers so they are recreated fresh when re-enabled
       destroyBgPingPongBuffers()
-      rectRenderer.invalidate()
+      // Do NOT invalidate rects here: the rects FBO already holds the last rendered
+      // scene and is still valid. The canvas clear in queueFrame will use the M8
+      // background color when no shader is active, so transparent areas composite
+      // correctly without losing the current display.
       queueFrame()
     },
     setAudioSpectrumBands: (bands: 64 | 128 | 256) => {

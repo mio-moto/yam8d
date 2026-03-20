@@ -13,10 +13,11 @@ import { Menu } from './features/settings/menu'
 import { useSettingsContext } from './features/settings/settings'
 import { VirtualKeyboard } from './features/virtualKeyboard/VirtualKeyboard'
 //import { ProgramChangeKeyboard } from './features/virtualKeyboard/ProgramChangeKeyboard'
-// import { StatusPanel } from './features/debug/StatusPanel'
 import { ShortcutsDisplay } from './features/shortcuts/shortcutsIntegration'
+import { TutorGameDisplay } from './features/tutor/tutorGameIntegration'
 import { WelcomeSplash } from './features/WelcomeSplash'
 import { BackgroundShaderEditor } from './features/rendering/BackgroundShaderEditor'
+// import { StatusPanel } from './features/debug/StatusPanel'
 // import { SdkTest } from './components/SdkTest'
 
 const appClass = css`
@@ -89,8 +90,9 @@ export const App: FC = () => {
           </div>
           {settings.showBackgroundShaderEditor && <BackgroundShaderEditor />}
           {settings.displayShortcuts && <ShortcutsDisplay bus={connectedBus} />}
+          {settings.displayTutorGame && <TutorGameDisplay bus={connectedBus} />}
           {/* <SdkTest bus={connectedBus} /> */}
-          {/* <StatusPanel bus={connectedBus} /> */}
+          {/* <StatusPanel /> */}
         </>
       )}
     </>

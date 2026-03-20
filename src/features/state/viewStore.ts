@@ -44,6 +44,9 @@ export const cursorPosAtom = atom<CursorPos | null>(null)
 // Current cursor rectangle (position + size normalized to 480x320 space)
 export const cursorRectAtom = atom<CursorRect | null>(null)
 
+// Whether cursor is currently rendered as a full 1px selection rectangle
+export const selectionModeAtom = atom<boolean>(false)
+
 // Last detected highlight color (theme-dependent)
 export const highlightColorAtom = atom<RGB | null>(null)
 
@@ -75,6 +78,7 @@ export const useViewTitle = () => useAtom(viewTitleAtom)
 export const useMinimapKey = () => useAtom(minimapKeyAtom)
 export const useCursor = () => useAtom(cursorPosAtom)
 export const useCursorRect = () => useAtom(cursorRectAtom)
+export const useSelectionMode = () => useAtom(selectionModeAtom)
 export const useHighlightColor = () => useAtom(highlightColorAtom)
 export const useTextUnderCursor = () => useAtom(textUnderCursorAtom)
 export const useCurrentLine = () => useAtom(currentLineAtom)

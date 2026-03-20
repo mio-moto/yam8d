@@ -14,6 +14,7 @@ import {
     minimapKeyAtom,
     cursorPosAtom,
     cursorRectAtom,
+    selectionModeAtom,
     highlightColorAtom,
     textUnderCursorAtom,
     currentLineAtom,
@@ -46,6 +47,7 @@ const getCurrentState = (): M8State => {
         minimapKey: store.get(minimapKeyAtom),
         cursorPos: store.get(cursorPosAtom),
         cursorRect: store.get(cursorRectAtom),
+        selectionMode: store.get(selectionModeAtom),
         highlightColor: store.get(highlightColorAtom),
         titleColor: store.get(titleColorAtom),
         backgroundColor: store.get(backgroundColorAtom),
@@ -724,10 +726,10 @@ export const useM8SdkHost = (bus: ConnectedBus | undefined, config: M8SdkConfig 
         handle.emit('viewChanged', { viewName, viewTitle })
     }, [])
 
-    const emitCursorMoved = useCallback((pos: ReturnType<typeof getCurrentState>['cursorPos'], rect: ReturnType<typeof getCurrentState>['cursorRect']) => {
+    const emitCursorMoved = useCallback((pos: ReturnType<typeof getCurrentState>['cursorPos'], rect: ReturnType<typeof getCurrentState>['cursorRect'], selectionMode: boolean) => {
         const handle = localHandleRef.current
         if (!handle) return
-        handle.emit('cursorMoved', { pos, rect })
+        handle.emit('cursorMoved', { pos, rect, selectionMode })
     }, [])
 
     const emitTextUpdated = useCallback((textUnderCursor: string | null, currentLine: string | null) => {
@@ -745,27 +747,14 @@ export const useM8SdkHost = (bus: ConnectedBus | undefined, config: M8SdkConfig 
     // Convert text grid coordinates to pixel coordinates
     // Text grid: x (0-39), y (0-23) - independent of font size
     // Pixel: depends on current cell metrics (cellW, cellH, offX, offY)
-    // The cursor position from M8 is the top-left of the cursor rectangle.
-    // Formula derived from actual cursor positions:
-    // - pixelY = gridY * cellH + offY (offY is now 2 for all modes)
-    // - pixelX = gridX * cellW + xOffset, where xOffset = floor(cellW * 0.8)
+    // Send the center of the target cell so M8 places the cursor exactly there.
+    // gx extraction in viewExtractor uses Math.round to absorb the cursor border
+    // overhang, so no additional x compensation is needed here.
     const textGridToPixel = useCallback((gridX: number, gridY: number): { x: number; y: number } => {
         const cellMetrics = store.get(cellMetricsAtom)
 
-        // X offset is the horizontal padding before the first text column
-        // Pattern: floor(cellW * 0.8) gives correct offset across all modes
-        // - cellW=8 (M8:01 small): 6
-        // - cellW=12 (M8:02 normal): 9
-        // - cellW=15 (M8:02 large): 12
-        const xOffset = Math.floor(cellMetrics.cellW * 0.8)
-
-        // Y offset is already accounted for in offY (now 2 for all modes)
-        // No additional yOffset needed
-
-        // Calculate pixel position in raw protocol coordinate space
-        // No rectOffset needed: cursor rects and characters both use raw M8 protocol
-        // coordinates. rectOffset is only a visual rendering offset applied by the renderer.
-        const pixelX = gridX * cellMetrics.cellW + cellMetrics.offX + xOffset + cellMetrics.cellW / 2
+        // Center of cell (gridX, gridY) in raw M8 protocol pixel space
+        const pixelX = gridX * cellMetrics.cellW + cellMetrics.offX + cellMetrics.cellW / 2
         const pixelY = gridY * cellMetrics.cellH + cellMetrics.offY + cellMetrics.cellH / 2
 
         return { x: pixelX, y: pixelY }
@@ -929,6 +918,7 @@ export const useM8SdkHost = (bus: ConnectedBus | undefined, config: M8SdkConfig 
     const viewTitle = useAtomValue(viewTitleAtom)
     const cursorPos = useAtomValue(cursorPosAtom)
     const cursorRect = useAtomValue(cursorRectAtom)
+    const selectionMode = useAtomValue(selectionModeAtom)
     const textUnderCursor = useAtomValue(textUnderCursorAtom)
     const currentLine = useAtomValue(currentLineAtom)
     const macroStatus = useAtomValue(macroStatusAtom)
@@ -962,19 +952,21 @@ export const useM8SdkHost = (bus: ConnectedBus | undefined, config: M8SdkConfig 
         const prev = prevCursorRef.current
         const current = { pos: cursorPos, rect: cursorRect }
 
-        // Skip if no change
+        // Skip if no change (pos, rect, or selectionMode)
         if (prev &&
             prev.pos?.x === current.pos?.x &&
             prev.pos?.y === current.pos?.y &&
             prev.rect?.x === current.rect?.x &&
-            prev.rect?.y === current.rect?.y) {
+            prev.rect?.y === current.rect?.y &&
+            prev.rect?.w === current.rect?.w &&
+            prev.rect?.h === current.rect?.h) {
             return
         }
 
         prevCursorRef.current = current
-        console.log('[M8SDK] Cursor moved:', cursorPos, cursorRect)
-        emitCursorMoved(cursorPos, cursorRect)
-    }, [clientConnected, cursorPos, cursorRect, emitCursorMoved])
+        console.log('[M8SDK] Cursor moved:', cursorPos, cursorRect, 'selection:', selectionMode)
+        emitCursorMoved(cursorPos, cursorRect, selectionMode)
+    }, [clientConnected, cursorPos, cursorRect, selectionMode, emitCursorMoved])
 
     // Emit text changes - only when actually changed
     useEffect(() => {

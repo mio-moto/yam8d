@@ -2,7 +2,7 @@ import { css, cx } from '@linaria/core'
 // import type { ConnectedBus } from '../connection/connection'
 // import { useMacroRunner } from '../macros/macroRunner'
 // import { useAutoViewGraph } from '../macros/autoViewGraph'
-import { useCellMetrics, useCursor, useCursorRect, useDeviceModel, useFontMode, useMacroStatus, useViewTitle, useViewName, useHighlightColor, useTextUnderCursor, useCurrentLine } from '../state/viewStore'
+import { useCellMetrics, useCursor, useCursorRect, useSelectionMode, useDeviceModel, useFontMode, useMacroStatus, useViewTitle, useViewName, useHighlightColor, useTextUnderCursor, useCurrentLine } from '../state/viewStore'
 
 const panelClass = css`
   position: absolute;
@@ -50,6 +50,7 @@ export const StatusPanel = (/*{ bus }: { bus?: ConnectedBus }*/) => {
   // const [titleFirstBg] = useBackgroundColor()
   const [cursor] = useCursor()
   const [cursorRect] = useCursorRect()
+  const [selectionMode] = useSelectionMode()
   const [highlightColor] = useHighlightColor()
   const [textUnderCursor] = useTextUnderCursor()
   const [currentLine] = useCurrentLine()
@@ -89,6 +90,10 @@ export const StatusPanel = (/*{ bus }: { bus?: ConnectedBus }*/) => {
 
       <span className="label">CursorRect</span>
       <span className="value">{cursorRect ? `${cursorRect.x}, ${cursorRect.y}, ${cursorRect.w}×${cursorRect.h}` : '—'}</span>
+      <span />
+
+      <span className="label">Selection Mode</span>
+      <span className="value">{selectionMode ? 'true' : 'false'}</span>
       <span />
 
       <span className="label">Highlight Color</span>

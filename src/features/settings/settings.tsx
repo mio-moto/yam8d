@@ -34,7 +34,9 @@ export type Settings = {
     fullM8View: boolean
     virtualKeyboard: boolean
     displayShortcuts: boolean
+    displayTutorGame: boolean
     shortcutsHost: string
+    tutorGameHost: string
     showM8Body: boolean
     smoothRendering: boolean
     smoothBlurRadius: number
@@ -57,7 +59,9 @@ const defaultSettings: Settings = {
     fullM8View: true,
     virtualKeyboard: true,
     displayShortcuts: false,
+    displayTutorGame: false,
     shortcutsHost: 'https://m8-shortcuts-65mb.vercel.app/', //'https://miomoto.de/m8-shortcuts/',
+    tutorGameHost: 'http://localhost:5174/',
     showM8Body: true,
     smoothRendering: true,
     smoothBlurRadius: 5.6,

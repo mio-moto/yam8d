@@ -57,14 +57,6 @@
     transform: rotate(-45deg);
 }
 
-.menu.closed .menu-item {
-    display: none;
-}
-
-.menu.closed .menu-section {
-    display: none;
-}
-
 .menu-section {
     display: grid;
     row-gap: 6px;
@@ -89,6 +81,14 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+}
+
+.menu.closed .menu-item {
+    display: none;
+}
+
+.menu.closed .menu-section {
+    display: none;
 }
 
 .menu-item>.title {

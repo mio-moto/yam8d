@@ -327,6 +327,14 @@
               <div class="value" id="text-cursor">-</div>
             </div>
             <div class="state-item">
+              <div class="label">Selection Mode</div>
+              <div class="value" id="selection-mode">-</div>
+            </div>
+            <div class="state-item">
+              <div class="label">Cursor Rect</div>
+              <div class="value" id="cursor-rect">-</div>
+            </div>
+            <div class="state-item">
               <div class="label">Device Model</div>
               <div class="value" id="device-model">-</div>
             </div>
@@ -552,6 +560,8 @@ m8.onKeyPress((keys) => log("keys", keys));
             viewName: null,
             viewTitle: null,
             cursorPos: null,
+            cursorRect: null,
+            selectionMode: false,
             textUnderCursor: null,
             deviceModel: null,
             macroRunning: false,
@@ -617,11 +627,13 @@ m8.onKeyPress((keys) => log("keys", keys));
 
             this.remoteHandle.addEventListener(
               "cursorMoved",
-              ({ pos, rect }) => {
+              ({ pos, rect, selectionMode }) => {
                 log(
-                  `Event: cursorMoved - (${pos?.x}, ${pos?.y}) - Rect ${rect.x}, ${rect.y}, ${rect.w}×${rect.h}`,
+                  `Event: cursorMoved - (${pos?.x}, ${pos?.y}) - Rect ${rect?.x}, ${rect?.y}, ${rect?.w}×${rect?.h} sel=${selectionMode}`,
                 );
                 this.state.cursorPos = pos;
+                this.state.cursorRect = rect;
+                this.state.selectionMode = selectionMode;
                 updateUI();
               },
             );
@@ -800,6 +812,11 @@ m8.onKeyPress((keys) => log("keys", keys));
           : "-";
         document.getElementById("text-cursor").textContent =
           state.textUnderCursor || "-";
+        document.getElementById("selection-mode").textContent =
+          state.selectionMode ? "true" : "false";
+        document.getElementById("cursor-rect").textContent = state.cursorRect
+          ? `${state.cursorRect.x}, ${state.cursorRect.y}, ${state.cursorRect.w}×${state.cursorRect.h}`
+          : "-";
         document.getElementById("device-model").textContent =
           state.deviceModel || "-";
       }

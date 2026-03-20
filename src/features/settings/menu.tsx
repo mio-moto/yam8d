@@ -12,6 +12,7 @@ export const Menu: FC = () => {
     const { settings, updateSettingValue } = useSettingsContext()
     const [opened, setOpened] = useState(false)
     const [hostDraft, setHostDraft] = useState(settings.shortcutsHost)
+    const [tutorHostDraft, setTutorHostDraft] = useState(settings.tutorGameHost)
     const [keyboardSettingsOpen, setKeyboardSettingsOpen] = useState(false)
     const [manualOpen, setManualOpen] = useState(false)
     const menuRef = useRef<HTMLDivElement | null>(null)
@@ -31,6 +32,10 @@ export const Menu: FC = () => {
         setHostDraft(settings.shortcutsHost)
     }, [settings.shortcutsHost])
 
+    useEffect(() => {
+        setTutorHostDraft(settings.tutorGameHost)
+    }, [settings.tutorGameHost])
+
     // Debounce persisting the host to settings
     useEffect(() => {
         const id = setTimeout(() => {
@@ -40,6 +45,15 @@ export const Menu: FC = () => {
         }, 400)
         return () => clearTimeout(id)
     }, [hostDraft, settings.shortcutsHost, updateSettingValue])
+
+    useEffect(() => {
+        const id = setTimeout(() => {
+            if (tutorHostDraft !== settings.tutorGameHost) {
+                updateSettingValue('tutorGameHost', tutorHostDraft)
+            }
+        }, 400)
+        return () => clearTimeout(id)
+    }, [tutorHostDraft, settings.tutorGameHost, updateSettingValue])
 
     // Close menu when clicking anywhere outside the menu or the toggle hitbox
     useEffect(() => {
@@ -157,6 +171,33 @@ export const Menu: FC = () => {
                             </div>
                         </div>
                     )}
+{/* 
+                    <div className="menu-item">
+                        <span className="title">Display tutor game</span>
+                        <div>
+                            <Button selected={settings.displayTutorGame} onClick={() => updateSettingValue('displayTutorGame', true)}>
+                                Yes
+                            </Button>
+                            <Button selected={!settings.displayTutorGame} onClick={() => updateSettingValue('displayTutorGame', false)}>
+                                No
+                            </Button>
+                        </div>
+                    </div>
+                    {settings.displayTutorGame && (
+                        <div className="menu-submenu">
+                            <div className="menu-item">
+                                <span className="title">Tutor host</span>
+                                <div>
+                                    <Input
+                                        value={tutorHostDraft}
+                                        placeholder="http://localhost:5174/"
+                                        onChange={(e) => setTutorHostDraft((e.target as HTMLInputElement).value)}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    */}
                 </div>
 
                 <div className="menu-section">

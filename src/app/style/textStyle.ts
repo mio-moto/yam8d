@@ -64,40 +64,31 @@ export const bodyFragments = notCss({
     }),
 } as const)
 
-/* heading M */
-export const headingMFragment = `
+export const headingFragments = notCss({
+    m: `
 font-size: ${fontSizeValues.m};
 line-height: 100%;
 letter-spacing: normal;
 font-weight: ${fontWeightValues.regular};
-font-stretch: condensed;` as const
-/* heading L */
-export const headingLFragment = `
+font-stretch: condensed;` as const,
+    l: `
 font-size: ${fontSizeValues.l};
 line-height: 100%;
 letter-spacing: normal;
 font-weight: ${fontWeightValues.regular};
-font-stretch: condensed;` as const
-/* heading XL */
-export const headingXLFragment = `
+font-stretch: condensed;` as const,
+    xl: `
 font-size: ${fontSizeValues.xl};
 line-height: 100%;
 letter-spacing: normal;
 font-weight: ${fontWeightValues.regular};
-font-stretch: condensed;` as const
-/* heading XL */
-export const headingXXLFragment = `
+font-stretch: condensed;` as const,
+    xxl: `
 font-size: ${fontSizeValues.xxl};
 line-height: 100%;
 letter-spacing: normal;
 font-weight: ${fontWeightValues.regular};
-font-stretch: condensed;` as const
-
-export const headingFragments = notCss({
-    m: headingMFragment,
-    l: headingLFragment,
-    xl: headingXLFragment,
-    xxl: headingXXLFragment,
+font-stretch: condensed;` as const,
 })
 
 /* Button M/L */

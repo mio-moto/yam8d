@@ -12,6 +12,7 @@ export interface M8State {
     // Cursor information
     cursorPos: CursorPos | null
     cursorRect: CursorRect | null
+    selectionMode: boolean
 
     // Colors
     highlightColor: RGB | null
@@ -68,7 +69,7 @@ export interface M8ClientMethods {
 export interface M8HostEvents {
     stateChanged: M8State
     viewChanged: { viewName: string | null; viewTitle: string | null }
-    cursorMoved: { pos: CursorPos | null; rect: CursorRect | null }
+    cursorMoved: { pos: CursorPos | null; rect: CursorRect | null; selectionMode: boolean }
     textUpdated: { textUnderCursor: string | null; currentLine: string | null }
     keyPressed: { keys: number }
 }

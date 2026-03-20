@@ -4,7 +4,6 @@ import react from '@vitejs/plugin-react'
 import wyw from '@wyw-in-js/vite'
 import { defineConfig, type Plugin, searchForWorkspaceRoot } from 'vite'
 import checker from 'vite-plugin-checker'
-import tsconfigPaths from 'vite-tsconfig-paths'
 
 const fixSourceMaps = (): Plugin => {
     let interval: ReturnType<typeof setInterval> | null = null
@@ -56,8 +55,10 @@ const fixSourceMaps = (): Plugin => {
 // https://vite.dev/config/
 export default defineConfig({
     base: './',
+    resolve: {
+        tsconfigPaths: true,
+    },
     plugins: [
-        tsconfigPaths(),
         wyw({
             include: ['**/*.{ts,tsx}'],
             babelOptions: {

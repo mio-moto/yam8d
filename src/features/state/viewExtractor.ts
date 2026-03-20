@@ -15,6 +15,7 @@ import {
     viewTitleAtom,
     titleColorAtom,
     backgroundColorAtom,
+    selectionModeAtom,
     type CursorRect,
     type RGB,
 } from './viewStore'
@@ -45,69 +46,296 @@ interface CursorAssembly {
 const defaultCursor: CursorRect = { x: 0, y: 0, w: 1, h: 1 }
 
 
+interface SelectionRectSample {
+    x: number
+    y: number
+    w: number
+    h: number
+    ts: number
+    hasColor: boolean
+}
+
 class AssemblyCursorExtractor {
     // Active cursor assemblies being built
     private assemblies: CursorAssembly[] = []
 
-    // Last detected cursor (default)
+    // Recent 1px-border segments used to detect selection rectangles
+    private selectionRectSamples: SelectionRectSample[] = []
+
+    // Last cursor from the corner-based assembly. NEVER written by selection detection.
     private lastCursor: CursorRect = defaultCursor
+
+    // Last selection rectangle (separate from lastCursor to avoid cross-contamination)
+    private lastSelectionCursor: CursorRect | null = null
 
     // Last detected cursor color (from type 4 rectangles)
     private lastCursorColor: RGB | null = null
 
+    // Selection mode tracking
+    private lastSelectionMode = false
+    private lastSelectionSeenAt = 0
+
     // Timeout for stale assemblies (ms)
     private readonly ASSEMBLY_TIMEOUT = 100
+    // Max age of segment samples considered part of the same selection draw call
+    private readonly SELECTION_SAMPLE_WINDOW = 50
+    // How long to stay in selection mode after the last fresh detection
+    private readonly SELECTION_HOLD_DURATION = 150
 
     /**
-     * Process a rectangle command
+     * Process a rectangle command.
+     * Strategy: run normal corner assembly FIRST (unchanged), only attempt
+     * selection detection as a fallback. Selection detection NEVER writes
+     * lastCursor, so false positives cannot corrupt normal cursor tracking.
      */
-    processRect(rect: RectCommand): { cursor: CursorRect; cursorColor: RGB | null } {
-        if (!rect) return { cursor: defaultCursor, cursorColor: this.lastCursorColor }
+    processRect(rect: RectCommand): { cursor: CursorRect; cursorColor: RGB | null; selectionMode: boolean } {
+        if (!rect) {
+            const cursorOut = this.lastSelectionMode && this.lastSelectionCursor
+                ? this.lastSelectionCursor
+                : this.lastCursor
+            return { cursor: cursorOut, cursorColor: this.lastCursorColor, selectionMode: this.lastSelectionMode }
+        }
+
         const now = Date.now()
 
-        // Clean up stale assemblies
-        this.assemblies = this.assemblies.filter(a =>
-            now - a.startTime < this.ASSEMBLY_TIMEOUT
-        )
+        // ----- 1. Normal corner-based cursor assembly (original, unchanged logic) -----
+        this.assemblies = this.assemblies.filter(a => now - a.startTime < this.ASSEMBLY_TIMEOUT)
 
-        // Process the rectangle against all active assemblies
         let completedCursor: CursorRect | null = null
-
         for (const assembly of this.assemblies) {
             if (assembly.state === 'complete') continue
-
             this.processRectAgainstAssembly(rect, assembly)
-
             if (this.isAssemblyComplete(assembly)) {
                 completedCursor = this.buildCursorFromAssembly(assembly)
                 assembly.state = 'complete'
             }
         }
 
-        // If we completed a cursor, clean up and return it
         if (completedCursor) {
             this.lastCursor = completedCursor
-            this.assemblies = [] // Clear all assemblies (start fresh)
-            return { cursor: completedCursor, cursorColor: this.lastCursorColor }
+            this.assemblies = []
+            // Normal cursor confirmed → exit selection mode immediately
+            this.lastSelectionMode = false
+            this.lastSelectionCursor = null
+            this.selectionRectSamples = []
+            return { cursor: completedCursor, cursorColor: this.lastCursorColor, selectionMode: false }
         }
 
-        // If this is a potential TL starter (type 4, 3x1), start new assembly
+        // Start a new assembly from a type-4 TL corner candidate
         if (rect.type === 4 && rect.size.width === 3 && rect.size.height === 1) {
             const newAssembly = this.createNewAssembly(rect)
             this.assemblies.push(newAssembly)
-
-            // Capture cursor color from type 4 rectangles
             if ('color' in rect && rect.color) {
                 this.lastCursorColor = rect.color
             }
-
-            // Keep only 2 most recent assemblies to avoid explosion
             if (this.assemblies.length > 2) {
                 this.assemblies = this.assemblies.slice(-2)
             }
         }
 
-        return { cursor: this.lastCursor, cursorColor: this.lastCursorColor }
+        // ----- 2. Selection border detection (only if normal assembly didn't complete) -----
+        this.recordSelectionSample(rect, now)
+        const selectionCursor = this.detectSelectionCursor(now)
+
+        if (selectionCursor) {
+            this.lastSelectionCursor = selectionCursor
+            this.lastSelectionMode = true
+            this.lastSelectionSeenAt = now
+            // Clear after a full detection so next cycle starts with a clean buffer.
+            // This prevents old edges (still within the 50ms window) from polluting
+            // the next detection and making the old position win the score race.
+            this.selectionRectSamples = []
+            return { cursor: selectionCursor, cursorColor: this.lastCursorColor, selectionMode: true }
+        }
+
+        // Incremental update path: while in selection mode, M8 can redraw only one
+        // border segment at a time. Keep rect tracking independent from key events
+        // by updating the previous selection rectangle from partial edge draws.
+        const incrementalSelection = this.updateSelectionFromPartialRect(rect)
+        if (incrementalSelection) {
+            this.lastSelectionCursor = incrementalSelection
+            this.lastSelectionMode = true
+            this.lastSelectionSeenAt = now
+            return { cursor: incrementalSelection, cursorColor: this.lastCursorColor, selectionMode: true }
+        }
+
+        // Stay in selection mode for SELECTION_HOLD_DURATION after last fresh detection
+        if (this.lastSelectionMode) {
+            if (now - this.lastSelectionSeenAt > this.SELECTION_HOLD_DURATION) {
+                this.lastSelectionMode = false
+                this.lastSelectionCursor = null
+            } else if (this.lastSelectionCursor) {
+                return { cursor: this.lastSelectionCursor, cursorColor: this.lastCursorColor, selectionMode: true }
+            }
+        }
+
+        return { cursor: this.lastCursor, cursorColor: this.lastCursorColor, selectionMode: false }
+    }
+
+    private updateSelectionFromPartialRect(rect: RectCommand): CursorRect | null {
+        if (!this.lastSelectionMode || !this.lastSelectionCursor) return null
+
+        const w = rect.size.width
+        const h = rect.size.height
+        const isHorizontal = h === 1 && w >= 5
+        const isVertical = w === 1 && h >= 3
+        if (!isHorizontal && !isVertical) return null
+
+        const prev = this.lastSelectionCursor
+        let left = prev.x - 1
+        let top = prev.y - 1
+        let right = prev.x + prev.w
+        let bottom = prev.y + prev.h
+
+        if (isHorizontal) {
+            const lineLeft = rect.pos.x
+            const lineRight = rect.pos.x + w - 1
+            const prevSpan = right - left + 1
+            const overlap = Math.min(lineRight, right) - Math.max(lineLeft, left) + 1
+
+            // Reject unrelated horizontal lines.
+            if (overlap < Math.max(3, Math.floor(prevSpan * 0.6))) return null
+
+            const y = rect.pos.y
+            if (Math.abs(y - top) <= Math.abs(y - bottom)) {
+                top = y
+            } else {
+                bottom = y
+            }
+
+            // Keep lateral bounds coherent with the longest observed edge.
+            if (lineRight - lineLeft > right - left) {
+                left = lineLeft
+                right = lineRight
+            }
+        } else {
+            const lineTop = rect.pos.y
+            const lineBottom = rect.pos.y + h - 1
+            const prevSpan = bottom - top + 1
+            const overlap = Math.min(lineBottom, bottom) - Math.max(lineTop, top) + 1
+
+            // Reject unrelated vertical lines.
+            if (overlap < Math.max(3, Math.floor(prevSpan * 0.6))) return null
+
+            const x = rect.pos.x
+            if (Math.abs(x - left) <= Math.abs(x - right)) {
+                left = x
+            } else {
+                right = x
+            }
+
+            // Keep vertical bounds coherent with the longest observed edge.
+            if (lineBottom - lineTop > bottom - top) {
+                top = lineTop
+                bottom = lineBottom
+            }
+        }
+
+        const outerW = right - left + 1
+        const outerH = bottom - top + 1
+        if (outerW < 3 || outerH < 3) return null
+
+        return {
+            x: left + 1,
+            y: top + 1,
+            w: outerW - 2,
+            h: outerH - 2,
+        }
+    }
+
+    private recordSelectionSample(rect: RectCommand, now: number): void {
+        const w = rect.size.width
+        const h = rect.size.height
+
+        // w >= 5 excludes the normal corner cursor's 3px-wide pieces (TL/TR/BL/BR are all 3x1)
+        // h >= 3 excludes the 1x2 corner-edge pieces
+        const isHorizontal = h === 1 && w >= 5
+        const isVertical = w === 1 && h >= 3
+        if (!isHorizontal && !isVertical) return
+
+        this.selectionRectSamples.push({
+            x: rect.pos.x,
+            y: rect.pos.y,
+            w,
+            h,
+            ts: now,
+            hasColor: rect.type === 2 || rect.type === 4,
+        })
+
+        this.selectionRectSamples = this.selectionRectSamples.filter(sample => now - sample.ts <= this.SELECTION_SAMPLE_WINDOW)
+    }
+
+    private detectSelectionCursor(now: number): CursorRect | null {
+        this.selectionRectSamples = this.selectionRectSamples.filter(sample => now - sample.ts <= this.SELECTION_SAMPLE_WINDOW)
+        if (this.selectionRectSamples.length < 4) return null
+
+        const horizontals = this.selectionRectSamples.filter(sample => sample.h === 1 && sample.w >= 3)
+        const verticals = this.selectionRectSamples.filter(sample => sample.w === 1 && sample.h >= 3)
+        if (horizontals.length === 0 || verticals.length === 0) return null
+
+        const refCursor = this.lastSelectionMode && this.lastSelectionCursor
+            ? this.lastSelectionCursor
+            : this.lastCursor
+        const prevCenterX = refCursor.x + refCursor.w / 2
+        const prevCenterY = refCursor.y + refCursor.h / 2
+
+        let best: { cursor: CursorRect; score: number; latestTs: number } | null = null
+
+        for (const top of horizontals) {
+            for (const bottom of horizontals) {
+                if (bottom.y <= top.y) continue
+                if (bottom.x !== top.x || bottom.w !== top.w) continue
+
+                const outerH = bottom.y - top.y + 1
+                if (outerH < 3) continue
+
+                // M8 may draw verticals starting 1px inside the corners:
+                //   left side: x=top.x, y=top.y+1, h=outerH-2  (skipping corners)
+                //   OR:        x=top.x, y=top.y,   h=outerH     (covering corners)
+                // Both are valid – check that the segment spans from near top to near bottom.
+                const left = verticals.find(v =>
+                    v.x === top.x &&
+                    v.y >= top.y && v.y <= top.y + 2 &&
+                    v.y + v.h - 1 >= bottom.y - 1
+                )
+                if (!left) continue
+
+                const rightX = top.x + top.w - 1
+                const right = verticals.find(v =>
+                    v.x === rightX &&
+                    v.y >= top.y && v.y <= top.y + 2 &&
+                    v.y + v.h - 1 >= bottom.y - 1
+                )
+                if (!right) continue
+
+                const cursor = {
+                    x: top.x + 1,
+                    y: top.y + 1,
+                    w: top.w - 2,
+                    h: outerH - 2,
+                }
+
+                if (cursor.w <= 0 || cursor.h <= 0) continue
+
+                const latestTs = Math.max(top.ts, bottom.ts, left.ts, right.ts)
+
+                // Tiebreak by distance from previous cursor center (prefer spatially close)
+                const centerX = cursor.x + cursor.w / 2
+                const centerY = cursor.y + cursor.h / 2
+                const dx = centerX - prevCenterX
+                const dy = centerY - prevCenterY
+                const score = dx * dx + dy * dy
+
+                // Primary sort: freshest quad wins (avoids stale previous-frame edges
+                // shadowing new ones when both are within the SELECTION_SAMPLE_WINDOW).
+                // Secondary sort: closest to previous center.
+                if (!best || latestTs > best.latestTs || (latestTs === best.latestTs && score < best.score)) {
+                    best = { cursor, score, latestTs }
+                }
+            }
+        }
+
+        return best?.cursor ?? null
     }
 
     /**
@@ -116,8 +344,6 @@ class AssemblyCursorExtractor {
     private createNewAssembly(tlRect: RectCommand): CursorAssembly {
         const tlX = tlRect?.pos.x ?? 0
         const tlY = tlRect?.pos.y ?? 0
-
-        //console.log('found assembly starter on', tlX, tlY)
 
         return {
             tl: {
@@ -153,8 +379,6 @@ class AssemblyCursorExtractor {
             rect.pos.y === assembly.tl.y &&
             rect.pos.x > assembly.tl.x) { // Must be to the right
 
-            //console.log('found TR starter on', rect.pos.x, rect.pos.y)
-
             assembly.tr = {
                 x: rect.pos.x,
                 y: rect.pos.y,
@@ -172,8 +396,6 @@ class AssemblyCursorExtractor {
             rect.size.height === 1 &&
             rect.pos.x === assembly.tl.x &&
             rect.pos.y > assembly.tl.y) { // Must be below
-
-            //console.log('found BL starter on', rect.pos.x, rect.pos.y)
 
             assembly.bl = {
                 x: rect.pos.x,
@@ -193,8 +415,6 @@ class AssemblyCursorExtractor {
             rect.size.height === 1 &&
             rect.pos.x === assembly.tr.x &&
             rect.pos.y === assembly.bl.y) {
-
-            //console.log('found BR starter on', rect.pos.x, rect.pos.y)
 
             assembly.br = {
                 x: rect.pos.x,
@@ -298,7 +518,11 @@ class AssemblyCursorExtractor {
      */
     reset(): void {
         this.assemblies = []
+        this.selectionRectSamples = []
         this.lastCursor = { x: 0, y: 0, w: 1, h: 1 }
+        this.lastSelectionCursor = null
+        this.lastSelectionMode = false
+        this.lastSelectionSeenAt = 0
     }
 }
 
@@ -473,9 +697,12 @@ export function registerViewExtractor(bus?: ConnectedBus | null) {
 
             const { cellW, offX, } = store.get(cellMetricsAtom)
 
-            // Convert pixel cursor bounds to grid coordinates
-            // Cursor rect is in pixels, text is in grid cells
-            const startGx = Math.floor((cursorRect.x - offX) / cellW)
+            // Convert pixel cursor bounds to grid coordinates.
+            // startGx uses Math.round to absorb the 1–2px leftward overhang of the cursor
+            // border so we don't pick up the character in the column to the left.
+            // endGx uses Math.floor: the cursor's right pixel (tr.x - 1) falls exactly at
+            // the last cell's rightmost pixel, so floor is already correct there.
+            const startGx = Math.round((cursorRect.x - offX) / cellW)
             const endGx = Math.floor(((cursorRect.x + cursorRect.w - 1) - offX) / cellW)
             const gy = pos.y // Use cursor's grid Y position
 
@@ -549,22 +776,58 @@ export function registerViewExtractor(bus?: ConnectedBus | null) {
 
     const charGridTracker = new CharacterGridTracker()
 
+    // Temporary debug: set window.__debugRects = true in the console for 1 second of rect logging
+    let debugRectEndTime = 0
+    if (typeof window !== 'undefined') {
+        const win = window as unknown as Record<string, unknown>
+        win.__debugRects = false
+        Object.defineProperty(win, '__debugRects', {
+            configurable: true,
+            set(v: unknown) { if (v) debugRectEndTime = Date.now() + 1000 },
+        })
+    }
+
     const cursorExtractor = (data: RectCommand) => {
         if (!data) return
+
+        if (Date.now() < debugRectEndTime) {
+            console.log(`[rect] type=${data.type} pos=(${data.pos.x},${data.pos.y}) size=${data.size.width}x${data.size.height}`)
+        }
+
         const { cellW, cellH, offX, offY } = store.get(cellMetricsAtom)
-        const { cursor } = CursorAssembly.processRect(data)
+        const { cursor, selectionMode } = CursorAssembly.processRect(data)
         const { x, y, w, h } = cursor
-        // Use top-left of cursor to determine grid position (same as characters)
-        // No rectOffset correction needed: both cursor rects and character positions
-        // come from raw M8 protocol data without visual offset applied
-        const gx = Math.floor((x - offX) / cellW)
-        const gy = Math.floor((y - offY) / cellH)
+        // Use top-left of cursor to determine grid position (same as characters).
+        // Math.round instead of Math.floor absorbs the 1–2px leftward overhang of the
+        // cursor border corners so gx maps to the correct cell (not the one to its left).
+        const gx = Math.round((x - offX) / cellW)
+        const gy = Math.round((y - offY) / cellH)
 
         const prevPos = store.get(cursorPosAtom)
-        if (!prevPos || prevPos.x !== gx || prevPos.y !== gy) {
-            store.set(cursorPosAtom, { x: gx, y: gy })
-            store.set(cursorRectAtom, { x, y, w, h })
-            // Note: highlightColor is now set by updateHighlightAtCursor using stable text color
+        const prevSelectionMode = store.get(selectionModeAtom)
+
+        if (!selectionMode) {
+            // Normal cursor: update when grid position changed OR when
+            // transitioning out of selection mode (rect size changes dramatically).
+            const modeJustChanged = prevSelectionMode !== selectionMode
+            if (!prevPos || prevPos.x !== gx || prevPos.y !== gy || modeJustChanged) {
+                store.set(cursorPosAtom, { x: gx, y: gy })
+                store.set(cursorRectAtom, { x, y, w, h })
+            }
+        } else {
+            // Selection mode: update independently — selection can grow at the same
+            // anchor grid cell (SHIFT+direction extends rect without moving anchor).
+            const prevRect = store.get(cursorRectAtom)
+            if (!prevPos || prevPos.x !== gx || prevPos.y !== gy) {
+                store.set(cursorPosAtom, { x: gx, y: gy })
+            }
+            if (!prevRect || prevRect.x !== x || prevRect.y !== y || prevRect.w !== w || prevRect.h !== h) {
+                store.set(cursorRectAtom, { x, y, w, h })
+            }
+        }
+
+        if (prevSelectionMode !== selectionMode) {
+            store.set(selectionModeAtom, selectionMode)
         }
     }
 
