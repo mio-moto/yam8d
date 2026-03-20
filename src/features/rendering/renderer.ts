@@ -287,6 +287,9 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
   let customUsesAudioLevel = false
   let customUsesAudioSpectrum = false
   let customUsesMouse = false
+  let customUsesM8Screen = false
+  let custom_uM8Screen: WebGLUniformLocation | null = null
+  let compositeM8Screen = true
   let isFrameQueued = false
 
   // --- Ping-pong double buffer for background shader feedback ---
@@ -336,7 +339,41 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
     bgFrameCount = 0
   }
 
+  const ensureM8SceneFbo = (width: number, height: number) => {
+    if (m8SceneW === width && m8SceneH === height && m8SceneTex && m8SceneFbo) return
+    if (m8SceneTex) gl.deleteTexture(m8SceneTex)
+    if (m8SceneFbo) gl.deleteFramebuffer(m8SceneFbo)
+    m8SceneTex = gl.createTexture()
+    gl.activeTexture(gl.TEXTURE0 + M8_SCREEN_TEX_UNIT)
+    gl.bindTexture(gl.TEXTURE_2D, m8SceneTex)
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+    m8SceneFbo = gl.createFramebuffer()
+    gl.bindFramebuffer(gl.FRAMEBUFFER, m8SceneFbo)
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, m8SceneTex, 0)
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+    m8SceneW = width
+    m8SceneH = height
+  }
+
+  const destroyM8SceneFbo = () => {
+    if (m8SceneTex) { gl.deleteTexture(m8SceneTex); m8SceneTex = null }
+    if (m8SceneFbo) { gl.deleteFramebuffer(m8SceneFbo); m8SceneFbo = null }
+    m8SceneW = 0
+    m8SceneH = 0
+  }
+
   const AUDIO_SPECTRUM_TEX_UNIT = 11
+  const M8_SCREEN_TEX_UNIT = 14
+
+  // --- M8 scene capture FBO (for uM8Screen uniform) ---
+  let m8SceneTex: WebGLTexture | null = null
+  let m8SceneFbo: WebGLFramebuffer | null = null
+  let m8SceneW = 0
+  let m8SceneH = 0
 
   let mouseX = 0
   let mouseY = 0
@@ -501,6 +538,7 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
       const nextAudioSpectrumBins = gl.getUniformLocation(nextProgram, 'uAudioSpectrumBins')
       const nextPreviousFrame = gl.getUniformLocation(nextProgram, 'uPreviousFrame')
       const nextFrameCount = gl.getUniformLocation(nextProgram, 'uFrameCount')
+      const nextM8Screen = gl.getUniformLocation(nextProgram, 'uM8Screen')
 
       if (customProgram) {
         gl.deleteProgram(customProgram)
@@ -515,9 +553,11 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
       custom_uAudioSpectrumBins = nextAudioSpectrumBins
       custom_uPreviousFrame = nextPreviousFrame
       custom_uFrameCount = nextFrameCount
+      custom_uM8Screen = nextM8Screen
       customUsesAudioLevel = hasUniform(nextAudioLevel)
       customUsesAudioSpectrum = hasUniform(nextAudioSpectrum) && hasUniform(nextAudioSpectrumBins)
       customUsesMouse = hasUniform(nextMouse)
+      customUsesM8Screen = hasUniform(nextM8Screen)
       backgroundStartTime = performance.now() / 1000
       bgFrameCount = 0
       // Reset ping-pong buffers so the new shader starts with a clean slate
@@ -561,6 +601,13 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
       gl.activeTexture(gl.TEXTURE0 + readTexUnit)
       gl.bindTexture(gl.TEXTURE_2D, bgPingPongTextures[bgPingPongReadIdx])
       gl.uniform1i(custom_uPreviousFrame, readTexUnit)
+    }
+
+    // Bind M8 screen capture texture (pre-rendered before background runs)
+    if (customUsesM8Screen && custom_uM8Screen && m8SceneTex) {
+      gl.activeTexture(gl.TEXTURE0 + M8_SCREEN_TEX_UNIT)
+      gl.bindTexture(gl.TEXTURE_2D, m8SceneTex)
+      gl.uniform1i(custom_uM8Screen, M8_SCREEN_TEX_UNIT)
     }
 
     const spectrum = customUsesAudioSpectrum ? getMicSpectrumData() : null
@@ -885,6 +932,7 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
     element.height = displayHeight
     // Ping-pong buffers will be lazily recreated at the new size in ensureBgPingPongBuffers
     destroyBgPingPongBuffers()
+    destroyM8SceneFbo()
     queueFrame()
   }
 
@@ -913,52 +961,114 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
           // Always render directly to screen — no scene-level post-processing.
           // Rounded alpha atlas handles text quality; blur+threshold is baked per-glyph.
 
-          // Step 0: Clear + background shader
-          gl.bindFramebuffer(gl.FRAMEBUFFER, null)
-          gl.viewport(0, 0, displayWidth, displayHeight)
-          // When no background shader, clear to the M8 background color so that
-          // the alpha=0 areas of the rects FBO composite correctly (no black flash).
-          const bgForClear = rectRenderer.getBackgroundColor()
-          gl.clearColor(
-            backgroundShader ? 0 : bgForClear.r,
-            backgroundShader ? 0 : bgForClear.g,
-            backgroundShader ? 0 : bgForClear.b,
-            1,
-          )
-          gl.clear(gl.COLOR_BUFFER_BIT)
-          renderBackground()
+          if (backgroundShader && customUsesM8Screen) {
+            // Pre-render full M8 scene (rects + text + wave) into m8SceneFbo so the
+            // background shader can sample it as uM8Screen. The M8 content is then
+            // composited over the background with chroma-key at the end.
+            ensureM8SceneFbo(displayWidth, displayHeight)
 
-          // Step 1: Rects at native res (into internal rectsFramebuffer)
-          gl.viewport(0, 0, nativeW, nativeH)
-          rectRenderer.renderRects(true)
+            // Step 0: Rects at native res (into internal rectsFramebuffer)
+            gl.viewport(0, 0, nativeW, nativeH)
+            rectRenderer.renderRects(true)
 
-          // Step 2: Blit rects to screen at display res
-          gl.bindFramebuffer(gl.FRAMEBUFFER, null)
-          gl.viewport(0, 0, displayWidth, displayHeight)
-          gl.bindVertexArray(postprocessVao)
-          // biome-ignore lint/correctness/useHookAtTopLevel: ain't a hook
-          gl.useProgram(blurHProgram)
-          gl.activeTexture(gl.TEXTURE0)
-          gl.uniform1i(blurH_uScene, 0)
-          gl.uniform2f(blurH_uTexelSize, 0, 0)
-          gl.uniform1f(blurH_uBlurRadius, 0)
-          gl.uniform4f(blurH_uUvClamp, 0.0, 0.0, 1.0, 1.0)
-          const bg = rectRenderer.getBackgroundColor()
-          const useChromaKey = backgroundShader
-          gl.uniform1i(blurH_uUseChromaKey, useChromaKey ? 1 : 0)
-          gl.uniform3f(blurH_uChromaKeyColor, bg.r, bg.g, bg.b)
-          gl.uniform1f(blurH_uChromaKeyThreshold, 1.5 / 255.0)
-          gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+            // Step 1: Blit rects into m8SceneFbo (no chroma-key — capture raw M8 content)
+            gl.bindFramebuffer(gl.FRAMEBUFFER, m8SceneFbo)
+            gl.viewport(0, 0, displayWidth, displayHeight)
+            gl.clearColor(0, 0, 0, 1)
+            gl.clear(gl.COLOR_BUFFER_BIT)
+            gl.bindVertexArray(postprocessVao)
+            // biome-ignore lint/correctness/useHookAtTopLevel: ain't a hook
+            gl.useProgram(blurHProgram)
+            gl.activeTexture(gl.TEXTURE0)
+            gl.uniform1i(blurH_uScene, 0)
+            gl.uniform2f(blurH_uTexelSize, 0, 0)
+            gl.uniform1f(blurH_uBlurRadius, 0)
+            gl.uniform4f(blurH_uUvClamp, 0.0, 0.0, 1.0, 1.0)
+            gl.uniform1i(blurH_uUseChromaKey, 0)
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
 
-          // Step 3: Text at display res with SDF processed font
-          if (processedFontTexture) {
-            gl.activeTexture(gl.TEXTURE1)
-            gl.bindTexture(gl.TEXTURE_2D, processedFontTexture)
+            // Step 2: Text + wave into m8SceneFbo
+            if (processedFontTexture) {
+              gl.activeTexture(gl.TEXTURE1)
+              gl.bindTexture(gl.TEXTURE_2D, processedFontTexture)
+            }
+            textRenderer.renderText(!!processedFontTexture)
+            waveRenderer.renderWave(true)
+
+            // Step 3: Clear canvas + run background shader (samples uM8Screen = m8SceneTex)
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+            gl.viewport(0, 0, displayWidth, displayHeight)
+            gl.clearColor(0, 0, 0, 1)
+            gl.clear(gl.COLOR_BUFFER_BIT)
+            renderBackground()
+
+            // Step 4: Composite M8 scene over background with chroma-key (skipped when compositeM8Screen is false)
+            if (compositeM8Screen) {
+              gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+              gl.viewport(0, 0, displayWidth, displayHeight)
+              gl.bindVertexArray(postprocessVao)
+              // biome-ignore lint/correctness/useHookAtTopLevel: ain't a hook
+              gl.useProgram(blurHProgram)
+              gl.activeTexture(gl.TEXTURE0 + M8_SCREEN_TEX_UNIT)
+              gl.bindTexture(gl.TEXTURE_2D, m8SceneTex)
+              gl.uniform1i(blurH_uScene, M8_SCREEN_TEX_UNIT)
+              gl.uniform2f(blurH_uTexelSize, 0, 0)
+              gl.uniform1f(blurH_uBlurRadius, 0)
+              gl.uniform4f(blurH_uUvClamp, 0.0, 0.0, 1.0, 1.0)
+              const bgM8 = rectRenderer.getBackgroundColor()
+              gl.uniform1i(blurH_uUseChromaKey, 1)
+              gl.uniform3f(blurH_uChromaKeyColor, bgM8.r, bgM8.g, bgM8.b)
+              gl.uniform1f(blurH_uChromaKeyThreshold, 1.5 / 255.0)
+              gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+            }
+          } else {
+            // Step 0: Clear + background shader
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+            gl.viewport(0, 0, displayWidth, displayHeight)
+            // When no background shader, clear to the M8 background color so that
+            // the alpha=0 areas of the rects FBO composite correctly (no black flash).
+            const bgForClear = rectRenderer.getBackgroundColor()
+            gl.clearColor(
+              backgroundShader ? 0 : bgForClear.r,
+              backgroundShader ? 0 : bgForClear.g,
+              backgroundShader ? 0 : bgForClear.b,
+              1,
+            )
+            gl.clear(gl.COLOR_BUFFER_BIT)
+            renderBackground()
+
+            // Step 1: Rects at native res (into internal rectsFramebuffer)
+            gl.viewport(0, 0, nativeW, nativeH)
+            rectRenderer.renderRects(true)
+
+            // Step 2: Blit rects to screen at display res
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+            gl.viewport(0, 0, displayWidth, displayHeight)
+            gl.bindVertexArray(postprocessVao)
+            // biome-ignore lint/correctness/useHookAtTopLevel: ain't a hook
+            gl.useProgram(blurHProgram)
+            gl.activeTexture(gl.TEXTURE0)
+            gl.uniform1i(blurH_uScene, 0)
+            gl.uniform2f(blurH_uTexelSize, 0, 0)
+            gl.uniform1f(blurH_uBlurRadius, 0)
+            gl.uniform4f(blurH_uUvClamp, 0.0, 0.0, 1.0, 1.0)
+            const bg = rectRenderer.getBackgroundColor()
+            const useChromaKey = backgroundShader
+            gl.uniform1i(blurH_uUseChromaKey, useChromaKey ? 1 : 0)
+            gl.uniform3f(blurH_uChromaKeyColor, bg.r, bg.g, bg.b)
+            gl.uniform1f(blurH_uChromaKeyThreshold, 1.5 / 255.0)
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+
+            // Step 3: Text at display res with SDF processed font
+            if (processedFontTexture) {
+              gl.activeTexture(gl.TEXTURE1)
+              gl.bindTexture(gl.TEXTURE_2D, processedFontTexture)
+            }
+            textRenderer.renderText(!!processedFontTexture)
+
+            // Step 4: Waves at display res
+            waveRenderer.renderWave(true)
           }
-          textRenderer.renderText(!!processedFontTexture)
-
-          // Step 4: Waves at display res
-          waveRenderer.renderWave(true)
 
           isFrameQueued = false
           if (backgroundShader) {
@@ -1379,5 +1489,12 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
       queueFrame()
     },
     setCustomBackgroundShader,
+    setCompositeM8Screen: (value: boolean) => {
+      console.log('setCompositeM8Screen', value)
+      if (compositeM8Screen !== value) {
+        compositeM8Screen = value
+        queueFrame()
+      }
+    },
   }
 }

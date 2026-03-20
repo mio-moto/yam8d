@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+    <title id="title">yam8d Connect Splash Placeholder</title>
+    <desc id="desc">Placeholder image for the yam8d connect splash screenshot.</desc>
+    <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#001329"/>
+            <stop offset="100%" stop-color="#003a66"/>
+        </linearGradient>
+    </defs>
+    <rect width="1280" height="720" fill="url(#bg)"/>
+    <rect x="150" y="120" width="980" height="420" fill="#020812" stroke="#2ec5e6" stroke-opacity="0.4"/>
+    <text x="640" y="220" fill="#ffffff" font-family="Consolas, monospace" font-size="56" text-anchor="middle">yam8d Connect Screen</text>
+    <text x="640" y="300" fill="#8be6f8" font-family="Consolas, monospace" font-size="28" text-anchor="middle">Replace this placeholder with a real screenshot</text>
+    <rect x="560" y="355" width="160" height="62" fill="none" stroke="#ffffff" stroke-width="3"/>
+    <text x="640" y="395" fill="#ffffff" font-family="Consolas, monospace" font-size="28" text-anchor="middle">Connect</text>
+    <text x="640" y="620" fill="#c7f6ff" font-family="Consolas, monospace" font-size="24" text-anchor="middle">Suggested filename: connect-splash.png</text>
+</svg>

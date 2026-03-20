@@ -45,6 +45,7 @@ export type Settings = {
     backgroundShader: boolean
     customBackgroundShader: string
     backgroundShaderSpectrumBands: 64 | 128 | 256
+    backgroundShaderCompositeM8Screen: boolean
     showBackgroundShaderEditor: boolean
     inputMap: typeof defaultInputMap
     keyMap: typeof defaultKeyMap
@@ -70,6 +71,7 @@ const defaultSettings: Settings = {
     backgroundShader: false,
     customBackgroundShader: DEFAULT_CUSTOM_BACKGROUND_SHADER,
     backgroundShaderSpectrumBands: 128,
+    backgroundShaderCompositeM8Screen: true,
     showBackgroundShaderEditor: false,
 
     inputMap: defaultInputMap,

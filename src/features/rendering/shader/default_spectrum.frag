@@ -11,6 +11,12 @@ uniform sampler2D uAudioSpectrum;
 uniform float uAudioSpectrumBins;
 uniform sampler2D uPreviousFrame;
 uniform int uFrameCount;
+uniform sampler2D uM8Screen;
+// Optional: declare uM8Screen to receive the current M8 screen as a texture.
+// When declared, it is pre-rendered before this shader runs so you can sample it:
+//   uniform sampler2D uM8Screen;
+//   vec4 m8 = texture(uM8Screen, uv);
+// The M8 content is still composited on top of your output afterwards.
 
 mat2 rot(float a) {
     float s = sin(a), c = cos(a);
@@ -103,9 +109,31 @@ void main() {
     feedback *= 0.92; // Dissipation / Fade out
 
     // ==========================================
+    // 4b. M8 SCREEN SOFT GLOW
+    // Three-ring radial blur spreads a diffuse halo from the M8 UI into the
+    // background. Weights fall off with distance for a Gaussian-like softness.
+    // ==========================================
+    vec3 m8Glow = vec3(0.0);
+    float glowR1 = (18.0 + bass *  8.0) / uResolution.y;
+    float glowR2 = (38.0 + bass * 16.0) / uResolution.y;
+    float glowR3 = (64.0 + bass * 24.0) / uResolution.y;
+    for (int i = 0; i < 8; i++) {
+        float a = float(i) * (6.28318530 / 8.0);
+        vec2 dir = vec2(cos(a), sin(a));
+        m8Glow += texture(uM8Screen, uv + dir * glowR1).rgb * 0.50;
+        m8Glow += texture(uM8Screen, uv + dir * glowR2).rgb * 0.30;
+        m8Glow += texture(uM8Screen, uv + dir * glowR3).rgb * 0.20;
+    }
+    m8Glow /= 8.0;
+    // Gently tint towards the ring's color theme
+    float m8Luma = dot(m8Glow, vec3(0.299, 0.587, 0.114));
+    m8Glow = mix(m8Glow, colorTheme * m8Luma, 0.35);
+
+    // ==========================================
     // 5. FINAL COMPOSITION
     // ==========================================
     vec3 finalColor = col + feedback;
+    finalColor += m8Glow * (0.30 + bass * 0.18); // subtle bloom, gently bass-reactive
     finalColor *= 1.0 - 0.3 * length(uv - 0.5); // Vignette effect
     finalColor = finalColor / (1.0 + finalColor * 0.5); // Tone mapping
 

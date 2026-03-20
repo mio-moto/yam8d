@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+    <title id="title">yam8d Menu and Rendering Placeholder</title>
+    <desc id="desc">Placeholder image for the yam8d settings and rendering screenshot.</desc>
+    <rect width="1280" height="720" fill="#031b2d"/>
+    <rect x="80" y="80" width="400" height="560" fill="#0a0f16" stroke="#ffffff" stroke-opacity="0.2"/>
+    <text x="280" y="130" fill="#ffffff" font-family="Consolas, monospace" font-size="30" text-anchor="middle">Settings Menu</text>
+    <text x="120" y="190" fill="#8be6f8" font-family="Consolas, monospace" font-size="20">- Smooth rendering</text>
+    <text x="120" y="230" fill="#8be6f8" font-family="Consolas, monospace" font-size="20">- Background shader</text>
+    <text x="120" y="270" fill="#8be6f8" font-family="Consolas, monospace" font-size="20">- Keyboard mapping</text>
+    <text x="120" y="310" fill="#8be6f8" font-family="Consolas, monospace" font-size="20">- Shortcuts display</text>
+    <rect x="540" y="120" width="660" height="460" fill="#01060c" stroke="#2ec5e6" stroke-opacity="0.5"/>
+    <text x="870" y="360" fill="#ffffff" font-family="Consolas, monospace" font-size="44" text-anchor="middle">M8 Screen + Shader</text>
+    <text x="870" y="620" fill="#c7f6ff" font-family="Consolas, monospace" font-size="24" text-anchor="middle">Suggested filename: menu-and-rendering.png</text>
+</svg>

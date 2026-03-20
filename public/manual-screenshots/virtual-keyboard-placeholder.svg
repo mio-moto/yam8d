@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+    <title id="title">yam8d Virtual Keyboard Placeholder</title>
+    <desc id="desc">Placeholder image for the yam8d virtual MIDI keyboard screenshot.</desc>
+    <rect width="1280" height="720" fill="#00121f"/>
+    <text x="640" y="130" fill="#ffffff" font-family="Consolas, monospace" font-size="52" text-anchor="middle">Virtual MIDI Keyboard</text>
+    <rect x="120" y="220" width="1040" height="220" fill="#0b1f31" stroke="#ffffff" stroke-opacity="0.2"/>
+    <g fill="#f7f7f7" stroke="#09131f" stroke-width="2">
+        <rect x="140" y="240" width="70" height="180"/>
+        <rect x="215" y="240" width="70" height="180"/>
+        <rect x="290" y="240" width="70" height="180"/>
+        <rect x="365" y="240" width="70" height="180"/>
+        <rect x="440" y="240" width="70" height="180"/>
+        <rect x="515" y="240" width="70" height="180"/>
+        <rect x="590" y="240" width="70" height="180"/>
+        <rect x="665" y="240" width="70" height="180"/>
+        <rect x="740" y="240" width="70" height="180"/>
+        <rect x="815" y="240" width="70" height="180"/>
+        <rect x="890" y="240" width="70" height="180"/>
+        <rect x="965" y="240" width="70" height="180"/>
+    </g>
+    <text x="640" y="510" fill="#8be6f8" font-family="Consolas, monospace" font-size="28" text-anchor="middle">Replace with a capture showing note input and velocity.</text>
+    <text x="640" y="620" fill="#c7f6ff" font-family="Consolas, monospace" font-size="24" text-anchor="middle">Suggested filename: virtual-keyboard.png</text>
+</svg>

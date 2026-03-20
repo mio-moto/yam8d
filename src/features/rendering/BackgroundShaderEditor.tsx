@@ -8,6 +8,7 @@ type SavedBackgroundShader = {
   id: string
   name: string
   source: string
+  compositeM8Screen: boolean
   updatedAt: number
 }
 
@@ -19,7 +20,7 @@ const containerClass = css`
   min-width: 380px;
   display: grid;
   height: 90vh;
-  grid-template-rows: auto 1fr auto auto auto auto auto;
+  grid-template-rows: auto 1fr auto auto auto auto auto auto;
   gap: 10px;
   align-self: stretch;
   padding: 14px;
@@ -120,6 +121,7 @@ export const BackgroundShaderEditor: FC = () => {
   const { settings, updateSettingValue } = useSettingsContext()
   const [nameDraft, setNameDraft] = useState(DEFAULT_CUSTOM_BACKGROUND_SHADER_NAME)
   const [sourceDraft, setSourceDraft] = useState(settings.customBackgroundShader)
+  const [compositeM8Draft, setCompositeM8Draft] = useState(settings.backgroundShaderCompositeM8Screen)
   const [selectedId, setSelectedId] = useState('')
   const [status, setStatus] = useState('')
   const [savedShaders, setSavedShaders] = useState<SavedBackgroundShader[]>([])
@@ -135,6 +137,7 @@ export const BackgroundShaderEditor: FC = () => {
         id: 'default-spectrum-demo',
         name: DEFAULT_CUSTOM_BACKGROUND_SHADER_NAME,
         source: DEFAULT_CUSTOM_BACKGROUND_SHADER,
+        compositeM8Screen: true,
         updatedAt: 0,
       }]
       setSavedShaders(defaults)
@@ -154,8 +157,7 @@ export const BackgroundShaderEditor: FC = () => {
         const seeded = hasDefault ? next : [{
           id: 'default-spectrum-demo',
           name: DEFAULT_CUSTOM_BACKGROUND_SHADER_NAME,
-          source: DEFAULT_CUSTOM_BACKGROUND_SHADER,
-          updatedAt: 0,
+          source: DEFAULT_CUSTOM_BACKGROUND_SHADER,          compositeM8Screen: true,          updatedAt: 0,
         }, ...next]
         setSavedShaders(seeded)
         if (seeded.length > 0) setSelectedId(seeded[0].id)
@@ -181,6 +183,7 @@ export const BackgroundShaderEditor: FC = () => {
     }
     updateSettingValue('customBackgroundShader', sourceDraft)
     updateSettingValue('backgroundShader', true)
+    updateSettingValue('backgroundShaderCompositeM8Screen', compositeM8Draft)
     setStatus('Custom shader applied.')
   }
 
@@ -190,7 +193,7 @@ export const BackgroundShaderEditor: FC = () => {
     const existing = savedShaders.find((shader) => shader.name === trimmedName)
     if (existing) {
       const next = savedShaders.map((shader) =>
-        shader.id === existing.id ? { ...shader, source: sourceDraft, updatedAt: now } : shader,
+        shader.id === existing.id ? { ...shader, source: sourceDraft, compositeM8Screen: compositeM8Draft, updatedAt: now } : shader,
       )
       saveShaders(next)
       setSelectedId(existing.id)
@@ -201,6 +204,7 @@ export const BackgroundShaderEditor: FC = () => {
       id: `${now}-${Math.random().toString(36).slice(2, 8)}`,
       name: trimmedName,
       source: sourceDraft,
+      compositeM8Screen: compositeM8Draft,
       updatedAt: now,
     }
     const next = [item, ...savedShaders]
@@ -213,6 +217,7 @@ export const BackgroundShaderEditor: FC = () => {
     if (!selectedShader) return
     setNameDraft(selectedShader.name)
     setSourceDraft(selectedShader.source)
+    setCompositeM8Draft(selectedShader.compositeM8Screen ?? true)
     setStatus(`Loaded "${selectedShader.name}".`)
   }
 
@@ -234,7 +239,17 @@ export const BackgroundShaderEditor: FC = () => {
         spellCheck={false}
       />
       <div className={hintClass}>
-        Available uniforms: <code>uTime</code>, <code>uResolution</code>, <code>uMouse</code> (x, y, down, _), <code>uAudioLevel</code> (0..1), <code>uAudioSpectrum</code> (sampler2D float), <code>uAudioSpectrumBins</code>. Spectrum is log-remapped.
+        Available uniforms: <code>uTime</code>, <code>uResolution</code>, <code>uMouse</code> (x, y, down, _), <code>uAudioLevel</code> (0..1), <code>uAudioSpectrum</code> (sampler2D float), <code>uAudioSpectrumBins</code>. Spectrum is log-remapped. <code>uM8Screen</code> (sampler2D) — current M8 screen frame at display resolution; use <code>texture(uM8Screen, uv)</code>.
+      </div>
+      <div className={rowClass}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={compositeM8Draft}
+            onChange={(event) => setCompositeM8Draft(event.target.checked)}
+          />
+          Composite M8 screen on top
+        </label>
       </div>
       <div className={rowClass}>
         <span>Spectrum bands</span>

@@ -109,6 +109,10 @@ export const M8Screen = forwardRef<HTMLCanvasElement, { bus?: ConnectedBus | nul
         renderRef.current?.setAudioSpectrumBands(settings.backgroundShaderSpectrumBands)
     }, [settings.backgroundShaderSpectrumBands])
 
+    useEffect(() => {
+        renderRef.current?.setCompositeM8Screen(settings.backgroundShaderCompositeM8Screen)
+    }, [settings.backgroundShaderCompositeM8Screen])
+
     return (
         <canvas
             className="element"
