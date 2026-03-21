@@ -48,48 +48,55 @@
           ),
           linear-gradient(160deg, var(--bg-0), var(--bg-1) 48%, var(--bg-2));
         color: var(--text-primary);
-        padding: 24px;
+        padding: 18px;
         min-height: 100svh;
         display: flex;
         justify-content: center;
       }
 
       .layout {
-        width: min(1280px, 100%);
+        width: min(1220px, 100%);
         display: grid;
-        grid-template-columns: 1.15fr 0.85fr;
-        gap: 18px;
+        grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
+        gap: 14px;
         align-items: start;
+      }
+
+      header {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: flex-start;
       }
 
       h1 {
         color: var(--teal-300);
-        margin-bottom: 6px;
-        font-size: 24px;
+        margin-bottom: 4px;
+        font-size: 22px;
         letter-spacing: 0.06em;
       }
 
       .subtitle {
         color: var(--text-muted);
-        font-size: 13px;
-        margin-bottom: 16px;
+        font-size: 12px;
+        margin-bottom: 0;
       }
 
       .stack {
         display: grid;
-        gap: 14px;
+        gap: 12px;
       }
 
       .status {
-        background: linear-gradient(
-          180deg,
-          rgba(9, 23, 30, 0.94),
-          rgba(7, 19, 25, 0.92)
-        );
-        padding: 15px;
-        border-radius: 10px;
-        border: 1px solid rgba(255, 93, 56, 0.4);
-        box-shadow: 0 0 0 1px rgba(255, 93, 56, 0.14) inset;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 93, 56, 0.35);
+        background: rgba(10, 22, 28, 0.88);
+        box-shadow: 0 0 0 1px rgba(255, 93, 56, 0.1) inset;
+        min-width: 220px;
       }
 
       .status.connected {
@@ -97,26 +104,54 @@
         box-shadow: 0 0 0 1px rgba(0, 213, 133, 0.18) inset;
       }
 
-      .status h2 {
-        font-size: 12px;
-        text-transform: uppercase;
+      .status-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--ochre-500);
+        box-shadow: 0 0 10px rgba(255, 93, 56, 0.55);
+        flex-shrink: 0;
+      }
+
+      .status.connected .status-dot {
+        background: var(--lime-500);
+        box-shadow: 0 0 12px rgba(0, 213, 133, 0.65);
+      }
+
+      .status-copy {
+        display: grid;
+        gap: 2px;
+      }
+
+      .status-label {
         color: var(--text-muted);
-        margin-bottom: 10px;
+        font-size: 10px;
+        text-transform: uppercase;
         letter-spacing: 0.08em;
+      }
+
+      .status-value {
+        color: var(--text-primary);
+        font-size: 12px;
       }
 
       .state-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        grid-template-columns: 1.35fr 1fr;
         gap: 10px;
         font-size: 13px;
       }
 
       .state-item {
         background: rgba(8, 22, 29, 0.88);
-        padding: 8px 12px;
-        border-radius: 4px;
+        padding: 10px 12px;
+        border-radius: 6px;
         border: 1px solid var(--panel-border);
+      }
+
+      .state-item.wide {
+        display: grid;
+        gap: 8px;
       }
 
       .state-item .label {
@@ -130,21 +165,43 @@
         font-family: monospace;
       }
 
+      .cursor-summary {
+        display: grid;
+        gap: 8px;
+      }
+
+      .cursor-meta {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .micro-stat {
+        padding: 8px 10px;
+        border-radius: 4px;
+        background: rgba(3, 13, 17, 0.72);
+        border: 1px solid rgba(46, 197, 230, 0.14);
+      }
+
+      .micro-stat .label {
+        display: block;
+        margin-bottom: 3px;
+      }
+
       .controls {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 10px;
-        margin-bottom: 20px;
+        grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+        gap: 8px;
       }
 
       button {
         background: linear-gradient(180deg, var(--teal-700), var(--teal-500));
         color: #021015;
         border: 1px solid rgba(46, 197, 230, 0.4);
-        padding: 12px 16px;
+        padding: 10px 12px;
         border-radius: 6px;
         cursor: pointer;
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 600;
         transition:
           transform 0.15s ease,
@@ -166,7 +223,7 @@
 
       .section {
         background: var(--panel);
-        padding: 15px;
+        padding: 13px;
         border-radius: 8px;
         border: 1px solid var(--panel-border);
       }
@@ -181,11 +238,11 @@
 
       .log {
         background: rgba(2, 9, 12, 0.98);
-        padding: 10px;
+        padding: 8px 10px;
         border-radius: 4px;
         font-family: monospace;
         font-size: 12px;
-        max-height: 200px;
+        max-height: 180px;
         overflow-y: auto;
         border: 1px solid rgba(46, 197, 230, 0.2);
       }
@@ -209,26 +266,30 @@
         color: var(--ochre-500);
       }
 
-      .input-group {
+      .input-group,
+      .inline-actions {
         display: flex;
         flex-wrap: wrap;
-        gap: 10px;
-        margin-bottom: 10px;
+        gap: 8px;
+        align-items: center;
       }
 
       input[type="text"],
-      input[type="number"] {
+      input[type="number"],
+      select {
         flex: 1;
-        min-width: 140px;
+        min-width: 110px;
         background: rgba(9, 25, 31, 0.9);
         border: 1px solid rgba(46, 197, 230, 0.2);
         color: var(--text-primary);
-        padding: 10px;
+        padding: 9px 10px;
         border-radius: 4px;
         font-family: "Kode Mono", monospace;
+        font-size: 12px;
       }
 
-      input:focus {
+      input:focus,
+      select:focus {
         outline: none;
         border-color: var(--teal-500);
       }
@@ -237,9 +298,14 @@
         display: flex;
         align-items: center;
         gap: 8px;
-        margin: 8px 0 12px;
         color: var(--text-muted);
         font-size: 12px;
+      }
+
+      .checkbox-list {
+        display: grid;
+        gap: 6px;
+        margin-top: 8px;
       }
 
       .manual {
@@ -259,7 +325,7 @@
       }
 
       .method-card {
-        margin-top: 10px;
+        margin-top: 8px;
         padding: 10px;
         border-radius: 6px;
         background: rgba(8, 21, 27, 0.9);
@@ -286,10 +352,41 @@
       .note {
         color: #9dd6e5;
         font-size: 12px;
+        margin-top: 8px;
+      }
+
+      .compact-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
       }
 
       @media (max-width: 1080px) {
         .layout {
+          grid-template-columns: 1fr;
+        }
+
+        .state-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 720px) {
+        body {
+          padding: 14px;
+        }
+
+        header {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .status {
+          min-width: 0;
+        }
+
+        .cursor-meta,
+        .compact-grid {
           grid-template-columns: 1fr;
         }
       }
@@ -299,64 +396,63 @@
     <main class="layout">
       <section class="stack">
         <header>
-          <h1>M8 SDK Test Client</h1>
-          <p class="subtitle">
-            Interactive test harness and implementation manual for iframe SDK
-            integrations.
-          </p>
+          <div>
+            <h1>M8 SDK Test Client</h1>
+            <p class="subtitle">
+              Interactive test harness and implementation manual for iframe SDK
+              integrations.
+            </p>
+          </div>
+          <div id="status" class="status">
+            <span class="status-dot" aria-hidden="true"></span>
+            <div class="status-copy">
+              <div class="status-label">Connection</div>
+              <div id="connection-state" class="status-value">Connecting...</div>
+            </div>
+          </div>
         </header>
-
-        <div id="status" class="status">
-          <h2>Connection Status</h2>
-          <div id="connection-state">Connecting...</div>
-        </div>
 
         <div class="section">
           <h3>Current State</h3>
           <div class="state-grid" id="state-grid">
-            <div class="state-item">
+            <div class="state-item wide">
               <div class="label">View Name</div>
               <div class="value" id="view-name">-</div>
-            </div>
-            <div class="state-item">
-              <div class="label">Cursor Position</div>
-              <div class="value" id="cursor-pos">-</div>
-            </div>
-            <div class="state-item">
               <div class="label">Text Under Cursor</div>
               <div class="value" id="text-cursor">-</div>
+              <div class="label">Current Line</div>
+              <div class="value" id="current-line">-</div>
             </div>
             <div class="state-item">
-              <div class="label">Selection Mode</div>
-              <div class="value" id="selection-mode">-</div>
-            </div>
-            <div class="state-item">
-              <div class="label">Cursor Rect</div>
-              <div class="value" id="cursor-rect">-</div>
-            </div>
-            <div class="state-item">
-              <div class="label">Device Model</div>
-              <div class="value" id="device-model">-</div>
+              <div class="label">Cursor</div>
+              <div class="cursor-summary">
+                <div class="value" id="cursor-summary">-</div>
+                <div class="cursor-meta">
+                  <div class="micro-stat">
+                    <span class="label">Position</span>
+                    <span class="value" id="cursor-pos">-</span>
+                  </div>
+                  <div class="micro-stat">
+                    <span class="label">Selection</span>
+                    <span class="value" id="selection-mode">-</span>
+                  </div>
+                  <div class="micro-stat">
+                    <span class="label">Rect</span>
+                    <span class="value" id="cursor-rect">-</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
         <div class="section">
           <h3>View Navigation</h3>
-          <div class="controls">
-            <button onclick="navigateToView('song')">Song (F1)</button>
-            <button onclick="navigateToView('chain')">Chain (F2)</button>
-            <button onclick="navigateToView('phrase')">Phrase (F3)</button>
-            <button onclick="navigateToView('table')">Table (F4)</button>
-            <button onclick="navigateToView('instrumentpool')">
-              Instr Pool (F5)
-            </button>
-            <button onclick="navigateToView('inst')">Instrument (F6)</button>
-            <button onclick="navigateToView('instmods')">Inst Mods (F7)</button>
-            <button onclick="navigateToView('effectsettings')">
-              FX Settings (F8)
-            </button>
-            <button onclick="navigateToView('project')">Project (F9)</button>
+          <div class="inline-actions">
+            <select id="view-select" aria-label="Select target view">
+              <option value="">Loading views...</option>
+            </select>
+            <button onclick="navigateToSelectedView()">Go</button>
           </div>
         </div>
 
@@ -385,53 +481,49 @@
 
         <div class="section">
           <h3>Value Manipulation</h3>
-          <div class="input-group">
-            <input
-              type="text"
-              id="hex-value"
-              placeholder="Hex value (e.g., 3F, FF, 00)"
-              value="3F"
-            />
-            <button onclick="setValueToHex()">Set Hex</button>
+          <div class="compact-grid">
+            <div class="inline-actions">
+              <input type="text" id="hex-value" placeholder="Hex" value="3F" />
+              <button onclick="setValueToHex()">Hex</button>
+            </div>
+            <div class="inline-actions">
+              <input
+                type="number"
+                id="int-value"
+                placeholder="Int"
+                value="63"
+              />
+              <button onclick="setValueToInt()">Int</button>
+            </div>
+            <div class="inline-actions">
+              <input
+                type="text"
+                id="note-value"
+                placeholder="Note"
+                value="C#4"
+              />
+              <button onclick="setNote()">Note</button>
+            </div>
+            <div class="inline-actions">
+              <input
+                type="text"
+                id="string-value"
+                placeholder="String target"
+                value="sine"
+              />
+              <button onclick="setValueToString()">Text</button>
+            </div>
           </div>
-
-          <div class="input-group">
-            <input
-              type="number"
-              id="int-value"
-              placeholder="Integer value"
-              value="63"
-            />
-            <button onclick="setValueToInt()">Set Int</button>
+          <div class="checkbox-list">
+            <label class="checkbox-row">
+              <input type="checkbox" id="string-exact" checked />
+              Exact match
+            </label>
+            <label class="checkbox-row">
+              <input type="checkbox" id="string-in-line" />
+              Search current line
+            </label>
           </div>
-
-          <div class="input-group">
-            <input
-              type="text"
-              id="note-value"
-              placeholder="Note (e.g., C-1, C#4, G-B)"
-              value="C#4"
-            />
-            <button onclick="setNote()">Set Note</button>
-          </div>
-
-          <div class="input-group">
-            <input
-              type="text"
-              id="string-value"
-              placeholder="String target"
-              value="sine"
-            />
-            <button onclick="setValueToString()">Set String</button>
-          </div>
-          <label class="checkbox-row">
-            <input type="checkbox" id="string-exact" checked />
-            Exact match (disable for partial contains search)
-          </label>
-          <label class="checkbox-row">
-            <input type="checkbox" id="string-in-line" />
-            Search in full current line (not only text under cursor)
-          </label>
           <p class="note">
             Note: setValueToString first anchors to bottom using edit+down, then
             scans with edit+right.
@@ -464,6 +556,7 @@
           <button onclick="clearLog()" style="margin-top: 10px">
             Clear Log
           </button>
+          <span id="device-model" hidden>-</span>
         </div>
       </section>
 
@@ -563,6 +656,7 @@ m8.onKeyPress((keys) => log("keys", keys));
             cursorRect: null,
             selectionMode: false,
             textUnderCursor: null,
+            currentLine: null,
             deviceModel: null,
             macroRunning: false,
           };
@@ -666,16 +760,18 @@ m8.onKeyPress((keys) => log("keys", keys));
 
             document.getElementById("status").classList.add("connected");
             document.getElementById("connection-state").textContent =
-              "Connected to M8 Host";
+              `${this.state.deviceModel || "Unknown device"} connected`;
             log("✅ Connected to M8 host successfully!");
 
             // Emit ready
             this.localHandle.emit("ready", undefined);
           } catch (error) {
+            this.isConnected = false;
             log(`Connection failed: ${error.message}`, "error");
             console.error("Connection error:", error);
+            document.getElementById("status").classList.remove("connected");
             document.getElementById("connection-state").textContent =
-              `Connection failed: ${error.message} - retrying...`;
+              `Connection failed: ${error.message}`;
             setTimeout(() => this.connect(), 3000);
           }
         }
@@ -802,23 +898,70 @@ m8.onKeyPress((keys) => log("keys", keys));
       // Global client instance
       window.m8Client = new M8TestClient();
 
+      const formatViewLabel = (viewName) =>
+        viewName
+          .replace(/([a-z])([A-Z])/g, "$1 $2")
+          .replace(/([a-z])([0-9])/g, "$1 $2")
+          .replace(/^./, (char) => char.toUpperCase());
+
+      async function loadViewOptions() {
+        const select = document.getElementById("view-select");
+        try {
+          const response = await fetch("./m8Graph.generated.json");
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          const graph = await response.json();
+          const views = Object.keys(graph).sort((a, b) => a.localeCompare(b));
+          select.innerHTML = '<option value="">Select a view...</option>';
+          for (const view of views) {
+            const option = document.createElement("option");
+            option.value = view;
+            option.textContent = formatViewLabel(view);
+            select.appendChild(option);
+          }
+        } catch (error) {
+          log(`Unable to load view list: ${error.message}`, "warn");
+          select.innerHTML = '<option value="">Views unavailable</option>';
+        }
+      }
+
       // UI Update function
       function updateUI() {
         const state = window.m8Client.state;
-        document.getElementById("view-name").textContent =
-          state.viewName || "-";
-        document.getElementById("cursor-pos").textContent = state.cursorPos
+        const viewDisplay = state.viewTitle || state.viewName || "-";
+        const cursorPos = state.cursorPos
           ? `(${state.cursorPos.x}, ${state.cursorPos.y})`
           : "-";
+        const selection = state.selectionMode ? "On" : "Off";
+        const cursorRectSummary = state.cursorRect
+          ? `${state.cursorRect.x}, ${state.cursorRect.y}, ${state.cursorRect.w}x${state.cursorRect.h}`
+          : "-";
+        document.getElementById("view-name").textContent = viewDisplay;
+        document.getElementById("cursor-pos").textContent = cursorPos;
         document.getElementById("text-cursor").textContent =
           state.textUnderCursor || "-";
+        document.getElementById("current-line").textContent =
+          state.currentLine || "-";
+        document.getElementById("cursor-summary").textContent =
+          `Pos ${cursorPos} | Sel ${selection} | Rect ${cursorRectSummary}`;
         document.getElementById("selection-mode").textContent =
-          state.selectionMode ? "true" : "false";
+          selection;
         document.getElementById("cursor-rect").textContent = state.cursorRect
           ? `${state.cursorRect.x}, ${state.cursorRect.y}, ${state.cursorRect.w}×${state.cursorRect.h}`
           : "-";
         document.getElementById("device-model").textContent =
           state.deviceModel || "-";
+        document.getElementById("cursor-rect").textContent = cursorRectSummary;
+        document.getElementById("connection-state").textContent =
+          window.m8Client.isConnected
+            ? `${state.deviceModel || "Unknown device"} connected`
+            : "Connecting...";
+
+        const select = document.getElementById("view-select");
+        if (state.viewName && select) {
+          select.value = state.viewName;
+        }
       }
 
       // Expose functions to global scope for button onclick handlers
@@ -829,6 +972,15 @@ m8.onKeyPress((keys) => log("keys", keys));
         } catch (error) {
           log(`Navigation failed: ${error.message}`, "error");
         }
+      };
+
+      window.navigateToSelectedView = async () => {
+        const viewName = document.getElementById("view-select").value;
+        if (!viewName) {
+          log("Select a view before navigating", "warn");
+          return;
+        }
+        await window.navigateToView(viewName);
       };
 
       window.navigateToCoords = async () => {
@@ -904,6 +1056,7 @@ m8.onKeyPress((keys) => log("keys", keys));
       // Connect on load
       window.addEventListener("load", () => {
         log("SDK Test Client loaded");
+        loadViewOptions();
         window.m8Client.connect();
       });
     </script>

@@ -176,7 +176,7 @@ const buildProgram = (context: WebGL2RenderingContext, vert: string, frag: strin
 
 const hasUniform = (uniform: WebGLUniformLocation | null) => uniform !== null
 
-export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout: ScreenLayout, initialSmoothRendering = true) => {
+export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, initialScreenLayout: ScreenLayout, initialSmoothRendering = true) => {
   if (!element) {
     return
   }
@@ -207,23 +207,33 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
   let processedAtlasIsSdf = false
   let processedSdfPxRange = 8
 
-  const fontImage = new Image()
-  fontImage.addEventListener('load', () => {
-    fontAtlasOrigW = fontImage.width
-    fontAtlasOrigH = fontImage.height
+  let fontBitmap: ImageBitmap | null = null
+  const loadFont = (url: string) => {
+    fetch(url)
+      .then((r) => r.blob())
+      .then((b) => createImageBitmap(b))
+      .then((bitmap) => {
+        if (fontBitmap) fontBitmap.close()
+        fontBitmap = bitmap
+        fontAtlasOrigW = bitmap.width
+        fontAtlasOrigH = bitmap.height
 
-    // Upload original font with NEAREST (kept as fallback reference)
-    gl.activeTexture(gl.TEXTURE1)
-    gl.bindTexture(gl.TEXTURE_2D, textTexture)
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, fontImage)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+        // Upload original font with NEAREST (kept as fallback reference)
+        gl.activeTexture(gl.TEXTURE1)
+        gl.bindTexture(gl.TEXTURE_2D, textTexture)
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bitmap)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
 
-    // Always generate processed atlas (SDF or blur+threshold)
-    processFont()
+        // Always generate processed atlas (SDF or blur+threshold)
+        processFont()
 
-    queueFrame()
-  })
+        queueFrame()
+      })
+      .catch(() => {
+        console.error('Failed to load font:', url)
+      })
+  }
 
   let smoothRendering = initialSmoothRendering
   // Blur+threshold parameters for final glyph shaping when smoothRendering is on
@@ -379,132 +389,14 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
   let mouseY = 0
   let mouseDown = 0
 
-  const updateMouse = (event: PointerEvent) => {
-    const rect = element.getBoundingClientRect()
-    if (rect.width <= 0 || rect.height <= 0) return
-    const px = ((event.clientX - rect.left) / rect.width) * displayWidth
-    const py = ((event.clientY - rect.top) / rect.height) * displayHeight
-    mouseX = Math.max(0, Math.min(displayWidth, px))
-    mouseY = Math.max(0, Math.min(displayHeight, displayHeight - py))
-  }
-
-  element.addEventListener('pointermove', updateMouse)
-  element.addEventListener('pointerdown', (event) => {
-    mouseDown = 1
-    updateMouse(event)
-  })
-  element.addEventListener('pointerup', (event) => {
-    mouseDown = 0
-    updateMouse(event)
-  })
-  element.addEventListener('pointerleave', () => {
-    mouseDown = 0
-  })
-
-  let micAudioContext: AudioContext | null = null
-  let micAnalyser: AnalyserNode | null = null
-  let micData: Uint8Array<ArrayBuffer> | null = null
-  let micFreqData: Float32Array<ArrayBuffer> | null = null
-  let remappedSpectrumData: Float32Array<ArrayBuffer> | null = null
-  let remappedSpectrumBytes: Uint8Array<ArrayBuffer> | null = null
   let audioSpectrumTexture: WebGLTexture | null = null
   let audioSpectrumBins = 0
   let spectrumBandCount: 64 | 128 | 256 = 128
   let useFloatSpectrumTexture = true
-  let micInitState: 'idle' | 'starting' | 'ready' | 'error' = 'idle'
+  // Audio data provided by the main thread (AudioContext is unavailable in workers)
+  let externalAudioLevel = 0
+  let externalSpectrum: Float32Array | null = null
 
-  const ensureMicInput = () => {
-    if (micInitState !== 'idle') return
-    if (!navigator.mediaDevices?.getUserMedia) {
-      micInitState = 'error'
-      return
-    }
-
-    micInitState = 'starting'
-
-    navigator.mediaDevices.getUserMedia({
-      audio: {
-        echoCancellation: false,
-        noiseSuppression: false,
-        autoGainControl: false,
-      }
-    }).then((stream) => {
-      try {
-        micAudioContext = new AudioContext()
-        const source = micAudioContext.createMediaStreamSource(stream)
-
-        micAnalyser = micAudioContext.createAnalyser()
-        micAnalyser.fftSize = 2048
-        micAnalyser.minDecibels = -90
-        micAnalyser.maxDecibels = -10
-        micAnalyser.smoothingTimeConstant = 0.1
-
-        source.connect(micAnalyser)
-        micData = new Uint8Array(micAnalyser.fftSize)
-        micFreqData = new Float32Array(new ArrayBuffer(Float32Array.BYTES_PER_ELEMENT * micAnalyser.frequencyBinCount))
-        remappedSpectrumData = new Float32Array(new ArrayBuffer(Float32Array.BYTES_PER_ELEMENT * spectrumBandCount))
-        remappedSpectrumBytes = new Uint8Array(new ArrayBuffer(spectrumBandCount))
-
-        if (micAudioContext.state !== 'running') {
-          void micAudioContext.resume()
-        }
-
-        micInitState = 'ready'
-      } catch {
-        micInitState = 'error'
-      }
-    }).catch(() => {
-      micInitState = 'error'
-    })
-  }
-
-  const getMicAudioLevel = () => {
-    if (!micAnalyser || !micData) return 0
-    micAnalyser.getByteTimeDomainData(micData)
-    let sum = 0
-    for (let i = 0; i < micData.length; i++) {
-      const sample = (micData[i] - 128) / 128
-      sum += sample * sample
-    }
-    return Math.min(1, Math.sqrt(sum / micData.length) * 2.5)
-  }
-
-  const getMicSpectrumData = () => {
-    if (!micAnalyser || !micFreqData || !micAudioContext) return null
-    if (micAudioContext.state !== 'running') {
-      void micAudioContext.resume()
-      return null
-    }
-    micAnalyser.getFloatFrequencyData(micFreqData)
-    const sampleRate = micAudioContext?.sampleRate ?? 44100
-    const nyquist = sampleRate * 0.5
-    const minHz = 20.0
-    const minDb = micAnalyser.minDecibels
-    const maxDb = micAnalyser.maxDecibels
-    if (!remappedSpectrumData || remappedSpectrumData.length !== spectrumBandCount) {
-      remappedSpectrumData = new Float32Array(new ArrayBuffer(Float32Array.BYTES_PER_ELEMENT * spectrumBandCount))
-    }
-    if (!remappedSpectrumBytes || remappedSpectrumBytes.length !== spectrumBandCount) {
-      remappedSpectrumBytes = new Uint8Array(new ArrayBuffer(spectrumBandCount))
-    }
-    for (let band = 0; band < spectrumBandCount; band++) {
-      const bandStartHz = minHz * (nyquist / minHz) ** (band / spectrumBandCount)
-      const bandEndHz = minHz * (nyquist / minHz) ** ((band + 1) / spectrumBandCount)
-      const startIndex = Math.max(0, Math.floor((bandStartHz / nyquist) * micFreqData.length))
-      const endIndex = Math.min(micFreqData.length, Math.max(startIndex + 1, Math.ceil((bandEndHz / nyquist) * micFreqData.length)))
-      let peak = minDb
-      for (let i = startIndex; i < endIndex; i++) {
-        peak = Math.max(peak, micFreqData[i])
-      }
-      remappedSpectrumData[band] = Math.min(1, Math.max(0, (peak - minDb) / (maxDb - minDb)))
-      remappedSpectrumBytes[band] = Math.round(remappedSpectrumData[band] * 255)
-    }
-    return {
-      data: remappedSpectrumData,
-      bytes: remappedSpectrumBytes,
-      sampleRate,
-    }
-  }
 
 
   const ensureSpectrumTexture = (binCount: number) => {
@@ -563,9 +455,9 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
       // Reset ping-pong buffers so the new shader starts with a clean slate
       destroyBgPingPongBuffers()
       queueFrame()
-      return null
+      return { error: null, usesAudio: customUsesAudioLevel || customUsesAudioSpectrum }
     } catch (error) {
-      return error instanceof Error ? error.message : 'Failed to compile custom background shader'
+      return { error: error instanceof Error ? error.message : 'Failed to compile custom background shader', usesAudio: false }
     }
   }
 
@@ -574,9 +466,6 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
     gl.disable(gl.BLEND)
     gl.bindVertexArray(postprocessVao)
     if (!customProgram) return
-    if (customUsesAudioLevel || customUsesAudioSpectrum) {
-      ensureMicInput()
-    }
 
     // Ensure ping-pong buffers match current display size
     ensureBgPingPongBuffers(displayWidth, displayHeight)
@@ -593,7 +482,7 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
     if (custom_uTime) gl.uniform1f(custom_uTime, performance.now() / 1000 - backgroundStartTime)
     if (custom_uResolution) gl.uniform2f(custom_uResolution, displayWidth, displayHeight)
     if (customUsesMouse && custom_uMouse) gl.uniform4f(custom_uMouse, mouseX, mouseY, mouseDown, 0.0)
-    if (customUsesAudioLevel && custom_uAudioLevel) gl.uniform1f(custom_uAudioLevel, getMicAudioLevel())
+    if (customUsesAudioLevel && custom_uAudioLevel) gl.uniform1f(custom_uAudioLevel, externalAudioLevel)
     if (custom_uFrameCount) gl.uniform1i(custom_uFrameCount, bgFrameCount)
 
     // Bind previous frame texture
@@ -610,20 +499,21 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
       gl.uniform1i(custom_uM8Screen, M8_SCREEN_TEX_UNIT)
     }
 
-    const spectrum = customUsesAudioSpectrum ? getMicSpectrumData() : null
     if (customUsesAudioSpectrum && custom_uAudioSpectrum && custom_uAudioSpectrumBins) {
-      if (spectrum) {
-        ensureSpectrumTexture(spectrum.data.length)
+      if (externalSpectrum) {
+        ensureSpectrumTexture(externalSpectrum.length)
         if (audioSpectrumTexture) {
           gl.activeTexture(gl.TEXTURE0 + AUDIO_SPECTRUM_TEX_UNIT)
           gl.bindTexture(gl.TEXTURE_2D, audioSpectrumTexture)
           if (useFloatSpectrumTexture) {
-            gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, spectrum.data.length, 1, gl.RED, gl.FLOAT, spectrum.data)
+            gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, externalSpectrum.length, 1, gl.RED, gl.FLOAT, externalSpectrum)
           } else {
-            gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, spectrum.bytes.length, 1, gl.RED, gl.UNSIGNED_BYTE, spectrum.bytes)
+            const bytes = new Uint8Array(externalSpectrum.length)
+            for (let i = 0; i < externalSpectrum.length; i++) bytes[i] = Math.round(externalSpectrum[i] * 255)
+            gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, bytes.length, 1, gl.RED, gl.UNSIGNED_BYTE, bytes)
           }
           gl.uniform1i(custom_uAudioSpectrum, AUDIO_SPECTRUM_TEX_UNIT)
-          gl.uniform1f(custom_uAudioSpectrumBins, spectrum.data.length)
+          gl.uniform1f(custom_uAudioSpectrumBins, externalSpectrum.length)
         }
       } else {
         gl.uniform1f(custom_uAudioSpectrumBins, 0)
@@ -728,10 +618,8 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
     processedAtlasIsSdf = !smoothRendering
     processedSdfPxRange = sdfSpread
 
-    // 2D canvas for glyph extraction
-    const cropCanvas = document.createElement('canvas')
-    cropCanvas.width = paddedW
-    cropCanvas.height = paddedH
+    // 2D canvas for glyph extraction (OffscreenCanvas works in workers)
+    const cropCanvas = new OffscreenCanvas(paddedW, paddedH)
     const cropCtx = cropCanvas.getContext('2d')
     if (!cropCtx) return
 
@@ -820,7 +708,8 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
     for (let g = 0; g < numGlyphs; g++) {
       // Extract padded glyph via 2D canvas (glyph centred in padded area)
       cropCtx.clearRect(0, 0, paddedW, paddedH)
-      cropCtx.drawImage(fontImage, g * glyphW, 0, glyphW, glyphH, pad, pad, glyphW, glyphH)
+      // biome-ignore lint/style/noNonNullAssertion: fontBitmap is always set before processFont is called
+      cropCtx.drawImage(fontBitmap!, g * glyphW, 0, glyphW, glyphH, pad, pad, glyphW, glyphH)
       gl.activeTexture(gl.TEXTURE4)
       gl.bindTexture(gl.TEXTURE_2D, glyphTex)
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, cropCanvas)
@@ -924,8 +813,6 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
     if (newWidth <= 0 || newHeight <= 0) return
     if (newWidth === displayWidth && newHeight === displayHeight) return
 
-    console.log('resize huh', displayWidth, '->', newWidth, displayHeight, '->', newHeight)
-
     displayWidth = newWidth
     displayHeight = newHeight
     element.width = displayWidth
@@ -943,9 +830,9 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
         requestAnimationFrame(() => {
           // Guard against one-frame scale glitches when tab visibility/DPR/layout changes
           // are observed after RAF resumes.
-          const dpr = window.devicePixelRatio || 1
-          const expectedWidth = Math.max(1, Math.round(element.clientWidth * dpr))
-          const expectedHeight = Math.max(1, Math.round(element.clientHeight * dpr))
+          const dpr = self.devicePixelRatio || 1
+          const expectedWidth = 'clientWidth' in element ? Math.max(1, Math.round((element as HTMLCanvasElement).clientWidth * dpr)) : displayWidth
+          const expectedHeight = 'clientWidth' in element ? Math.max(1, Math.round((element as HTMLCanvasElement).clientHeight * dpr)) : displayHeight
           if ((expectedWidth !== displayWidth || expectedHeight !== displayHeight) && expectedWidth > 0 && expectedHeight > 0) {
             displayWidth = expectedWidth
             displayHeight = expectedHeight
@@ -1436,7 +1323,7 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
     }
 
     gl.viewport(0, 0, width, height)
-    fontImage.src = screenLayoutConfig[screenLayout].font.url
+    loadFont(screenLayoutConfig[screenLayout].font.url)
   }
 
   updateScreen()
@@ -1479,8 +1366,6 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
     setAudioSpectrumBands: (bands: 64 | 128 | 256) => {
       if (spectrumBandCount === bands) return
       spectrumBandCount = bands
-      remappedSpectrumData = new Float32Array(new ArrayBuffer(Float32Array.BYTES_PER_ELEMENT * spectrumBandCount))
-      remappedSpectrumBytes = new Uint8Array(new ArrayBuffer(spectrumBandCount))
       if (audioSpectrumTexture) {
         gl.deleteTexture(audioSpectrumTexture)
         audioSpectrumTexture = null
@@ -1489,12 +1374,20 @@ export const renderer = (element: HTMLCanvasElement | null, initialScreenLayout:
       queueFrame()
     },
     setCustomBackgroundShader,
+    setAudioData: (level: number, spectrum: Float32Array | null) => {
+      externalAudioLevel = level
+      externalSpectrum = spectrum
+    },
     setCompositeM8Screen: (value: boolean) => {
-      console.log('setCompositeM8Screen', value)
       if (compositeM8Screen !== value) {
         compositeM8Screen = value
         queueFrame()
       }
+    },
+    setMouseState: (x: number, y: number, down: number) => {
+      mouseX = x
+      mouseY = y
+      mouseDown = down
     },
   }
 }

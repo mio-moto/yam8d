@@ -127,7 +127,7 @@ export const useCanvasRecorder = () => {
     })
   }, [supportedMimeType])
 
-  const startRecording = useCallback(async ({ mode, canvas, frameRate = 30 }: StartRecordingOptions) => {
+  const startRecording = useCallback(async ({ mode, canvas, frameRate = 60 }: StartRecordingOptions) => {
     if (status === 'starting' || status === 'recording' || status === 'stopping') {
       return
     }

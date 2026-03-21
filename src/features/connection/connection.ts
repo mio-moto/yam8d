@@ -474,7 +474,9 @@ export const connection = () => {
         const connection = await (webSerialAvailable ? serialConnect() : webUsbAvailable ? usbConnect() : midiConnect())
         //const connection = await (webMidiAvailable ? midiConnect() : webSerialAvailable ? serialConnect() : usbConnect())
         //const connection = await (webUsbAvailable ? usbConnect() : webSerialAvailable ? serialConnect() : midiConnect())
-        connection.commands.resetScreen()
+        // resetScreen is intentionally NOT called here — it must be called by the
+        // screen component AFTER it has registered its event listeners, so the
+        // M8's initial screen dump is not lost before anyone is listening.
         const protocolHandler = protocol()
         beginRead(connection.reader, protocolHandler)
         return {

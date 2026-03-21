@@ -58,7 +58,26 @@ export const App: FC = () => {
           console.error('No usb / serial support detected.')
           return
         }
-        const bus = await res.connection.connect()
+
+        // Retry loop — the M8 Headless is slower to enumerate and may not be
+        // immediately ready when the user clicks Connect.
+        const maxAttempts = 3
+        let bus: Awaited<ReturnType<typeof res.connection.connect>> | undefined
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+          try {
+            bus = await res.connection.connect()
+            break
+          } catch (err) {
+            console.warn(`Connection attempt ${attempt}/${maxAttempts} failed:`, err)
+            if (attempt < maxAttempts) {
+              await new Promise<void>((resolve) => setTimeout(resolve, 1500))
+            } else {
+              console.error('Could not connect to M8 after all attempts:', err)
+              return
+            }
+          }
+        }
+        if (!bus) return
 
         setConnectedBus(bus)
         const onSystemCommand = (sys: SystemCommand | undefined) => {

@@ -5,7 +5,8 @@ import type { ConnectedBus } from './connection/connection'
 import { pressKeys } from './connection/keys'
 import type { KeyCommand, SystemCommand } from './connection/protocol'
 import { useViewNavigator } from './macros/useViewNavigator'
-import { M8Screen } from './rendering/M8Screen'
+import { M8Screen, canUseOffscreenCanvas } from './rendering/M8Screen'
+import { M8PreText } from './rendering/M8PreText'
 import { registerViewExtractor } from './state/viewExtractor'
 import { M8Body } from './rendering/M8Body'
 import { useBackgroundColor, useSystemInfo } from './state/viewStore'
@@ -275,12 +276,14 @@ const FullM8Player: FC<{
           <div
             // When body is hidden, provide a placeholder element to anchor the screen overlay
             ref={screenEdgeRef as unknown as React.Ref<HTMLDivElement>}
-            style={{ width: '100%', height: '66vh', filter: 'drop-shadow(0 0 0.75rem crimson)' }}
+            style={{ width: '100%', height: '88vh' }}
           />
         )}
 
         <div ref={screenRef} className={screen} onClick={onScreenClick}>
-          <M8Screen ref={screenCanvasRef} bus={bus} onClick={onScreenClick} />
+          {canUseOffscreenCanvas
+            ? <M8Screen ref={screenCanvasRef} bus={bus} onClick={onScreenClick} />
+            : <M8PreText bus={bus} />}
         </div>
       </div>
     </>

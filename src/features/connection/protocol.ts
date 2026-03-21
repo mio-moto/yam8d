@@ -104,9 +104,8 @@ const parseSystemCommand = (data: DataView, length: number) => {
     }
 }
 
-let lastSystemInfo: SystemCommand | undefined
-
 export const protocol = () => {
+    let lastSystemInfo: SystemCommand | undefined
     const eventBus = createEventBus<{
         rect: (data: RectCommand) => void
         text: (data: CharacterCommand) => void
