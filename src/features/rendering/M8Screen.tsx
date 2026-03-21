@@ -74,7 +74,7 @@ export const M8Screen = forwardRef<HTMLCanvasElement, { bus?: ConnectedBus | nul
 
         // Audio loop: captures mic FFT on the main thread and posts data to the worker
         // (AudioContext is not available in DedicatedWorkerGlobalScope)
-        let audioLoopId: number | undefined = undefined
+        let audioLoopId: number | undefined
 
         const ensureMicInput = () => {
             if (micStateRef.current !== 'idle') return
@@ -218,7 +218,6 @@ export const M8Screen = forwardRef<HTMLCanvasElement, { bus?: ConnectedBus | nul
                 terminateTimerRef.current = undefined
             }, 0)
         }
-        // biome-ignore lint: intentionally empty — OffscreenCanvas transfer must happen exactly once per mount
     }, [])
 
     // Bus event routing — re-wires whenever the connection changes

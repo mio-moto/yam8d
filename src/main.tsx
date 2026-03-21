@@ -17,7 +17,7 @@ const useStrict = !import.meta.env.VITE_BUILD_WITHOUT_STRICT
 enableInputGate()
 
 createRoot(element).render(
-    false && useStrict ? (
+    useStrict ? (
         <StrictMode>
             <SettingsProvider>
                 <App />
