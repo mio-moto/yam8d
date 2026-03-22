@@ -20,6 +20,8 @@ export type WorkerInMessage =
   | { type: 'setCompositeM8Screen'; value: boolean }
   | { type: 'setMouseState'; x: number; y: number; down: number }
   | { type: 'audioData'; level: number; spectrum: Float32Array | null }
+  | { type: 'precompileVJShader'; id: string; source: string }
+  | { type: 'activateVJShader'; id: string; compositeM8Screen: boolean }
   // system info from bus — drives setScreenLayout on reconnect
   | { type: 'system'; data: SystemCommand }
 
@@ -106,6 +108,14 @@ self.addEventListener('message', (rawEvent: Event) => {
     }
     case 'audioData': {
       render?.setAudioData(msg.level, msg.spectrum)
+      break
+    }
+    case 'precompileVJShader': {
+      render?.precompileVJShader(msg.id, msg.source)
+      break
+    }
+    case 'activateVJShader': {
+      render?.activateVJShader(msg.id, msg.compositeM8Screen)
       break
     }
     case 'system': {

@@ -1,9 +1,25 @@
 import { forwardRef, type MouseEventHandler, useEffect, useImperativeHandle, useRef } from 'react'
+import { useSetAtom } from 'jotai'
 import type { ConnectedBus } from '../connection/connection'
 import type { CharacterCommand, RectCommand, SystemCommand, WaveCommand } from '../connection/protocol'
 import { useSettingsContext } from '../settings/settings'
+import { vjActiveKeyAtom } from '../state/viewStore'
 import type { ScreenLayout } from './renderer'
 import type { DrawCommand, WorkerInMessage, WorkerOutMessage } from './renderer.worker'
+
+const VJ_NUMPAD_STORAGE_KEY = 'M8savedBackgroundShaders'
+type VJSavedShader = { id: string; source: string; compositeM8Screen: boolean; name: string; updatedAt: number }
+
+const loadVJShaderById = (id: string): VJSavedShader | null => {
+    try {
+        const raw = localStorage.getItem(VJ_NUMPAD_STORAGE_KEY)
+        if (!raw) return null
+        const list = JSON.parse(raw) as VJSavedShader[]
+        return list.find((s) => s.id === id) ?? null
+    } catch {
+        return null
+    }
+}
 
 const makeScreenLayout = ({ model, fontMode }: SystemCommand): ScreenLayout => {
     if (model === 'M8 Model:02') {
@@ -306,6 +322,44 @@ export const M8Screen = forwardRef<HTMLCanvasElement, { bus?: ConnectedBus | nul
     useEffect(() => {
         workerRef.current?.postMessage({ type: 'setCompositeM8Screen', value: settings.backgroundShaderCompositeM8Screen } satisfies WorkerInMessage)
     }, [settings.backgroundShaderCompositeM8Screen])
+
+    const setVjActiveKey = useSetAtom(vjActiveKeyAtom)
+
+    // VJ mode: precompile all assigned shaders and handle numpad key switching
+    useEffect(() => {
+        if (!settings.vjMode) {
+            setVjActiveKey(null)
+            return
+        }
+
+        const worker = workerRef.current
+        if (!worker) return
+
+        // Precompile every assigned shader so switching is instant
+        for (const shaderId of Object.values(settings.vjNumpadAssignments)) {
+            if (!shaderId) continue
+            const shader = loadVJShaderById(shaderId)
+            if (shader) {
+                worker.postMessage({ type: 'precompileVJShader', id: shaderId, source: shader.source } satisfies WorkerInMessage)
+            }
+        }
+
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (!e.code.startsWith('Numpad')) return
+            const key = e.code.replace('Numpad', '')
+            if (!/^[0-9]$/.test(key)) return
+            const shaderId = settings.vjNumpadAssignments[key]
+            if (!shaderId) return
+            const shader = loadVJShaderById(shaderId)
+            if (!shader) return
+            worker.postMessage({ type: 'activateVJShader', id: shaderId, compositeM8Screen: shader.compositeM8Screen } satisfies WorkerInMessage)
+            setVjActiveKey(key)
+            e.preventDefault()
+        }
+
+        window.addEventListener('keydown', onKeyDown)
+        return () => window.removeEventListener('keydown', onKeyDown)
+    }, [settings.vjMode, settings.vjNumpadAssignments, setVjActiveKey])
 
     return (
         <canvas

@@ -620,14 +620,6 @@ export const useM8SdkHost = (bus: ConnectedBus | undefined, config: M8SdkConfig 
             return false
         }
 
-        // Some fields start at "---" and need one edit press before they expose real values.
-        const initialCursorText = store.get(textUnderCursorAtom)
-        if (initialCursorText?.trim() === '---') {
-            console.log('[M8SDK] Initial string value is "---", priming with edit key')
-            await pressAndRelease(M8KeyMask.Edit)
-            await waitForTextUnderCursorChange(initialCursorText, 250)
-        }
-
         const getSearchSource = (): string | null => {
             return searchInCurrentLine ? store.get(currentLineAtom) : store.get(textUnderCursorAtom)
         }
@@ -638,15 +630,55 @@ export const useM8SdkHost = (bus: ConnectedBus | undefined, config: M8SdkConfig 
             return exact ? normalizedValue === normalizedTarget : normalizedValue.includes(normalizedTarget)
         }
 
+        // 0) Check if we're already on the right value before doing anything.
+        if (matches(getSearchSource())) {
+            return true
+        }
+
+        // Some fields start at "---" and need one edit press before they expose real values.
+        const initialCursorText = store.get(textUnderCursorAtom)
+        if (initialCursorText?.trim() === '---') {
+            console.log('[M8SDK] Initial string value is "---", priming with edit key')
+            await pressAndRelease(M8KeyMask.Edit)
+            await waitForTextUnderCursorChange(initialCursorText, 250)
+        }
+
         const beforeEnterEdit = store.get(textUnderCursorAtom)
         await pressAndRelease(M8KeyMask.Edit)
         await waitForTextUnderCursorChange(beforeEnterEdit, 250)
 
+        // Check again right after entering edit mode before going to the bottom.
+        if (matches(getSearchSource())) {
+            await pressAndRelease(M8KeyMask.Edit)
+            return true
+        }
+
         // 1) Go to the bottom: keep sending edit+down until value stops changing.
+        // Guard against circular lists (no bottom) using a seed of the first few observed
+        // values, and a hard timeout.
         let currentText = store.get(textUnderCursorAtom)
         const maxBottomConfirmationRetries = 1
         let bottomNoChangeCount = 0
+        const bottomStartTime = Date.now()
+        const BOTTOM_TIMEOUT_MS = 2000
+        const CIRCULAR_SEED_COUNT = 4
+        const bottomSeedValues: string[] = []
         for (let i = 0; i < 512; i++) {
+            if (Date.now() - bottomStartTime > BOTTOM_TIMEOUT_MS) {
+                console.log('[M8SDK] Timeout reached while seeking bottom of list')
+                break
+            }
+
+            const normalizedCurrent = normalizeForSearch(currentText)
+            if (normalizedCurrent) {
+                if (i < CIRCULAR_SEED_COUNT) {
+                    bottomSeedValues.push(normalizedCurrent)
+                } else if (bottomSeedValues.includes(normalizedCurrent)) {
+                    console.log('[M8SDK] Circular list detected while seeking bottom, treating current position as start')
+                    break
+                }
+            }
+
             const beforeStepText = currentText
             await pressAndRelease(M8KeyMask.Edit | M8KeyMask.Down, 35)
             const nextText = await waitForTextUnderCursorChange(beforeStepText, 250)

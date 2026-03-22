@@ -318,6 +318,17 @@ export const Menu: FC = () => {
                                     </Button>
                                 </div>
                             </div>
+                            <div className="menu-item">
+                                <span className="title">VJ Mode</span>
+                                <div>
+                                    <Button selected={settings.vjMode} onClick={() => updateSettingValue('vjMode', true)}>
+                                        On
+                                    </Button>
+                                    <Button selected={!settings.vjMode} onClick={() => updateSettingValue('vjMode', false)}>
+                                        Off
+                                    </Button>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>

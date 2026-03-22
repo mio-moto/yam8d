@@ -47,6 +47,8 @@ export type Settings = {
     backgroundShaderSpectrumBands: 64 | 128 | 256
     backgroundShaderCompositeM8Screen: boolean
     showBackgroundShaderEditor: boolean
+    vjMode: boolean
+    vjNumpadAssignments: Record<string, string | null>
     inputMap: typeof defaultInputMap
     keyMap: typeof defaultKeyMap
 }
@@ -73,6 +75,8 @@ const defaultSettings: Settings = {
     backgroundShaderSpectrumBands: 128,
     backgroundShaderCompositeM8Screen: true,
     showBackgroundShaderEditor: false,
+    vjMode: false,
+    vjNumpadAssignments: {},
 
     inputMap: defaultInputMap,
     keyMap: defaultKeyMap,

@@ -137,7 +137,7 @@
 
       .state-grid {
         display: grid;
-        grid-template-columns: 1.35fr 1fr;
+        grid-template-columns: 1fr;
         gap: 10px;
         font-size: 13px;
       }
@@ -151,6 +151,7 @@
 
       .state-item.wide {
         display: grid;
+        grid-template-columns: 0.5fr 1.5fr;
         gap: 8px;
       }
 
@@ -422,26 +423,12 @@
               <div class="value" id="text-cursor">-</div>
               <div class="label">Current Line</div>
               <div class="value" id="current-line">-</div>
-            </div>
-            <div class="state-item">
-              <div class="label">Cursor</div>
-              <div class="cursor-summary">
-                <div class="value" id="cursor-summary">-</div>
-                <div class="cursor-meta">
-                  <div class="micro-stat">
-                    <span class="label">Position</span>
-                    <span class="value" id="cursor-pos">-</span>
-                  </div>
-                  <div class="micro-stat">
-                    <span class="label">Selection</span>
-                    <span class="value" id="selection-mode">-</span>
-                  </div>
-                  <div class="micro-stat">
-                    <span class="label">Rect</span>
-                    <span class="value" id="cursor-rect">-</span>
-                  </div>
-                </div>
-              </div>
+              <div class="label">Cursor Position</div>
+              <div class="value" id="cursor-pos">-</div>
+              <div class="label">Selection Mode</div>
+              <div class="value" id="selection-mode">-</div>
+              <div class="label">Cursor Rect</div>
+              <div class="value" id="cursor-rect">-</div>
             </div>
           </div>
         </div>
@@ -465,7 +452,7 @@
               placeholder="X (0-39)"
               min="0"
               max="39"
-              value="10"
+              value="22"
             />
             <input
               type="number"
@@ -473,7 +460,7 @@
               placeholder="Y (0-23)"
               min="0"
               max="23"
-              value="5"
+              value="15"
             />
             <button onclick="navigateToCoords()">Navigate</button>
           </div>
@@ -943,8 +930,6 @@ m8.onKeyPress((keys) => log("keys", keys));
           state.textUnderCursor || "-";
         document.getElementById("current-line").textContent =
           state.currentLine || "-";
-        document.getElementById("cursor-summary").textContent =
-          `Pos ${cursorPos} | Sel ${selection} | Rect ${cursorRectSummary}`;
         document.getElementById("selection-mode").textContent =
           selection;
         document.getElementById("cursor-rect").textContent = state.cursorRect
@@ -958,10 +943,6 @@ m8.onKeyPress((keys) => log("keys", keys));
             ? `${state.deviceModel || "Unknown device"} connected`
             : "Connecting...";
 
-        const select = document.getElementById("view-select");
-        if (state.viewName && select) {
-          select.value = state.viewName;
-        }
       }
 
       // Expose functions to global scope for button onclick handlers

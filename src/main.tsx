@@ -11,7 +11,7 @@ if (!element) {
     throw new Error('Application error.')
 }
 
-const useStrict = !import.meta.env.VITE_BUILD_WITHOUT_STRICT
+const useStrict = false ; // !import.meta.env.VITE_BUILD_WITHOUT_STRICT
 
 // Initialize global capture-phase input gate once
 enableInputGate()

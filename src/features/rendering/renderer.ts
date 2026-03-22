@@ -302,6 +302,27 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
   let compositeM8Screen = true
   let isFrameQueued = false
 
+  // --- VJ shader cache (pre-compiled programs for instant numpad switching) ---
+  type VJCachedShader = {
+    program: WebGLProgram
+    uTime: WebGLUniformLocation | null
+    uResolution: WebGLUniformLocation | null
+    uMouse: WebGLUniformLocation | null
+    uAudioLevel: WebGLUniformLocation | null
+    uAudioSpectrum: WebGLUniformLocation | null
+    uAudioSpectrumBins: WebGLUniformLocation | null
+    uPreviousFrame: WebGLUniformLocation | null
+    uFrameCount: WebGLUniformLocation | null
+    uM8Screen: WebGLUniformLocation | null
+    usesAudioLevel: boolean
+    usesAudioSpectrum: boolean
+    usesMouse: boolean
+    usesM8Screen: boolean
+  }
+  const vjShaderCache = new Map<string, VJCachedShader>()
+  // Track whether customProgram is owned by the VJ cache (must not be deleted on swap)
+  let customProgramFromVJCache = false
+
   // --- Ping-pong double buffer for background shader feedback ---
   const BG_PING_PONG_TEX_UNITS = [12, 13] as const
   const bgPingPongTextures: [WebGLTexture | null, WebGLTexture | null] = [null, null]
@@ -432,9 +453,11 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
       const nextFrameCount = gl.getUniformLocation(nextProgram, 'uFrameCount')
       const nextM8Screen = gl.getUniformLocation(nextProgram, 'uM8Screen')
 
-      if (customProgram) {
+      // Don't delete programs owned by the VJ cache — they are managed separately
+      if (customProgram && !customProgramFromVJCache) {
         gl.deleteProgram(customProgram)
       }
+      customProgramFromVJCache = false
 
       customProgram = nextProgram
       custom_uTime = nextTime
@@ -459,6 +482,66 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
     } catch (error) {
       return { error: error instanceof Error ? error.message : 'Failed to compile custom background shader', usesAudio: false }
     }
+  }
+
+  const precompileVJShader = (id: string, fragmentSource: string) => {
+    try {
+      // Replace any previously compiled entry for this id
+      const existing = vjShaderCache.get(id)
+      if (existing) gl.deleteProgram(existing.program)
+
+      const program = buildProgram(gl, VertPostprocess, fragmentSource)
+      vjShaderCache.set(id, {
+        program,
+        uTime: gl.getUniformLocation(program, 'uTime'),
+        uResolution: gl.getUniformLocation(program, 'uResolution'),
+        uMouse: gl.getUniformLocation(program, 'uMouse'),
+        uAudioLevel: gl.getUniformLocation(program, 'uAudioLevel'),
+        uAudioSpectrum: gl.getUniformLocation(program, 'uAudioSpectrum'),
+        uAudioSpectrumBins: gl.getUniformLocation(program, 'uAudioSpectrumBins'),
+        uPreviousFrame: gl.getUniformLocation(program, 'uPreviousFrame'),
+        uFrameCount: gl.getUniformLocation(program, 'uFrameCount'),
+        uM8Screen: gl.getUniformLocation(program, 'uM8Screen'),
+        usesAudioLevel: hasUniform(gl.getUniformLocation(program, 'uAudioLevel')),
+        usesAudioSpectrum: hasUniform(gl.getUniformLocation(program, 'uAudioSpectrum')) && hasUniform(gl.getUniformLocation(program, 'uAudioSpectrumBins')),
+        usesMouse: hasUniform(gl.getUniformLocation(program, 'uMouse')),
+        usesM8Screen: hasUniform(gl.getUniformLocation(program, 'uM8Screen')),
+      })
+      return { error: null }
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : 'Failed to precompile VJ shader' }
+    }
+  }
+
+  const activateVJShader = (id: string, newCompositeM8Screen: boolean) => {
+    const cached = vjShaderCache.get(id)
+    if (!cached) return
+
+    // Don't delete programs owned by the VJ cache — they are managed separately
+    if (customProgram && !customProgramFromVJCache) {
+      gl.deleteProgram(customProgram)
+    }
+
+    customProgram = cached.program
+    customProgramFromVJCache = true
+    custom_uTime = cached.uTime
+    custom_uResolution = cached.uResolution
+    custom_uMouse = cached.uMouse
+    custom_uAudioLevel = cached.uAudioLevel
+    custom_uAudioSpectrum = cached.uAudioSpectrum
+    custom_uAudioSpectrumBins = cached.uAudioSpectrumBins
+    custom_uPreviousFrame = cached.uPreviousFrame
+    custom_uFrameCount = cached.uFrameCount
+    custom_uM8Screen = cached.uM8Screen
+    customUsesAudioLevel = cached.usesAudioLevel
+    customUsesAudioSpectrum = cached.usesAudioSpectrum
+    customUsesMouse = cached.usesMouse
+    customUsesM8Screen = cached.usesM8Screen
+    compositeM8Screen = newCompositeM8Screen
+    backgroundStartTime = performance.now() / 1000
+    bgFrameCount = 0
+    destroyBgPingPongBuffers()
+    queueFrame()
   }
 
   const renderBackground = () => {
@@ -1374,6 +1457,8 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
       queueFrame()
     },
     setCustomBackgroundShader,
+    precompileVJShader,
+    activateVJShader,
     setAudioData: (level: number, spectrum: Float32Array | null) => {
       externalAudioLevel = level
       externalSpectrum = spectrum

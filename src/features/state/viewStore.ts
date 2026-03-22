@@ -73,6 +73,9 @@ export const cellMetricsAtom = atom<{ cellW: number; cellH: number; offX: number
 // Complete system info including rectOffset
 export const systemInfoAtom = atom<SystemInfos | null>(null)
 
+// VJ Mode: which numpad key is currently active ('0'-'9', or null)
+export const vjActiveKeyAtom = atom<string | null>(null)
+
 export const useViewName = () => useAtom(viewNameAtom)
 export const useViewTitle = () => useAtom(viewTitleAtom)
 export const useMinimapKey = () => useAtom(minimapKeyAtom)

@@ -13,6 +13,7 @@ import { useBackgroundColor, useSystemInfo } from './state/viewStore'
 import { rgbToHex } from '../utils/colorTools'
 import { useSettingsContext } from '../features/settings/settings'
 import { RecordingControls } from './recording/RecordingControls'
+import { VJNumpad } from './rendering/VJNumpad'
 
 // import { useCursorRect } from './state/viewStore'
 // import { rectLogger } from './debug/rectAnalyserLogger'
@@ -259,6 +260,7 @@ const FullM8Player: FC<{
 
   return (
     <>
+      {settings.vjMode && settings.backgroundShader && <VJNumpad />}
       <RecordingControls getCanvas={() => screenCanvasRef.current} />
       <div ref={parentRef} className={cx(containerClass, fullView && 'M8-full-view')}>
         {settings.showM8Body ? (
