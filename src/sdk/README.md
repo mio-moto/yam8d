@@ -53,6 +53,8 @@ await m8.setValueToInt(63);
 await m8.setNote("c#4");
 await m8.setValueToString("sine", false);
 await m8.setValueToString("cutoff", false, true); // search in full current line
+await m8.browseFile("bassline"); // exact file name or base name
+await m8.browseFile("bass", false); // partial match
 
 // Subscribe to state changes
 const unsubscribe = m8.onStateChange((state) => {
@@ -75,10 +77,16 @@ m8.disconnect();
 | `setValueToHex(hex: number)`       | Set value using edit+navigation | `Promise<boolean>` |
 | `setValueToInt(targetInt: number)` | Set decimal integer value       | `Promise<boolean>` |
 | `setNote(noteString: string)`      | Set note (for example `C#4`)    | `Promise<boolean>` |
+| `browseFile(targetText: string, exact?: boolean)`   | Browse file tree and select matching M8 file | `Promise<boolean>` |
 | `getState()`                       | Get full M8 state               | `Promise<M8State>` |
 | `sendKeys(keys: number)`           | Send key combination            | `void`             |
 
-Additional host method: `setValueToString(targetString: string, exact?: boolean, searchInCurrentLine?: boolean): Promise<boolean>`.
+Additional host methods:
+
+- `setValueToString(targetString: string, exact?: boolean, searchInCurrentLine?: boolean): Promise<boolean>`
+- `browseFile(targetText: string, exact?: boolean): Promise<boolean>`
+
+For `browseFile`, the extension is optional in the search text: matching is done against both the full file name and the base name without the M8 extension (for example `.MBN`).
 
 ### Client State (reactive)
 

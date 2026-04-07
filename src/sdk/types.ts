@@ -50,6 +50,7 @@ export interface M8HostMethods {
     setValueToInt(targetInt: number): Promise<boolean>
     setNote(noteString: string): Promise<boolean>
     setValueToString(targetString: string, exact?: boolean, searchInCurrentLine?: boolean): Promise<boolean>
+    browseFile(targetText: string, exact?: boolean): Promise<boolean>
 
     // Key press
     /** Send a key press to the M8. Keys: left, right, up, down, shift, play, opt, edit */

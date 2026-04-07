@@ -42,6 +42,7 @@ export interface M8Client {
     setValueToInt(targetInt: number): Promise<boolean>
     setNote(noteString: string): Promise<boolean>
     setValueToString(targetString: string, exact?: boolean, searchInCurrentLine?: boolean): Promise<boolean>
+    browseFile(targetText: string, exact?: boolean): Promise<boolean>
 
     // Key press
     /**
@@ -240,6 +241,13 @@ class M8ClientImpl implements M8Client {
             throw new Error('[M8SDK Client] Not connected')
         }
         return this.remoteHandle.call('setValueToString', targetString, exact, searchInCurrentLine)
+    }
+
+    async browseFile(targetText: string, exact: boolean = true): Promise<boolean> {
+        if (!this.remoteHandle) {
+            throw new Error('[M8SDK Client] Not connected')
+        }
+        return this.remoteHandle.call('browseFile', targetText, exact)
     }
 
     // Key press
