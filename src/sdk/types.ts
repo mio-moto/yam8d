@@ -50,6 +50,7 @@ export interface M8HostMethods {
     setValueToInt(targetInt: number): Promise<boolean>
     setNote(noteString: string): Promise<boolean>
     setValueToString(targetString: string, exact?: boolean, searchInCurrentLine?: boolean): Promise<boolean>
+    browseFile(targetText: string, exact?: boolean): Promise<boolean>
 
     // Key press
     /** Press and release a named key combination (automatic release after ~50ms) */
