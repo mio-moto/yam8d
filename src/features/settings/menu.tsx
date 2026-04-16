@@ -171,7 +171,7 @@ export const Menu: FC = () => {
                             </div>
                         </div>
                     )}
-{/* 
+
                     <div className="menu-item">
                         <span className="title">Display tutor game</span>
                         <div>
@@ -197,7 +197,7 @@ export const Menu: FC = () => {
                             </div>
                         </div>
                     )}
-                    */}
+                    
                 </div>
 
                 <div className="menu-section">

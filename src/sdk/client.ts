@@ -45,11 +45,15 @@ export interface M8Client {
 
     // Key press
     /**
-     * Send a key press to the M8.
+     * Press and release a named key combination (automatic release after ~50ms).
      * Available keys: 'left', 'right', 'up', 'down', 'shift', 'play', 'opt', 'edit'
-     * Multiple keys can be pressed simultaneously by passing an array
+     * Multiple keys can be pressed simultaneously by passing an array.
      */
     sendKeyPress(keys: M8KeyName[]): Promise<void>
+    /** Hold keys down without releasing — call sendKeyUp() to release. */
+    sendKeyDown(keys: M8KeyName[]): Promise<void>
+    /** Release all keys. */
+    sendKeyUp(): Promise<void>
 
     // State access
     /** Get the current state (synchronous - returns cached state) */
@@ -248,6 +252,20 @@ class M8ClientImpl implements M8Client {
             throw new Error('[M8SDK Client] Not connected')
         }
         return this.remoteHandle.call('sendKeyPress', keys)
+    }
+
+    async sendKeyDown(keys: M8KeyName[]): Promise<void> {
+        if (!this.remoteHandle) {
+            throw new Error('[M8SDK Client] Not connected')
+        }
+        return this.remoteHandle.call('sendKeyDown', keys)
+    }
+
+    async sendKeyUp(): Promise<void> {
+        if (!this.remoteHandle) {
+            throw new Error('[M8SDK Client] Not connected')
+        }
+        return this.remoteHandle.call('sendKeyUp')
     }
 
     // State access

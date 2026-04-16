@@ -33,6 +33,7 @@ import type {
     M8HostEvents,
     M8ClientEvents,
     M8SdkConfig,
+    M8KeyName,
 } from './types'
 
 
@@ -869,6 +870,31 @@ export const useM8SdkHost = (bus: ConnectedBus | undefined, config: M8SdkConfig 
                         }
                         console.log('[M8SDK] Executing setValueToString:', { targetString, exact, searchInCurrentLine })
                         return setValueToStringImpl(targetString, exact, searchInCurrentLine)
+                    },
+                    sendKeyDown: async (keys: M8KeyName[]): Promise<void> => {
+                        if (!busRef.current) {
+                            console.warn('[M8SDK] sendKeyDown: no bus connection')
+                            return
+                        }
+                        console.log('[M8SDK] Executing sendKeyDown:', keys)
+                        busRef.current.commands.sendKeys(pressKeys({
+                            left: keys.includes('left'),
+                            right: keys.includes('right'),
+                            up: keys.includes('up'),
+                            down: keys.includes('down'),
+                            shift: keys.includes('shift'),
+                            play: keys.includes('play'),
+                            opt: keys.includes('opt'),
+                            edit: keys.includes('edit'),
+                        }))
+                    },
+                    sendKeyUp: async (): Promise<void> => {
+                        if (!busRef.current) {
+                            console.warn('[M8SDK] sendKeyUp: no bus connection')
+                            return
+                        }
+                        console.log('[M8SDK] Executing sendKeyUp')
+                        busRef.current.commands.sendKeys(0)
                     },
                     sendKeyPress: async (keys: ('left' | 'right' | 'up' | 'down' | 'shift' | 'play' | 'opt' | 'edit')[]): Promise<void> => {
                         if (!busRef.current) {
