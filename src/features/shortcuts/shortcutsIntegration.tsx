@@ -44,13 +44,6 @@ export const ShortcutsDisplay: FC<{ bus?: ConnectedBus }> = ({ bus }) => {
         }
     }, [sdkReady, title, keyName, settings.shortcutsHost])
 
-    // Log SDK connection status for debugging
-    useEffect(() => {
-        if (sdkReady) {
-            console.log('[ShortcutsDisplay] M8 SDK client connected')
-        }
-    }, [sdkReady])
-
     useEffect(() => {
         if (!bus) return
 

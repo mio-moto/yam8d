@@ -54,6 +54,8 @@ await m8.setValueToInt(63);
 await m8.setNote("c#4");
 await m8.setValueToString("sine", false);
 await m8.setValueToString("cutoff", false, true); // search in full current line
+await m8.browseFile("bassline"); // exact file name or base name
+await m8.browseFile("bass", false); // partial match
 
 // Press and release (automatic)
 await m8.sendKeyPress(["opt", "right"]);
@@ -104,10 +106,13 @@ await connect();
 | `setValueToInt(targetInt: number)`                                                  | Set decimal integer value using edit+navigation    | `Promise<boolean>` |
 | `setNote(noteString: string)`                                                       | Set note value (e.g. `C#4`)                        | `Promise<boolean>` |
 | `setValueToString(targetString, exact?, searchInCurrentLine?)`                      | Select a string value from a list                  | `Promise<boolean>` |
+| `browseFile(targetText: string, exact?: boolean)`                                   | Browse file tree and select a matching M8 file     | `Promise<boolean>` |
 | `sendKeyPress(keys: M8KeyName[])`                                                   | Press and release a combination of keys            | `Promise<void>`    |
 | `sendKeyDown(keys: M8KeyName[])`                                                    | Hold keys down (no automatic release)              | `Promise<void>`    |
 | `sendKeyUp()`                                                                       | Release all keys                                   | `Promise<void>`    |
 | `getState()`                                                                        | Get full M8 state snapshot                         | `Promise<M8State>` |
+
+For `browseFile`, the extension is optional: matching is done against both the full file name and the base name without the M8 extension (e.g. `.MBN`).
 
 #### `M8KeyName`
 
@@ -127,6 +132,7 @@ type M8KeyName = 'left' | 'right' | 'up' | 'down' | 'shift' | 'play' | 'opt' | '
 | `setValueToInt(targetInt: number)`                                               | Set decimal integer value                          | `Promise<boolean>` |
 | `setNote(noteString: string)`                                                    | Set note value                                     | `Promise<boolean>` |
 | `setValueToString(targetString, exact?, searchInCurrentLine?)`                   | Select a string value from a list                  | `Promise<boolean>` |
+| `browseFile(targetText: string, exact?: boolean)`                                | Browse file tree and select a matching M8 file     | `Promise<boolean>` |
 | `sendKeyPress(keys: M8KeyName[])`                                                | Press and release a combination of keys            | `Promise<void>`    |
 | `sendKeyDown(keys: M8KeyName[])`                                                 | Hold keys down (no automatic release)              | `Promise<void>`    |
 | `sendKeyUp()`                                                                    | Release all keys                                   | `Promise<void>`    |

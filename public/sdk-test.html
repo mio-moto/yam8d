@@ -518,6 +518,31 @@
         </div>
 
         <div class="section">
+          <h3>File Browser</h3>
+          <div class="inline-actions">
+            <input
+              type="text"
+              id="browse-file-target"
+              placeholder="File name contains..."
+              value="bass"
+            />
+            <button onclick="browseFile()">Browse File</button>
+          </div>
+          <div class="checkbox-list">
+            <label class="checkbox-row">
+              <input type="checkbox" id="browse-file-exact" checked />
+              Exact file name
+            </label>
+          </div>
+          <p class="note">
+            Use this from an M8 file browser view whose name includes load or
+            save. The SDK walks folders recursively and presses edit on the
+            first matching M8 file. The search text can omit the extension,
+            for example <code>.MBN</code>.
+          </p>
+        </div>
+
+        <div class="section">
           <h3>Key Press</h3>
           <div class="controls">
             <button onclick="sendKey(['left'])">Left</button>
@@ -607,6 +632,20 @@ m8.onViewChange((name, title) => log("view", name ?? title));
 m8.onTextUpdate((text) => log("text", text));
 m8.onKeyPress((keys) => log("keys", keys));
 </pre>
+          </div>
+          <div class="method-card">
+            <h4>6) File Browser API</h4>
+            <pre>
+// Call this while already inside a file browser view
+// whose name contains "load" or "save".
+await m8.browseFile("bassline"); // exact full name or base name
+await m8.browseFile("bass", false); // partial match
+</pre>
+            <p class="note">
+              The host scans entries top-to-bottom, enters folders, uses /..
+              to go back up, and selects the first matching M8 file with Edit.
+              The extension is optional in the search text.
+            </p>
           </div>
         </section>
       </aside>
@@ -869,6 +908,23 @@ m8.onKeyPress((keys) => log("keys", keys));
           }
         }
 
+        async browseFile(targetText, exact = true) {
+          if (!this.isConnected) throw new Error("Not connected");
+          log(`Calling browseFile: "${targetText}" (exact=${exact})`);
+          try {
+            const result = await this.remoteHandle.call(
+              "browseFile",
+              targetText,
+              exact,
+            );
+            log(`browseFile result: ${result}`);
+            return result;
+          } catch (error) {
+            log(`browseFile error: ${error.message}`, "error");
+            throw error;
+          }
+        }
+
         async sendKeyPress(keys) {
           if (!this.isConnected) throw new Error("Not connected");
           log(`Calling sendKeyPress: [${keys.join(", ")}]`);
@@ -1018,6 +1074,21 @@ m8.onKeyPress((keys) => log("keys", keys));
           log(`Set string result: ${result ? "success" : "failed"}`);
         } catch (error) {
           log(`Set string failed: ${error.message}`, "error");
+        }
+      };
+
+      window.browseFile = async () => {
+        const targetText = document.getElementById("browse-file-target").value;
+        const exact = document.getElementById("browse-file-exact").checked;
+        if (!targetText.trim()) {
+          log("Enter a file name fragment before browsing", "warn");
+          return;
+        }
+        try {
+          const result = await window.m8Client.browseFile(targetText, exact);
+          log(`Browse file result: ${result ? "success" : "not found"}`);
+        } catch (error) {
+          log(`Browse file failed: ${error.message}`, "error");
         }
       };
 
