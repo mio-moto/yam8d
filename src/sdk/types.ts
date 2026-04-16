@@ -52,8 +52,12 @@ export interface M8HostMethods {
     setValueToString(targetString: string, exact?: boolean, searchInCurrentLine?: boolean): Promise<boolean>
 
     // Key press
-    /** Send a key press to the M8. Keys: left, right, up, down, shift, play, opt, edit */
+    /** Press and release a named key combination (automatic release after ~50ms) */
     sendKeyPress(keys: M8KeyName[]): Promise<void>
+    /** Hold keys down without releasing — call sendKeyUp() to release */
+    sendKeyDown(keys: M8KeyName[]): Promise<void>
+    /** Release all keys */
+    sendKeyUp(): Promise<void>
 
     // Get current state
     getState(): Promise<M8State>
