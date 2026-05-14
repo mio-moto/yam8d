@@ -104,10 +104,22 @@
     flex-wrap: wrap;
 }
 
+.menu-item select {
+    color: inherit;
+    background: rgb(55, 55, 55);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    padding: 3px 8px;
+    min-width: 180px;
+}
+
 .menu-submenu {
     display: grid;
     row-gap: 6px;
     margin-left: 10px;
     padding: 8px 0 4px 10px;
     border-left: 2px solid rgba(255, 255, 255, 0.25);
+}
+
+.external-apps-settings {
+    row-gap: 10px;
 }

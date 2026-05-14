@@ -6,6 +6,16 @@ SDK for creating iframe applications that interact with yam8d (YAM8D - Yet Anoth
 
 The M8 SDK enables bidirectional communication between the yam8d host application and iframe-based applications using `post-me` library for postMessage communication.
 
+For a step-by-step guide to building an iframe application with the SDK, see [Creating an Application with the M8 SDK](./CREATING_APP.md).
+
+The guide also documents the optional URL fallback convention for iframe apps that need limited compatibility before, or without, an SDK connection.
+
+The iframe client SDK is also available as a publishable npm package in [`packages/m8-sdk`](../../packages/m8-sdk):
+
+```bash
+npm install @yam8d/m8-sdk
+```
+
 ## Architecture
 
 ```text
@@ -35,7 +45,7 @@ function MyComponent({ bus }) {
 ## Client-Side Usage (iframe application)
 
 ```typescript
-import { createM8Client } from "m8-sdk";
+import { createM8Client } from "@yam8d/m8-sdk";
 
 // Create and connect the client
 const m8 = await createM8Client({ debug: false });
@@ -87,7 +97,7 @@ m8.disconnect();
 ### Synchronous factory (React / no top-level await)
 
 ```typescript
-import { createM8ClientSync } from "m8-sdk";
+import { createM8ClientSync } from "@yam8d/m8-sdk";
 
 const { client, connect } = createM8ClientSync({ debug: false });
 // client is available immediately; connection is established on demand

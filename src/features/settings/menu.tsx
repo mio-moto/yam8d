@@ -1,22 +1,22 @@
 import type { FC } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '../../components/Button'
-import { Input } from '../../components/Input'
 import { Modal } from '../../components/Modal'
 import { useSettingsContext } from './settings'
 import { KeyboardSettings } from './KeyboardSettings'
 import { Manual } from '../manual/Manual'
+import { ExternalAppsSettings } from '../externalApps/ExternalAppsSettings'
 import './menu.css'
 
 export const Menu: FC = () => {
     const { settings, updateSettingValue } = useSettingsContext()
     const [opened, setOpened] = useState(false)
-    const [hostDraft, setHostDraft] = useState(settings.shortcutsHost)
-    const [tutorHostDraft, setTutorHostDraft] = useState(settings.tutorGameHost)
+    const [externalAppsSettingsOpen, setExternalAppsSettingsOpen] = useState(false)
     const [keyboardSettingsOpen, setKeyboardSettingsOpen] = useState(false)
     const [manualOpen, setManualOpen] = useState(false)
     const menuRef = useRef<HTMLDivElement | null>(null)
     const hitboxRef = useRef<HTMLDivElement | null>(null)
+    const externalAppsModalRef = useRef<HTMLDialogElement | null>(null)
     const keyboardModalRef = useRef<HTMLDialogElement | null>(null)
     const manualModalRef = useRef<HTMLDialogElement | null>(null)
     // Mark menu open on document body for global hooks to detect
@@ -26,34 +26,6 @@ export const Menu: FC = () => {
             delete document.body.dataset.m8MenuOpen
         }
     }, [opened])
-
-    // Keep local draft in sync if setting changes elsewhere
-    useEffect(() => {
-        setHostDraft(settings.shortcutsHost)
-    }, [settings.shortcutsHost])
-
-    useEffect(() => {
-        setTutorHostDraft(settings.tutorGameHost)
-    }, [settings.tutorGameHost])
-
-    // Debounce persisting the host to settings
-    useEffect(() => {
-        const id = setTimeout(() => {
-            if (hostDraft !== settings.shortcutsHost) {
-                updateSettingValue('shortcutsHost', hostDraft)
-            }
-        }, 400)
-        return () => clearTimeout(id)
-    }, [hostDraft, settings.shortcutsHost, updateSettingValue])
-
-    useEffect(() => {
-        const id = setTimeout(() => {
-            if (tutorHostDraft !== settings.tutorGameHost) {
-                updateSettingValue('tutorGameHost', tutorHostDraft)
-            }
-        }, 400)
-        return () => clearTimeout(id)
-    }, [tutorHostDraft, settings.tutorGameHost, updateSettingValue])
 
     // Close menu when clicking anywhere outside the menu or the toggle hitbox
     useEffect(() => {
@@ -75,6 +47,33 @@ export const Menu: FC = () => {
             document.removeEventListener('pointerdown', onPointerDown, true)
         }
     }, [opened])
+
+    // Handle external apps settings modal
+    useEffect(() => {
+        const modal = externalAppsModalRef.current
+        if (!modal) return
+
+        const handleClose = () => setExternalAppsSettingsOpen(false)
+        const handleClick = (e: MouseEvent) => {
+            if (e.target === modal) {
+                setExternalAppsSettingsOpen(false)
+            }
+        }
+
+        modal.addEventListener('close', handleClose)
+        modal.addEventListener('click', handleClick as EventListener)
+
+        if (externalAppsSettingsOpen) {
+            modal.showModal()
+        } else {
+            modal.close()
+        }
+
+        return () => {
+            modal.removeEventListener('close', handleClose)
+            modal.removeEventListener('click', handleClick as EventListener)
+        }
+    }, [externalAppsSettingsOpen])
 
     // Handle keyboard settings modal
     useEffect(() => {
@@ -147,57 +146,42 @@ export const Menu: FC = () => {
                     <span className="section-title">Tools</span>
 
                     <div className="menu-item">
-                        <span className="title">Display shortcuts</span>
+                        <span className="title">External Apps</span>
                         <div>
-                            <Button selected={settings.displayShortcuts} onClick={() => updateSettingValue('displayShortcuts', true)}>
+                            <Button selected={settings.displayExternalApps} onClick={() => updateSettingValue('displayExternalApps', true)}>
                                 Yes
                             </Button>
-                            <Button selected={!settings.displayShortcuts} onClick={() => updateSettingValue('displayShortcuts', false)}>
+                            <Button selected={!settings.displayExternalApps} onClick={() => updateSettingValue('displayExternalApps', false)}>
                                 No
                             </Button>
                         </div>
                     </div>
-                    {settings.displayShortcuts && (
-                        <div className="menu-submenu">
+                    {settings.displayExternalApps && (
+                        <div className="menu-submenu external-apps-settings">
                             <div className="menu-item">
-                                <span className="title">Shortcuts host</span>
+                                <span className="title">Active app</span>
                                 <div>
-                                    <Input
-                                        value={hostDraft}
-                                        placeholder="https://miomoto.de/m8-shortcuts/"
-                                        onChange={(e) => setHostDraft((e.target as HTMLInputElement).value)}
-                                    />
+                                    <select
+                                        value={settings.activeExternalAppId ?? ''}
+                                        onChange={(event) => updateSettingValue('activeExternalAppId', event.currentTarget.value)}
+                                    >
+                                        {settings.externalApps.map((app) => (
+                                            <option key={app.id} value={app.id}>
+                                                {app.name}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
                             </div>
-                        </div>
-                    )}
 
-                    <div className="menu-item">
-                        <span className="title">Display tutor game</span>
-                        <div>
-                            <Button selected={settings.displayTutorGame} onClick={() => updateSettingValue('displayTutorGame', true)}>
-                                Yes
-                            </Button>
-                            <Button selected={!settings.displayTutorGame} onClick={() => updateSettingValue('displayTutorGame', false)}>
-                                No
-                            </Button>
-                        </div>
-                    </div>
-                    {settings.displayTutorGame && (
-                        <div className="menu-submenu">
                             <div className="menu-item">
-                                <span className="title">Tutor host</span>
+                                <span className="title">Setup</span>
                                 <div>
-                                    <Input
-                                        value={tutorHostDraft}
-                                        placeholder="http://localhost:5174/"
-                                        onChange={(e) => setTutorHostDraft((e.target as HTMLInputElement).value)}
-                                    />
+                                    <Button onClick={() => setExternalAppsSettingsOpen(true)}>Configure</Button>
                                 </div>
                             </div>
                         </div>
                     )}
-                    
                 </div>
 
                 <div className="menu-section">
@@ -377,6 +361,10 @@ export const Menu: FC = () => {
                     </div>
                 </div>
             </div>
+
+            <Modal ref={externalAppsModalRef}>
+                <ExternalAppsSettings />
+            </Modal>
 
             <Modal ref={keyboardModalRef}>
                 <KeyboardSettings />

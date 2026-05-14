@@ -8,14 +8,20 @@ export const DEFAULT_CUSTOM_BACKGROUND_SHADER_NAME = 'Spectrum Depth Demo'
 export const DEFAULT_CUSTOM_BACKGROUND_SHADER = DefaultCustomBackgroundShaderSource
 
 const normalizeSettings = (settings: Settings): Settings => {
+    const normalizedExternalApps = normalizeExternalApps(settings)
+    const settingsWithExternalApps = {
+        ...settings,
+        ...normalizedExternalApps,
+    }
+
     if (!settings.backgroundShader && settings.showBackgroundShaderEditor) {
         return {
-            ...settings,
+            ...settingsWithExternalApps,
             showBackgroundShaderEditor: false,
         }
     }
 
-    return settings
+    return settingsWithExternalApps
 }
 
 const normalizeBackgroundShaderValue = (value: unknown): boolean => {
@@ -30,9 +36,79 @@ const normalizeBackgroundShaderValue = (value: unknown): boolean => {
     return false
 }
 
+export type ExternalAppConfig = {
+    id: string
+    name: string
+    url: string
+    useUrlFallback: boolean
+}
+
+const defaultExternalApps = (shortcutsHost: string, tutorGameHost: string): ExternalAppConfig[] => [
+    {
+        id: 'm8-shortcuts',
+        name: 'M8 Shortcuts',
+        url: shortcutsHost,
+        useUrlFallback: true,
+    },
+    {
+        id: 'm8-tutor-game',
+        name: 'M8 Tutor Game',
+        url: tutorGameHost,
+        useUrlFallback: false,
+    },
+]
+
+const normalizeExternalApps = (settings: Settings): Pick<Settings, 'externalApps' | 'activeExternalAppId'> => {
+    const fallbackApps = defaultExternalApps(settings.shortcutsHost, settings.tutorGameHost)
+    const sourceApps = Array.isArray(settings.externalApps) && settings.externalApps.length > 0
+        ? settings.externalApps
+        : fallbackApps
+    const usedIds = new Set<string>()
+    const externalApps = sourceApps
+        .map((app, index): ExternalAppConfig | null => {
+            if (!app || typeof app.name !== 'string' || typeof app.url !== 'string') {
+                return null
+            }
+
+            const idBase = typeof app.id === 'string' && app.id.trim()
+                ? app.id.trim()
+                : `external-app-${index + 1}`
+            let id = idBase
+            let suffix = 2
+            while (usedIds.has(id)) {
+                id = `${idBase}-${suffix}`
+                suffix += 1
+            }
+            usedIds.add(id)
+
+            return {
+                id,
+                name: app.name.trim() || `External App ${index + 1}`,
+                url: app.url.trim(),
+                useUrlFallback: typeof app.useUrlFallback === 'boolean'
+                    ? app.useUrlFallback
+                    : id === 'm8-shortcuts',
+            }
+        })
+        .filter((app): app is ExternalAppConfig => app !== null)
+
+    const normalizedApps = externalApps.length > 0 ? externalApps : fallbackApps
+    const activeExternalAppId = normalizedApps.some((app) => app.id === settings.activeExternalAppId)
+        ? settings.activeExternalAppId
+        : normalizedApps[0]?.id ?? null
+
+    return {
+        externalApps: normalizedApps,
+        activeExternalAppId,
+    }
+}
+
 export type Settings = {
     fullM8View: boolean
     virtualKeyboard: boolean
+    displayExternalApps: boolean
+    externalApps: ExternalAppConfig[]
+    activeExternalAppId: string | null
     displayShortcuts: boolean
     displayTutorGame: boolean
     shortcutsHost: string
@@ -61,6 +137,9 @@ export type SettingsContextValue = {
 const defaultSettings: Settings = {
     fullM8View: true,
     virtualKeyboard: true,
+    displayExternalApps: false,
+    externalApps: defaultExternalApps('https://m8-shortcuts-65mb.vercel.app/', 'http://localhost:5174/'),
+    activeExternalAppId: 'm8-shortcuts',
     displayShortcuts: false,
     displayTutorGame: false,
     shortcutsHost: 'https://m8-shortcuts-65mb.vercel.app/', //'https://miomoto.de/m8-shortcuts/',

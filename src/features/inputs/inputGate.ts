@@ -2,6 +2,9 @@ let installed = false
 
 function shouldBlock(ev: KeyboardEvent): boolean {
     const tgt = ev.target as HTMLElement | null
+    const codeMirrorTarget = !!tgt?.closest?.('.cm-editor')
+    if (codeMirrorTarget) return false
+
     const typingTarget = !!(
         tgt && (tgt.tagName === 'INPUT' || tgt.tagName === 'TEXTAREA' || tgt.tagName === 'SELECT' || tgt.isContentEditable)
     )
