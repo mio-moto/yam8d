@@ -1,11 +1,15 @@
 import { useCallback, useEffect } from 'react'
 import type { ConnectedBus } from '../connection/connection.ts'
+import { useSettingsContext } from '../settings/settings'
+import { defaultMacroInputMap } from './defaultMacroInputMap'
 import { useMacroRunner } from './macroRunner'
 import { useViewNavigation } from './useViewNavigation'
 
 export const useMacroInput = (connection?: ConnectedBus) => {
+    const { settings } = useSettingsContext()
     const runner = useMacroRunner(connection)
     const { navigateToView } = useViewNavigation(connection)
+    const macroInputMap = settings.macroInputMap ?? defaultMacroInputMap
 
     const handleInput = useCallback(
         (ev: KeyboardEvent) => {
@@ -15,43 +19,14 @@ export const useMacroInput = (connection?: ConnectedBus) => {
             // Any key should preempt current macro
             runner.cancel('preempted by keyboard')
 
+            const macroView = macroInputMap[ev.code]
+            if (macroView) {
+                navigateToView(macroView)
+                ev.preventDefault()
+                return
+            }
+
             switch (ev.code) {
-                case 'F1':
-                    navigateToView('song')
-                    ev.preventDefault()
-                    break
-                case 'F2':
-                    navigateToView('chain')
-                    ev.preventDefault()
-                    break
-                case 'F3':
-                    navigateToView('phrase')
-                    ev.preventDefault()
-                    break
-                case 'F4':
-                    navigateToView('table')
-                    ev.preventDefault()
-                    break
-                case 'F5':
-                    navigateToView('instrumentpool')
-                    ev.preventDefault()
-                    break
-                case 'F6':
-                    navigateToView('inst')
-                    ev.preventDefault()
-                    break
-                case 'F7':
-                    navigateToView('instmods')
-                    ev.preventDefault()
-                    break
-                case 'F8':
-                    navigateToView('effectsettings')
-                    ev.preventDefault()
-                    break
-                case 'F9':
-                    navigateToView('project')
-                    ev.preventDefault()
-                    break
                 case 'PageUp':
                     runner.start([0b00000010 | 0b01000000, 0])
                     ev.preventDefault()
@@ -64,7 +39,7 @@ export const useMacroInput = (connection?: ConnectedBus) => {
                     break
             }
         },
-        [navigateToView, runner],
+        [macroInputMap, navigateToView, runner],
     )
 
     useEffect(() => {

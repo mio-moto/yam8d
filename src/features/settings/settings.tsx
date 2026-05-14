@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react'
 import { defaultInputMap } from '../inputs/defaultInputMap'
+import { defaultMacroInputMap, type MacroInputMap } from '../macros/defaultMacroInputMap'
 import { defaultKeyMap } from '../virtualKeyboard/useVirtualKeyboard'
 import DefaultCustomBackgroundShaderSource from '../rendering/shader/default_spectrum.frag?raw'
 
@@ -127,6 +128,7 @@ export type Settings = {
     vjNumpadAssignments: Record<string, string | null>
     inputMap: typeof defaultInputMap
     keyMap: typeof defaultKeyMap
+    macroInputMap: MacroInputMap
 }
 
 export type SettingsContextValue = {
@@ -159,6 +161,7 @@ const defaultSettings: Settings = {
 
     inputMap: defaultInputMap,
     keyMap: defaultKeyMap,
+    macroInputMap: defaultMacroInputMap,
 }
 
 const loadInitialSettings = (): Settings => {
