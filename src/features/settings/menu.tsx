@@ -346,7 +346,10 @@ export const Menu: FC = () => {
                     <div className="menu-item">
                         <span className="title">Keyboard mapping</span>
                         <div>
-                            <Button onClick={() => setKeyboardSettingsOpen(true)}>Configure</Button>
+                            <Button onClick={() => {
+                                setOpened(false)
+                                setKeyboardSettingsOpen(true)
+                            }}>Configure</Button>
                         </div>
                     </div>
                 </div>

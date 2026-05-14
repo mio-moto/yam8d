@@ -17,7 +17,7 @@
     position: absolute;
     left: 0;
     top: 0;
-    bottom: 0;
+    bottom: 90%;
     width: 40px;
     z-index: 1001;
     cursor: pointer;
@@ -38,22 +38,22 @@
 }
 
 .menu.closed::before {
-    top: 8px;
+    top: 12px;
     transform: rotate(0deg);
 }
 
 .menu.closed::after {
-    top: 16px;
+    top: 20px;
     transform: rotate(0deg);
 }
 
 .menu.opened::before {
-    top: 12px;
+    top: 16px;
     transform: rotate(45deg);
 }
 
 .menu.opened::after {
-    top: 12px;
+    top: 16px;
     transform: rotate(-45deg);
 }
 

@@ -1,8 +1,10 @@
-import { css } from '@linaria/core'
+import { css, cx } from '@linaria/core'
 import { type FC, useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '../../components/Button'
 import { useSettingsContext } from './settings'
 import { defaultInputMap } from '../inputs/defaultInputMap'
+import { defaultMacroInputMap, macroDigitKeys, macroFunctionKeys, type MacroInputMap } from '../macros/defaultMacroInputMap'
+import { loadViewList } from '../macros/m8GraphLoader'
 import { M8KeyMask } from '../connection/keys'
 import { M8Body } from '../rendering/M8Body'
 import { style } from '../../app/style/style'
@@ -23,6 +25,7 @@ const M8_BUTTONS = [
 type M8ButtonName = (typeof M8_BUTTONS)[number]['name']
 type InputMapValue = Record<string, number>
 type KeyMapValue = Record<string, number | string>
+type HoveredM8Button = M8ButtonName | null
 
 // Virtual keyboard note layout (indices match defaultKeyMap)
 const VK_NOTES = [
@@ -90,10 +93,12 @@ interface PianoSVGProps {
     assignedKeys: Map<number, string>   // noteIndex → keyCode
     selectedNote: number | null
     pressedNote: number | null
+    hoveredNote: number | null
     onNoteClick: (index: number) => void
+    onNoteHover: (index: number | null) => void
 }
 
-const PianoSVG: FC<PianoSVGProps> = ({ assignedKeys, selectedNote, pressedNote, onNoteClick }) => {
+const PianoSVG: FC<PianoSVGProps> = ({ assignedKeys, selectedNote, pressedNote, hoveredNote, onNoteClick, onNoteHover }) => {
     const containerRef = useRef<HTMLDivElement>(null)
     const svgRef = useRef<SVGSVGElement | null>(null)
 
@@ -132,7 +137,13 @@ const PianoSVG: FC<PianoSVGProps> = ({ assignedKeys, selectedNote, pressedNote, 
                 }
 
                 key.addEventListener('click', clickHandler)
+                const enterHandler: EventListener = () => onNoteHover(index)
+                const leaveHandler: EventListener = () => onNoteHover(null)
+                key.addEventListener('mouseenter', enterHandler)
+                key.addEventListener('mouseleave', leaveHandler)
                 handlers.push({ el: key, fn: clickHandler })
+                handlers.push({ el: key, fn: enterHandler })
+                handlers.push({ el: key, fn: leaveHandler })
             })
 
             host.replaceChildren(svg)
@@ -147,7 +158,7 @@ const PianoSVG: FC<PianoSVGProps> = ({ assignedKeys, selectedNote, pressedNote, 
                 el.removeEventListener('click', fn)
             })
         }
-    }, [onNoteClick])
+    }, [onNoteClick, onNoteHover])
 
     useEffect(() => {
         const svg = svgRef.current
@@ -161,9 +172,10 @@ const PianoSVG: FC<PianoSVGProps> = ({ assignedKeys, selectedNote, pressedNote, 
             key.classList.toggle('note-mapped', assignedKeyCode !== null)
             key.classList.toggle('selected', selectedNote === index)
             key.classList.toggle('pressed', pressedNote === index)
+            key.classList.toggle('hover-linked', hoveredNote === index)
             key.setAttribute('data-key-label', assignedKeyCode ? formatKey(assignedKeyCode) : '')
         })
-    }, [assignedKeys, selectedNote, pressedNote])
+    }, [assignedKeys, selectedNote, pressedNote, hoveredNote])
 
     return <div ref={containerRef} className="vk-setup-piano" />
 }
@@ -280,6 +292,68 @@ const vkSectionClass = css`
     border: 1px solid rgba(255, 255, 255, 0.18);
 `
 
+const macroSectionClass = css`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+`
+
+const macroToolbarClass = css`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+`
+
+const macroListClass = css`
+    display: grid;
+    grid-template-columns: repeat(3, minmax(160px, 1fr));
+    gap: 6px;
+
+    @media (max-width: 1000px) {
+        grid-template-columns: 1fr;
+    }
+`
+
+const macroRowClass = css`
+    display: grid;
+    grid-template-columns: 46px minmax(0, 1fr);
+    gap: 6px;
+    align-items: center;
+    padding: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.04);
+
+    &.hover-linked {
+        border-color: ${style.themeColors.line.focus};
+        background: rgba(255, 255, 255, 0.12);
+    }
+
+    &.selected {
+        border-color: ${style.colors.ochre[500]};
+    }
+`
+
+const macroKeyButtonClass = css`
+    min-width: 42px;
+    height: 26px;
+    padding: 0 6px;
+`
+
+const macroSelectClass = css`
+    min-width: 0;
+    height: 26px;
+    background: rgba(0, 0, 0, 0.35);
+    color: ${style.themeColors.text.default};
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 0;
+    padding: 0 6px;
+`
+
 const vkHeaderClass = css`
     display: flex;
     align-items: center;
@@ -336,6 +410,30 @@ function buildReverseMap(inputMap: InputMapValue): Map<string, M8ButtonName> {
     return reverseMap
 }
 
+function buildVKReverseMap(keyMap: KeyMapValue): Map<string, number | string> {
+    const reverseMap = new Map<string, number | string>()
+    for (const [keyCode, value] of Object.entries(keyMap)) {
+        reverseMap.set(keyCode, value)
+    }
+    return reverseMap
+}
+
+function getOrderedMacroEntries(macroInputMap: MacroInputMap): Array<[string, string]> {
+    const preferredKeys = [...macroFunctionKeys, ...macroDigitKeys]
+    return Object.entries(macroInputMap).sort(([a], [b]) => {
+        const aIndex = preferredKeys.indexOf(a)
+        const bIndex = preferredKeys.indexOf(b)
+        if (aIndex !== -1 || bIndex !== -1) {
+            return (aIndex === -1 ? Number.MAX_SAFE_INTEGER : aIndex) - (bIndex === -1 ? Number.MAX_SAFE_INTEGER : bIndex)
+        }
+        return a.localeCompare(b)
+    })
+}
+
+function formatViewName(viewName: string): string {
+    return viewName.replace(/(^|[-_])(\w)/g, (_match, separator: string, letter: string) => `${separator ? ' ' : ''}${letter.toUpperCase()}`)
+}
+
 function getVKCssClass(value: number | string): 'note-mapped' | 'oct-mapped' | 'vel-mapped' {
     if (typeof value === 'number') return 'note-mapped'
     if (value === 'octDown' || value === 'octUp') return 'oct-mapped'
@@ -353,15 +451,24 @@ export const KeyboardSettings: FC = () => {
     const [selectedButton, setSelectedButton] = useState<M8ButtonName | null>(null)
     const [localInputMap, setLocalInputMap] = useState<InputMapValue>(() => ({ ...settings.inputMap }))
     const [localKeyMap, setLocalKeyMap] = useState<KeyMapValue>(() => ({ ...settings.keyMap }))
+    const [localMacroInputMap, setLocalMacroInputMap] = useState<MacroInputMap>(() => ({ ...settings.macroInputMap }))
     const [hasChanges, setHasChanges] = useState(false)
     const [pressedKey, setPressedKey] = useState<string | null>(null)
     const [selectedVKNote, setSelectedVKNote] = useState<number | null>(null)
     const [selectedVKControl, setSelectedVKControl] = useState<VKControlValue | null>(null)
+    const [selectedMacroKey, setSelectedMacroKey] = useState<string | null>(null)
+    const [hoveredKey, setHoveredKey] = useState<string | null>(null)
+    const [hoveredButton, setHoveredButton] = useState<HoveredM8Button>(null)
+    const [hoveredVKNote, setHoveredVKNote] = useState<number | null>(null)
+    const [hoveredVKControl, setHoveredVKControl] = useState<VKControlValue | null>(null)
+    const [availableViews, setAvailableViews] = useState<string[]>(() => Array.from(new Set(Object.values(defaultMacroInputMap))))
     const containerRef = useRef<HTMLDivElement>(null)
     const svgRef = useRef<HTMLDivElement>(null)
     const screenEdgeRef = useRef<SVGRectElement>(null)
 
     const reverseMap = buildReverseMap(localInputMap)
+    const vkReverseMap = buildVKReverseMap(localKeyMap)
+    const macroEntries = getOrderedMacroEntries(localMacroInputMap)
 
     const getVKControlKey = (ctrl: string): string | null => {
         for (const [k, v] of Object.entries(localKeyMap)) {
@@ -374,6 +481,11 @@ export const KeyboardSettings: FC = () => {
         pressedKey !== null && typeof localKeyMap[pressedKey] === 'number'
             ? (localKeyMap[pressedKey] as number)
             : null
+    const hoveredKeyVKValue = hoveredKey ? vkReverseMap.get(hoveredKey) : undefined
+    const linkedVKNote = hoveredVKNote ?? (typeof hoveredKeyVKValue === 'number' ? hoveredKeyVKValue : null)
+    const linkedVKControl = hoveredVKControl ?? (typeof hoveredKeyVKValue === 'string' ? hoveredKeyVKValue : null)
+    const linkedButton = hoveredButton ?? (hoveredKey ? reverseMap.get(hoveredKey) ?? null : null)
+    const hoverMask = M8_BUTTONS.find((b) => b.name === linkedButton)?.mask ?? 0
 
     // Build a Map<noteIndex, keyCode> for the piano SVG
     const pianoAssignedKeys = new Map<number, string>()
@@ -385,15 +497,41 @@ export const KeyboardSettings: FC = () => {
         if (!hasChanges) {
             setLocalInputMap({ ...settings.inputMap })
             setLocalKeyMap({ ...settings.keyMap })
+            setLocalMacroInputMap({ ...settings.macroInputMap })
         }
-    }, [settings.inputMap, settings.keyMap, hasChanges])
+    }, [settings.inputMap, settings.keyMap, settings.macroInputMap, hasChanges])
+
+    useEffect(() => {
+        let cancelled = false
+        loadViewList()
+            .then((views) => {
+                if (cancelled || !views.size) return
+                setAvailableViews(Array.from(views).sort((a, b) => a.localeCompare(b)))
+            })
+            .catch(() => void 0)
+        return () => {
+            cancelled = true
+        }
+    }, [])
 
     // Keyboard keydown: assign to whichever selection is active
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             const keyCode = e.code
             if (e.repeat) return
-            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
+            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return
+
+            if (selectedMacroKey !== null) {
+                const mappedView = localMacroInputMap[selectedMacroKey]
+                if (!mappedView) return
+                const newMap: MacroInputMap = { ...localMacroInputMap }
+                delete newMap[selectedMacroKey]
+                newMap[keyCode] = mappedView
+                setLocalMacroInputMap(newMap)
+                setHasChanges(true)
+                setSelectedMacroKey(null)
+                return
+            }
 
             if (selectedVKNote !== null) {
                 const newMap: KeyMapValue = { ...localKeyMap }
@@ -443,7 +581,7 @@ export const KeyboardSettings: FC = () => {
             window.removeEventListener('keydown', handleKeyDown)
             window.removeEventListener('keyup', handleKeyUp)
         }
-    }, [selectedButton, selectedVKNote, selectedVKControl, localInputMap, localKeyMap])
+    }, [selectedButton, selectedVKNote, selectedVKControl, selectedMacroKey, localInputMap, localKeyMap, localMacroInputMap])
 
     // Apply CSS classes to the PC keyboard SVG keys
     useEffect(() => {
@@ -452,11 +590,7 @@ export const KeyboardSettings: FC = () => {
 
         const keyElements = svgContainer.querySelectorAll('[data-code]')
         const clickHandlers = new Map<Element, (e: Event) => void>()
-
-        const vkReverseMap = new Map<string, number | string>()
-        for (const [k, v] of Object.entries(localKeyMap)) {
-            vkReverseMap.set(k, v)
-        }
+        const hoverHandlers = new Map<Element, { enter: EventListener; leave: EventListener }>()
 
         keyElements.forEach((el) => {
             const keyCode = el.getAttribute('data-code')
@@ -465,20 +599,35 @@ export const KeyboardSettings: FC = () => {
             const buttonName = reverseMap.get(keyCode)
             const buttonInfo = buttonName ? M8_BUTTONS.find((b) => b.name === buttonName) : null
             const vkValue = vkReverseMap.get(keyCode)
+            const macroValue = localMacroInputMap[keyCode]
+            const linkedByHoveredButton = hoveredButton !== null && buttonInfo?.name === hoveredButton
+            const linkedByHoveredVKNote = hoveredVKNote !== null && vkValue === hoveredVKNote
+            const linkedByHoveredVKControl = hoveredVKControl !== null && vkValue === hoveredVKControl
 
             el.classList.remove(
                 'opt', 'edit', 'shift', 'play', 'up', 'down', 'left', 'right',
-                'has-mapping', 'pressed', 'note-mapped', 'oct-mapped', 'vel-mapped',
+                'has-mapping', 'pressed', 'note-mapped', 'oct-mapped', 'vel-mapped', 'macro-mapped', 'hover-linked',
             )
 
             if (buttonInfo) {
                 el.classList.add(buttonInfo.cssClass, 'has-mapping')
             } else if (vkValue !== undefined) {
                 el.classList.add(getVKCssClass(vkValue), 'has-mapping')
+            } else if (macroValue !== undefined) {
+                el.classList.add('macro-mapped', 'has-mapping')
             }
 
             if (pressedKey === keyCode) {
                 el.classList.add('pressed')
+            }
+
+            if (
+                hoveredKey === keyCode ||
+                linkedByHoveredButton ||
+                linkedByHoveredVKNote ||
+                linkedByHoveredVKControl
+            ) {
+                el.classList.add('hover-linked')
             }
 
             ; (el as SVGElement).style.cursor = 'pointer'
@@ -487,8 +636,20 @@ export const KeyboardSettings: FC = () => {
                 e.preventDefault()
                 e.stopPropagation()
 
+                if (selectedMacroKey !== null) {
+                    const mappedView = localMacroInputMap[selectedMacroKey]
+                    if (!mappedView) return
+                    const newMap: MacroInputMap = { ...localMacroInputMap }
+                    delete newMap[selectedMacroKey]
+                    newMap[keyCode] = mappedView
+                    setLocalMacroInputMap(newMap)
+                    setHasChanges(true)
+                    setSelectedMacroKey(null)
+                    return
+                }
+
                 // Unassign if nothing is selected and key has a VK mapping
-                if (!selectedButton && !selectedVKNote && !selectedVKControl && vkValue !== undefined) {
+                if (!selectedButton && !selectedVKNote && !selectedVKControl && !selectedMacroKey && vkValue !== undefined) {
                     const newMap: KeyMapValue = { ...localKeyMap }
                     delete newMap[keyCode]
                     setLocalKeyMap(newMap)
@@ -497,7 +658,7 @@ export const KeyboardSettings: FC = () => {
                 }
 
                 // Unassign if nothing selected and key has an M8 mapping
-                if (!selectedButton && !selectedVKNote && !selectedVKControl && buttonInfo) {
+                if (!selectedButton && !selectedVKNote && !selectedVKControl && !selectedMacroKey && buttonInfo) {
                     const newMap: InputMapValue = { ...localInputMap }
                     delete newMap[keyCode]
                     setLocalInputMap(newMap)
@@ -545,14 +706,38 @@ export const KeyboardSettings: FC = () => {
 
             clickHandlers.set(el, handleClick)
             el.addEventListener('click', handleClick)
+            const enterHandler: EventListener = () => setHoveredKey(keyCode)
+            const leaveHandler: EventListener = () => setHoveredKey((prev) => (prev === keyCode ? null : prev))
+            hoverHandlers.set(el, { enter: enterHandler, leave: leaveHandler })
+            el.addEventListener('mouseenter', enterHandler)
+            el.addEventListener('mouseleave', leaveHandler)
         })
 
         return () => {
             clickHandlers.forEach((handler, el) => {
                 el.removeEventListener('click', handler)
             })
+            hoverHandlers.forEach(({ enter, leave }, el) => {
+                el.removeEventListener('mouseenter', enter)
+                el.removeEventListener('mouseleave', leave)
+            })
         }
-    }, [reverseMap, selectedButton, selectedVKNote, selectedVKControl, localInputMap, localKeyMap, pressedKey])
+    }, [
+        reverseMap,
+        vkReverseMap,
+        selectedButton,
+        selectedVKNote,
+        selectedVKControl,
+        selectedMacroKey,
+        localInputMap,
+        localKeyMap,
+        localMacroInputMap,
+        pressedKey,
+        hoveredKey,
+        hoveredButton,
+        hoveredVKNote,
+        hoveredVKControl,
+    ])
 
     // M8 body button click — clears VK selections
     const handleM8ButtonClick = useCallback((button: Record<string, boolean>) => {
@@ -562,13 +747,29 @@ export const KeyboardSettings: FC = () => {
         if (!btn) return
         setSelectedVKNote(null)
         setSelectedVKControl(null)
+        setSelectedMacroKey(null)
         setSelectedButton((prev) => (prev === btn.name ? null : btn.name))
+    }, [])
+
+    const handleM8ButtonHover = useCallback((target: EventTarget | null) => {
+        if (!(target instanceof Element)) {
+            setHoveredButton(null)
+            return
+        }
+        const buttonEl = target.closest('.button')
+        if (!buttonEl) {
+            setHoveredButton(null)
+            return
+        }
+        const btn = M8_BUTTONS.find((b) => buttonEl.classList.contains(b.cssClass))
+        setHoveredButton(btn?.name ?? null)
     }, [])
 
     // Piano key click — clears M8/control selections
     const handlePianoKeyClick = useCallback((noteIndex: number) => {
         setSelectedButton(null)
         setSelectedVKControl(null)
+        setSelectedMacroKey(null)
         setSelectedVKNote((prev) => (prev === noteIndex ? null : noteIndex))
     }, [])
 
@@ -576,20 +777,52 @@ export const KeyboardSettings: FC = () => {
     const handleVKControlClick = useCallback((ctrl: VKControlValue) => {
         setSelectedButton(null)
         setSelectedVKNote(null)
+        setSelectedMacroKey(null)
         setSelectedVKControl((prev) => (prev === ctrl ? null : ctrl))
     }, [])
 
+    const handleMacroKeySelect = (keyCode: string) => {
+        setSelectedButton(null)
+        setSelectedVKNote(null)
+        setSelectedVKControl(null)
+        setSelectedMacroKey((prev) => (prev === keyCode ? null : keyCode))
+    }
+
+    const handleMacroViewChange = (keyCode: string, viewName: string) => {
+        setLocalMacroInputMap((prev) => ({
+            ...prev,
+            [keyCode]: viewName,
+        }))
+        setHasChanges(true)
+    }
+
+    const toggleMacroKeyRow = () => {
+        const useFunctionKeys = macroDigitKeys.every((keyCode) => localMacroInputMap[keyCode] !== undefined)
+        const targetKeys = useFunctionKeys ? macroFunctionKeys : macroDigitKeys
+        const next: MacroInputMap = {}
+        macroEntries.slice(0, targetKeys.length).forEach(([, viewName], index) => {
+            const targetKey = targetKeys[index]
+            if (targetKey) next[targetKey] = viewName
+        })
+        setLocalMacroInputMap(next)
+        setSelectedMacroKey(null)
+        setHasChanges(true)
+    }
+
     const selectedMask = M8_BUTTONS.find((b) => b.name === selectedButton)?.mask ?? 0
+    const highlightedMask = selectedMask | hoverMask
 
     const handleSave = () => {
         updateSettingValue('inputMap', localInputMap as typeof defaultInputMap)
         updateSettingValue('keyMap', { ...localKeyMap } as typeof defaultKeyMap)
+        updateSettingValue('macroInputMap', { ...localMacroInputMap })
         setHasChanges(false)
     }
 
     const handleReset = () => {
         setLocalInputMap({ ...defaultInputMap })
         setLocalKeyMap({ ...defaultKeyMap })
+        setLocalMacroInputMap({ ...defaultMacroInputMap })
         setHasChanges(true)
     }
 
@@ -610,7 +843,11 @@ export const KeyboardSettings: FC = () => {
             const ctrl = VK_CONTROLS.find((c) => c.value === selectedVKControl)
             return `Press a key or click the keyboard to assign it to "${ctrl?.label}"`
         }
-        return 'Click an M8 button or a piano note/control, then press or click a keyboard key to map it'
+        if (selectedMacroKey !== null) {
+            const viewName = localMacroInputMap[selectedMacroKey]
+            return `Press a key or click the keyboard to assign the "${formatViewName(viewName)}" macro`
+        }
+        return 'Click an M8 button, piano note/control, or macro key, then press or click a keyboard key to map it'
     })()
 
     const octControls = VK_CONTROLS.filter((c) => c.side === 'oct')
@@ -629,12 +866,16 @@ export const KeyboardSettings: FC = () => {
 
             {/* M8 body + PC keyboard */}
             <div className={mainPanelClass}>
-                <div className={m8PanelClass}>
+                <div
+                    className={m8PanelClass}
+                    onMouseOver={(event) => handleM8ButtonHover(event.target)}
+                    onMouseLeave={() => setHoveredButton(null)}
+                >
                     <M8Body
                         model={2}
                         strokeColor={style.themeColors.text.default}
                         onClick={handleM8ButtonClick}
-                        keysPressed={selectedMask}
+                        keysPressed={highlightedMask}
                         screenEdgeRef={screenEdgeRef}
                     />
                 </div>
@@ -662,6 +903,58 @@ export const KeyboardSettings: FC = () => {
                     </div>
 
                     {/* Virtual keyboard section — below PC keyboard */}
+                    <div className={macroSectionClass}>
+                        <div className={macroToolbarClass}>
+                            <div className={vkHeaderClass}>
+                                <span>Macro Inputs</span>
+                            </div>
+                            <Button onClick={toggleMacroKeyRow}>
+                                {macroDigitKeys.every((keyCode) => localMacroInputMap[keyCode] !== undefined)
+                                    ? 'Use F1-F9'
+                                    : 'Use 1-9'}
+                            </Button>
+                        </div>
+
+                        <div className={macroListClass}>
+                            {macroEntries.map(([keyCode, viewName]) => {
+                                const isSelected = selectedMacroKey === keyCode
+                                const isLinked = hoveredKey === keyCode
+                                const viewOptions = Array.from(new Set([...availableViews, viewName])).sort((a, b) => a.localeCompare(b))
+                                return (
+                                    <div
+                                        key={`${keyCode}-${viewName}`}
+                                        className={cx(macroRowClass, isSelected && 'selected', isLinked && 'hover-linked')}
+                                        onMouseEnter={() => setHoveredKey(keyCode)}
+                                        onMouseLeave={() => setHoveredKey((prev) => (prev === keyCode ? null : prev))}
+                                    >
+                                        <Button
+                                            className={macroKeyButtonClass}
+                                            selected={isSelected}
+                                            onClick={() => handleMacroKeySelect(keyCode)}
+                                            title={`Map ${formatViewName(viewName)} macro key`}
+                                        >
+                                            {formatKey(keyCode)}
+                                        </Button>
+                                        <select
+                                            className={macroSelectClass}
+                                            value={viewName}
+                                            onChange={(event) => handleMacroViewChange(keyCode, event.currentTarget.value)}
+                                            onMouseEnter={() => setHoveredKey(keyCode)}
+                                            onFocus={() => setHoveredKey(keyCode)}
+                                            onBlur={() => setHoveredKey((prev) => (prev === keyCode ? null : prev))}
+                                        >
+                                            {viewOptions.map((view) => (
+                                                <option key={view} value={view}>
+                                                    {formatViewName(view)}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </div>
+
                     <div className={vkSectionClass}>
                         <div className={vkHeaderClass}>
                             <img src="pianoForSetup.svg" alt="" style={{ width: '22px', opacity: 0.6 }} />
@@ -674,11 +967,14 @@ export const KeyboardSettings: FC = () => {
                                 {octControls.map((ctrl) => {
                                     const assignedKey = getVKControlKey(ctrl.value)
                                     const isSelected = selectedVKControl === ctrl.value
+                                    const isLinked = linkedVKControl === ctrl.value
                                     const color = vkControlColor(ctrl.side)
                                     return (
                                         <button
                                             key={ctrl.value}
                                             onClick={() => handleVKControlClick(ctrl.value)}
+                                            onMouseEnter={() => setHoveredVKControl(ctrl.value)}
+                                            onMouseLeave={() => setHoveredVKControl(null)}
                                             title={assignedKey ? `${ctrl.label} → ${formatKey(assignedKey)}` : ctrl.label}
                                             style={{
                                                 display: 'flex',
@@ -692,11 +988,11 @@ export const KeyboardSettings: FC = () => {
                                                     : isSelected
                                                         ? 'rgba(255,255,255,0.14)'
                                                         : 'rgba(255,255,255,0.06)',
-                                                border: `1px solid ${isSelected ? style.themeColors.line.focus : 'rgba(255,255,255,0.2)'}`,
+                                                border: `1px solid ${isSelected || isLinked ? style.themeColors.line.focus : 'rgba(255,255,255,0.2)'}`,
                                                 borderRadius: '6px',
                                                 cursor: 'pointer',
                                                 color: style.themeColors.text.default,
-                                                outline: isSelected ? `1px solid ${style.themeColors.line.focus}` : 'none',
+                                                outline: isSelected || isLinked ? `1px solid ${style.themeColors.line.focus}` : 'none',
                                             }}
                                         >
                                             <span style={{ fontSize: '10px', fontWeight: 600 }}>{ctrl.label}</span>
@@ -712,7 +1008,9 @@ export const KeyboardSettings: FC = () => {
                                     assignedKeys={pianoAssignedKeys}
                                     selectedNote={selectedVKNote}
                                     pressedNote={pressedVKNote}
+                                    hoveredNote={linkedVKNote}
                                     onNoteClick={handlePianoKeyClick}
+                                    onNoteHover={setHoveredVKNote}
                                 />
                             </div>
 
@@ -721,11 +1019,14 @@ export const KeyboardSettings: FC = () => {
                                 {velControls.map((ctrl) => {
                                     const assignedKey = getVKControlKey(ctrl.value)
                                     const isSelected = selectedVKControl === ctrl.value
+                                    const isLinked = linkedVKControl === ctrl.value
                                     const color = vkControlColor(ctrl.side)
                                     return (
                                         <button
                                             key={ctrl.value}
                                             onClick={() => handleVKControlClick(ctrl.value)}
+                                            onMouseEnter={() => setHoveredVKControl(ctrl.value)}
+                                            onMouseLeave={() => setHoveredVKControl(null)}
                                             title={assignedKey ? `${ctrl.label} → ${formatKey(assignedKey)}` : ctrl.label}
                                             style={{
                                                 display: 'flex',
@@ -739,11 +1040,11 @@ export const KeyboardSettings: FC = () => {
                                                     : isSelected
                                                         ? 'rgba(255,255,255,0.14)'
                                                         : 'rgba(255,255,255,0.06)',
-                                                border: `1px solid ${isSelected ? style.themeColors.line.focus : 'rgba(255,255,255,0.2)'}`,
+                                                border: `1px solid ${isSelected || isLinked ? style.themeColors.line.focus : 'rgba(255,255,255,0.2)'}`,
                                                 borderRadius: '6px',
                                                 cursor: 'pointer',
                                                 color: style.themeColors.text.default,
-                                                outline: isSelected ? `1px solid ${style.themeColors.line.focus}` : 'none',
+                                                outline: isSelected || isLinked ? `1px solid ${style.themeColors.line.focus}` : 'none',
                                             }}
                                         >
                                             <span style={{ fontSize: '10px', fontWeight: 600 }}>{ctrl.label}</span>
