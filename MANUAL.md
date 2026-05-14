@@ -1,200 +1,242 @@
-# The Ultimate Web Companion for Your Dirtywave M8
+# YAM8D Manual
 
-Welcome to **yam8d** — your all-in-one browser-based cockpit for the Dirtywave M8 tracker. This isn't just a display; it’s a creative accelerator, a learning partner, a performance sidekick, and a content studio, all wrapped into one sleek web app.
+YAM8D is a browser companion for the Dirtywave M8. It mirrors the M8 screen, sends controls back to the device, hosts external tools, records sessions, and can turn the display into a WebGL visual surface.
 
-Whether you're sketching out your first track, speeding through an intricate arrangement, practicing with interactive tutorials, or recording a video with slick visual effects—yam8d is built to supercharge your workflow.
+## Connect
 
-## What Can yam8d Do for You?
+You need a powered Dirtywave M8, a USB connection, and a Chromium-based browser such as Chrome, Edge, or Opera.
 
-Imagine controlling your M8 from your computer keyboard, clicking buttons on screen, playing a virtual piano, jumping between views instantly, and recording high-quality videos with trippy shader backgrounds—all directly in your browser, with no extra software. That's yam8d.
+1. Open YAM8D.
+2. Click **Connect**.
+3. Choose the M8 device or port in the browser permission dialog.
+4. Wait for the screen to appear.
 
-### Here’s your creative toolkit:
+YAM8D prefers WebSerial when the browser supports it. If WebSerial is unavailable, it can use WebUSB or WebMIDI with SysEx support.
 
-* **Live Screen Mirroring:** See your M8 screen in real-time.
-* **Multi-Control Power:** Use your keyboard, gamepad, mouse, or touch.
-* **Speed Navigation:** Instantly jump to any screen (Song, Phrase, Instrument, etc.).
-* **Learn & Create:** Integrated interactive shortcut guides and (coming soon) tutorial games.
-* **Build Tools:** Developers can create custom editors and tools using the yam8d SDK.
-* **Virtual Piano:** Play notes directly into the M8 with an on-screen keyboard.
-* **Visual Studio:** Record videos with the M8 screen and custom, audio-reactive visual effects.
-* **Fully Customizable:** Remap every key, tweak the display, and save your perfect setup.
+![YAM8D connect screen](/manual-screenshots/connect-splash.png)
 
-Ready to fly? Let’s get connected.
+## Main Controls
 
----
+The default computer keyboard mapping is:
 
-## Get Connected in 60 Seconds
+| Key | M8 button |
+| --- | --- |
+| `ArrowUp` | Up |
+| `ArrowDown` | Down |
+| `ArrowLeft` | Left |
+| `ArrowRight` | Right |
+| `ShiftLeft` | Shift |
+| `Space` | Play |
+| `Z` | Option |
+| `X` | Edit |
 
-**You’ll need:**
+Gamepads are also supported. The default mapping uses the D-pad for direction, common shoulder/select buttons for Shift, and face buttons for Play, Option, and Edit.
 
-* Your **Dirtywave M8**, powered on and connected via USB.
-* A modern browser like **Chrome, Edge, or Opera** (they support the necessary Web features).
+You can also click the on-screen M8 body. Pressing and releasing a body button sends the matching M8 key state.
 
-**Follow these steps:**
+## Screen Click Navigation
 
-1. Go to the yam8d website.
-2. Click the big **"Connect"** button.
-3. Your browser will ask for permission to connect to a device—select your M8 and approve.
-4. That’s it! Watch your M8 screen appear live in the browser.
+Clicking inside the M8 screen asks YAM8D to move the cursor to the clicked grid position. This is useful for jumping across dense tracker pages without repeated direction presses.
 
-> **💡 Connection Tip:** yam8d will automatically choose the best way to talk to your M8 (WebSerial is preferred). Just make sure your M8 is on before you hit connect!
+The calculation uses the current device screen layout, offsets, and font mode reported by the M8.
 
-![Step-by-step connection guide showing the connect button and browser device permission prompt](/manual-screenshots/connect-flow.png)
+## View Macros
 
----
+YAM8D can navigate between M8 views by following a generated view graph. The default macro keys are:
 
-## Master Your Controls
+| Key | Target view |
+| --- | --- |
+| `F1` | Song |
+| `F2` | Chain |
+| `F3` | Phrase |
+| `F4` | Table |
+| `F5` | Instrument Pool |
+| `F6` | Instrument |
+| `F7` | Instrument Modifiers |
+| `F8` | Effect Settings |
+| `F9` | Project |
+| `PageUp` | Shift + Up |
+| `PageDown` | Shift + Down |
 
-Control your M8 your way. Mix and match these methods to find your flow.
+Any keyboard input can preempt a running macro. This keeps manual control responsive if a macro starts from an unexpected screen.
 
-### Keyboard Pilot**
+## Keyboard Mapping
 
-Map your keyboard to feel like a native M8. The default setup lets you start immediately:
+Open **Menu > Input > Keyboard Mapping > Configure** to edit input mappings.
 
-| Press This Key → | Controls This M8 Button |
-| :--- | :--- |
-| `Arrow Keys` | D-Pad (Up, Down, Left, Right) |
-| `Left Shift` | **Shift** |
-| `Spacebar` | **Play** |
-| `Z` | **Option** |
-| `X` | **Edit** |
+The mapping panel includes three areas:
 
-*Want to change it?* Go to **Settings → Keyboard Mapping** and create your perfect control scheme.
+- M8 button mappings for the computer keyboard.
+- Macro input mappings for fast view navigation.
+- Virtual MIDI keyboard mappings for notes, octave controls, and velocity controls.
 
-### **Mouse & Touch Navigator**
+Macro keys can be switched between `F1` to `F9` and `1` to `9`. Each macro row can also target a different view from the loaded M8 view list.
 
-* **Click the M8 Body:** The on-screen replica has clickable buttons. Want to press **OPT**? Just click it!
-* **Click the Screen:** Click anywhere on the live M8 display to instantly guide the cursor there. Perfect for fast edits.
+Use **Save** to persist changes in browser local storage. Use **Reset to Defaults** to restore the default M8 button, virtual keyboard, and macro mappings.
 
-### **Gamepad Support**
-
-Plug in a gamepad (like an Xbox or PlayStation controller). yam8d will recognize it, letting you navigate with the D-pad and assign other buttons—great for a comfy, hands-on feel.
-
-### **Macro View Jumps (The Speed Secret)**
-
-Stop shifting the d-pad. Get to the screen you need *instantly*.
-
-| Hotkey | Takes You To |
-| :--- | :--- |
-| `F1` | **Song** view |
-| `F2` | **Chain** view |
-| `F3` | **Phrase** view |
-| `F4` | **Table** view |
-| `F5` | **Instrument Pool** |
-| `F6` | Selected **Instrument** |
-| `F7` | Instrument **Modifiers** |
-| `F8` | **Effect** Settings |
-| `F9` | **Project** Settings |
-| `Page Up` | Macro: **Shift + Up** |
-| `Page Down` | Macro: **Shift + Down** |
-
-**Pro Tip:** Press any other key to instantly exit a macro and take manual control.
-
----
-
-## Integrated Learning & Tools Hub
-
-yam8d isn't just about control; it's about growth and efficiency.
-
-### **Interactive Shortcuts Library**
-
-Forgot a command? Open the **Shortcuts Panel** to see a context-aware cheat sheet right beside your M8 screen. It updates based on the view you're in!
-
-![The yam8d interface with the shortcuts panel open next to the M8 screen](/manual-screenshots/shortcuts-panel.png)
-
-### **The yam8d SDK (For Builders)**
-
-Want to build a custom chord generator, a parameter randomizer, or a practice game? Our JavaScript SDK lets any web app (loaded in the shortcuts panel) communicate with your live M8. The possibilities are endless.
-
-```javascript
-// Example: Jump to the Phrase editor from your custom app
-await m8.navigateToView("phrase");
-```
-
----
+![Keyboard mapping settings](/manual-screenshots/keyboard-settings.png)
 
 ## Virtual MIDI Keyboard
 
-No external controller? No problem. Activate the virtual keyboard to play melodies, basslines, and chords directly into your M8.
+Enable or disable the virtual keyboard from **Menu > Input > Virtual midi keyboard**.
 
-* Use the **octave strips** to shift range with mouse or keys `-` and `=`.
-* Adjust **velocity** with keys `[` and `]`.
-* **Default typing keys:** `A W S E D F T G Y H U J K O L P ; '`
+Default note keys:
 
-![The virtual keyboard overlay with piano keys and octave controls](/manual-screenshots/virtual-keyboard.png)
+| Keys | Notes |
+| --- | --- |
+| `A W S E D F T G Y H U J K O L P ; '` | Chromatic notes across the displayed keyboard |
 
----
+Default controls:
 
-## Record & Share Your Sessions
+| Key | Action |
+| --- | --- |
+| `Minus` | Octave down |
+| `Equal` | Octave up |
+| `BracketLeft` | Velocity down |
+| `BracketRight` | Velocity up |
 
-Create shareable videos of your jams or tracks directly from yam8d.
+The virtual keyboard sends note on and note off messages to the M8 using the current octave and velocity.
 
-1. **Choose your source:** Record just the M8 screen (perfect for including shader backgrounds) or your entire browser tab.
-2. **Include audio:** Capture your M8's sound output.
-3. **Start/Stop recording** with the in-app controls.
-4. **Download** a ready-to-share `.webm` video file.
+## External Apps
 
-**Ideal for:** Sharing on social media, creating tutorials, or documenting your workflow.
+Enable the External Apps panel from **Menu > Tools > External Apps**.
 
----
+The panel loads iframe tools next to the M8 display. External apps can connect to YAM8D through the SDK and receive live M8 state, cursor changes, view changes, text updates, and key events. They can also request navigation, set values, browse files, and send key presses.
 
-## Tweak Your Experience: The Settings Menu
+The default app list includes:
 
-Open the menu (☰) in the top-left to fine-tune everything.
+| App | Purpose |
+| --- | --- |
+| M8 Shortcuts | Context-aware shortcut reference |
+| M8 Tutor Game | Local training and practice app |
 
-| Category | What It Does |
-| :--- | :--- |
-| **Display** | Show/hide the M8 body shell, enable "Zoom View" for a tighter layout. |
-| **Rendering** | Make the text look smoother (with Blur, Threshold, and Smoothness sliders). |
-| **Background Shader** | Enable animated, audio-reactive visual backgrounds. This is where the magic happens! |
-| **Shader Editor** | Open the built-in editor to write your own GLSL shaders or load presets. |
-| **Virtual Keyboard** | Show or hide the on-screen piano. |
-| **Keyboard Mapping** | Open the deep customization panel to remap every key. |
-| **Shortcuts Panel** | Control the integrated shortcuts library (show/hide, change source URL). |
+Open **Configure** to add, remove, rename, reorder by active selection, or edit external app URLs. Apps can optionally use the legacy URL fallback format before the SDK connection is ready.
 
----
+![External apps setup](/manual-screenshots/external-apps-setup.png)
 
-## Advanced Playground: Background Shaders
+## SDK Capabilities
 
-Transform yam8d into an audio-visual experience. Enable **Background Shader** mode to replace the plain background with dynamic, generated art that reacts to your M8's audio.
+External iframe apps can use `@yam8d/m8-sdk`.
 
-* **Shader Editor:** A live coding panel where you can write or paste GLSL fragment shaders.
-* **Audio-Reactive Uniforms:** Your shader code has access to live audio frequency data (`audioFFT`), volume (`audioLevel`), and time—perfect for building visualizers.
-* **Preset System:** Save, load, and manage your favorite shader creations locally in your browser.
+Common client methods include:
 
-![The shader editor interface with code on the left and a live preview on the right](/manual-screenshots/shader-editor.png)
+- `navigateToView(viewName)`
+- `navigateTo(x, y)`
+- `setValueToHex(value)`
+- `setValueToInt(value)`
+- `setNote(note)`
+- `setValueToString(text, exact, searchInCurrentLine)`
+- `browseFile(text, exact)`
+- `sendKeyPress(keys)`
+- `sendKeyDown(keys)`
+- `sendKeyUp()`
+- `fetchState()`
 
-**Quick Start with Shaders:**
+The SDK state includes the current view, cursor position, cursor rectangle, selection mode, text under cursor, current line, colors, model information, system information, macro status, and key events.
 
-1. Open **Settings → Background Shader → ON**.
-2. Click **"Open Shader Editor"**.
-3. Try a preset or paste in your own GLSL code.
-4. Click **"Apply Shader"** to see it live!
+See `src/sdk/README.md` and `src/sdk/CREATING_APP.md` for implementation details.
 
----
+## Rendering Settings
 
-## FAQ & Good to Know
+Open **Menu > Rendering** to control the display renderer.
 
-* **Is my data safe?** Yes. All settings (keymaps, shaders) are saved in your browser's local storage. No data is sent to the cloud.
-* **Which browser is best?** Chrome, Edge, or Opera for full support. Firefox and Safari lack key connection features.
-* **The connection failed!** Ensure your M8 is on and connected before clicking "Connect". Refresh the page and try again.
-* **Recording doesn't work?** Check that your browser supports `MediaRecorder` and that you've allowed audio/video permissions if needed.
+| Setting | Description |
+| --- | --- |
+| Smooth rendering | Enables processed font smoothing for the WebGL renderer |
+| Blur radius | Controls smoothing spread |
+| Threshold | Controls glyph edge cutoff |
+| Smoothness | Controls edge softness |
+| Background shader | Enables the custom WebGL background shader |
+| Shader editor panel | Opens or closes the shader editor |
+| VJ Mode | Enables numpad shader switching when background shaders are active |
 
----
+![Menu and rendering settings](/manual-screenshots/menu-and-rendering.png)
 
-## Credits & Thanks
+## Background Shader Editor
 
-yam8d stands on the shoulders of giants. It includes adapted code from the excellent **[M8WebDisplay](https://github.com/derkyjadex/M8WebDisplay/)** by James Deery, used under the MIT License.
+The shader editor is available when **Background shader** is enabled. It edits a WebGL2 fragment shader and applies it live to the M8 display surface.
 
----
+The editor includes:
 
-## Ready, Set, Create!
+- CodeMirror editing with line numbers, folding, syntax highlighting, bracket matching, snippets, and completion.
+- Compile validation before applying a shader.
+- A saved shader library stored in browser local storage.
+- **Save changes**, **Save as new**, and **Delete** actions.
+- A **Composite M8 screen on top** option.
+- Audio spectrum band selection: `64`, `128`, or `256`.
 
-You're now equipped to use yam8d not just as a display, but as a comprehensive creative environment for your Dirtywave M8. Whether you're here to learn, to build, to perform, or to share—your workflow is about to get a whole lot faster and a whole lot more fun.
+Press `Ctrl-Space` in the editor to open completions. Type `u` to quickly discover the available uniforms.
 
-**Happy tracking!**
+Available shader uniforms include:
 
-<!-- Placeholder images to be replaced with actual screenshots -->
-![View of the main yam8d interface with M8 screen and controls](/manual-screenshots/main-interface.png)
-![Example of a custom shader background reacting to music](/manual-screenshots/shader-example.png)
-![The keyboard mapping configuration screen](/manual-screenshots/keyboard-mapper.png)
+| Uniform | Type | Notes |
+| --- | --- | --- |
+| `uTime` | `float` | Resets when the shader changes |
+| `uGlobalTime` | `float` | Keeps running across shader changes |
+| `uResolution` | `vec2` | Canvas resolution |
+| `uMouse` | `vec4` | Mouse x, y, down, unused |
+| `uAudioLevel` | `float` | Audio level from microphone or captured input |
+| `uAudioSpectrum` | `sampler2D` | Audio spectrum texture |
+| `uAudioSpectrumBins` | `float` | Number of spectrum bins |
+| `uPreviousFrame` | `sampler2D` | Previous background frame for feedback effects |
+| `uFrameCount` | `int` | Resets when the shader changes |
+| `uGlobalFrameCount` | `int` | Keeps counting across shader changes |
+| `uM8Screen` | `sampler2D` | Current rendered M8 screen |
+
+Shaders that use audio uniforms will request audio input. Audio is analyzed on the main thread and sent to the renderer worker.
+
+## VJ Mode
+
+VJ Mode appears when background shaders are enabled.
+
+1. Save one or more shaders in the shader editor.
+2. Turn on **Menu > Rendering > Background shader > VJ Mode**.
+3. Click a numpad key in the small VJ pad overlay.
+4. Assign a saved shader to that key.
+5. Press the matching physical numpad key to switch shaders live.
+
+Assigned shaders are precompiled when possible, so switching is designed to be immediate during performance or recording.
+
+## Recording
+
+The record control is displayed near the M8 player.
+
+Recording modes:
+
+| Mode | What it captures |
+| --- | --- |
+| M8 Screen only | The rendered M8 canvas, including shader output |
+| Full tab/window | Browser display capture for the selected tab or window |
+
+After stopping, YAM8D provides a WebM download action and a reset action to discard the captured result.
+
+Recording availability depends on browser support for `MediaRecorder`, canvas capture, and display capture.
+
+## Display Options
+
+Open **Menu > Display** to control the M8 body shell and zoom behavior.
+
+| Setting | Description |
+| --- | --- |
+| Show M8 body | Shows or hides the M8 body around the screen |
+| Zoom View | When the body is shown, switches between full body view and a tighter screen-focused view |
+
+## Stored Data
+
+YAM8D stores settings locally in the browser. This includes keyboard mappings, external app configuration, shader source, saved shaders, VJ numpad assignments, and rendering preferences.
+
+No project data or M8 content is uploaded by YAM8D.
+
+## Troubleshooting
+
+| Problem | Try this |
+| --- | --- |
+| The browser cannot connect | Use Chrome, Edge, or Opera and make sure the M8 is powered before clicking Connect |
+| The screen stays blank after connect | Refresh, reconnect, and wait for the automatic screen reset |
+| WebM recording is unavailable | Check browser MediaRecorder support and permissions |
+| Audio-reactive shaders do not move | Allow microphone or audio capture permission and use a shader with audio uniforms |
+| External app stays Waiting | Check the app URL, iframe permissions, and whether the app uses the SDK |
+
+## Credits
+
+YAM8D includes adapted code from M8WebDisplay by James Deery, used under the MIT License.

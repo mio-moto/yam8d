@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { getM8InputStream, getM8OutputCaptureStream, M8_AUDIO_CAPTURE_CONSTRAINTS } from '../connection/audio'
 
 export type RecordingMode = 'canvas' | 'display'
 
@@ -50,6 +51,10 @@ const mergeStreams = (videoStream: MediaStream, audioStream?: MediaStream | null
   return new MediaStream(tracks)
 }
 
+const cloneAudioStream = (tracks: MediaStreamTrack[]) => new MediaStream(tracks.map((track) => track.clone()))
+
+const hasMonoAudio = (tracks: MediaStreamTrack[]) => tracks.some((track) => track.getSettings().channelCount === 1)
+
 const stopStream = (stream: MediaStream | null) => {
   if (!stream) return
   for (const track of stream.getTracks()) {
@@ -57,18 +62,29 @@ const stopStream = (stream: MediaStream | null) => {
   }
 }
 
-const getAudioCaptureStream = async () => {
+const getFallbackM8InputStream = async () => {
   if (!navigator.mediaDevices?.getUserMedia) {
     throw new Error('Audio capture is not supported in this browser.')
   }
 
-  return navigator.mediaDevices.getUserMedia({
-    audio: {
-      echoCancellation: false,
-      noiseSuppression: false,
-      autoGainControl: false,
-    },
-  })
+  return getM8InputStream()
+}
+
+const getCanvasRecordingAudioStream = async () => {
+  return getM8OutputCaptureStream() ?? await getFallbackM8InputStream()
+}
+
+const getDisplayRecordingAudioStream = async (displayStream: MediaStream) => {
+  const displayAudioTracks = displayStream.getAudioTracks()
+  if (displayAudioTracks.length > 0) {
+    if (hasMonoAudio(displayAudioTracks)) {
+      return getM8OutputCaptureStream() ?? cloneAudioStream(displayAudioTracks)
+    }
+
+    return cloneAudioStream(displayAudioTracks)
+  }
+
+  return getM8OutputCaptureStream() ?? await getFallbackM8InputStream()
 }
 
 export const useCanvasRecorder = () => {
@@ -172,15 +188,16 @@ export const useCanvasRecorder = () => {
           },
           selfBrowserSurface: 'include',
           preferCurrentTab: true,
-          audio: true,
+          audio: M8_AUDIO_CAPTURE_CONSTRAINTS,
         }
         videoStream = await navigator.mediaDevices.getDisplayMedia(displayMediaOptions)
       }
 
       videoStreamRef.current = videoStream
 
-      const displayAudioTracks = mode === 'display' ? videoStream.getAudioTracks() : []
-      const audioStream = displayAudioTracks.length > 0 ? null : await getAudioCaptureStream()
+      const audioStream = mode === 'canvas'
+        ? await getCanvasRecordingAudioStream()
+        : await getDisplayRecordingAudioStream(videoStream)
       audioStreamRef.current = audioStream
 
       const combinedStream = mergeStreams(videoStream, audioStream)
