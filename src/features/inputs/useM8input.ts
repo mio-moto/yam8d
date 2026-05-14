@@ -61,16 +61,21 @@ export const useM8Input = (connection?: ConnectedBus) => {
 
     useEffect(() => {
         // Get config
+        for (const key of Object.keys(inputMap)) {
+            delete inputMap[key]
+        }
         Object.assign(inputMap, settingsContextValues[INPUT_MAP_SETTINGS] ?? defaultInputMap)
 
         const handleKeyDown = (ev: KeyboardEvent) => {
             if (!ev.code) return
+            if (!inputMap[ev.code]) return
             ev.preventDefault()
             handleInput(ev.code, true)
         }
 
         const handleKeyUp = (ev: KeyboardEvent) => {
             if (!ev.code) return
+            if (!inputMap[ev.code]) return
             ev.preventDefault()
             handleInput(ev.code, false)
         }

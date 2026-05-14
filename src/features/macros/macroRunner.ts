@@ -9,10 +9,17 @@ export const useMacroRunner = (connection?: ConnectedBus) => {
     const [running, setRunning] = useState(false)
     const queue = useRef<number[]>([])
     const lastSent = useRef<number | null>(null)
+    const runningRef = useRef(false)
+
+    useEffect(() => {
+        runningRef.current = running
+    }, [running])
 
     const cancel = useCallback(
         (reason?: string) => {
+            if (!runningRef.current && queue.current.length === 0 && !store.get(macroStatusAtom).running) return
             queue.current = []
+            lastSent.current = null
             setRunning(false)
             store.set(macroStatusAtom, { running: false })
             if (reason) {
@@ -36,6 +43,8 @@ export const useMacroRunner = (connection?: ConnectedBus) => {
 
 
     useEffect(() => {
+        if (!running) return
+
         const onKeyEcho = (data: KeyCommand) => {
             if (!running) return
             const echoed = data.keys
@@ -65,7 +74,14 @@ export const useMacroRunner = (connection?: ConnectedBus) => {
         connection?.protocol.eventBus.on('key', onKeyEcho)
 
         // kick off
-        const first = queue.current.shift() as number
+        const first = queue.current.shift()
+        if (first === undefined) {
+            setRunning(false)
+            store.set(macroStatusAtom, { running: false })
+            window.removeEventListener('keydown', onKeyDown)
+            connection?.protocol.eventBus.off('key', onKeyEcho)
+            return
+        }
         lastSent.current = first
         connection?.commands.sendKeys(first)
 
