@@ -17,7 +17,9 @@ export const useMacroInput = (connection?: ConnectedBus) => {
             if (ev.repeat) return
 
             // Any key should preempt current macro
-            runner.cancel('preempted by keyboard')
+            if (runner.running) {
+                runner.cancel('preempted by keyboard')
+            }
 
             const macroView = macroInputMap[ev.code]
             if (macroView) {
