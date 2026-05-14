@@ -6,10 +6,20 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:sdk": "npm --prefix packages/m8-sdk run build",
+    "pack:sdk": "npm pack ./packages/m8-sdk",
     "lint": "biome lint",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@codemirror/autocomplete": "^6.20.2",
+    "@codemirror/commands": "^6.10.3",
+    "@codemirror/lang-cpp": "^6.0.3",
+    "@codemirror/language": "^6.12.3",
+    "@codemirror/lint": "^6.9.6",
+    "@codemirror/state": "^6.6.0",
+    "@codemirror/view": "^6.42.1",
+    "@lezer/highlight": "^1.2.3",
     "@linaria/core": "^7.0.0",
     "@linaria/react": "^7.0.1",
     "jotai": "^2.18.1",

@@ -1,0 +1,42 @@
+{
+  "name": "@yam8d/m8-sdk",
+  "version": "0.1.0",
+  "description": "Client SDK for iframe applications that communicate with an M8 host.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./types/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "types",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "vite build",
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "prepack": "npm run build"
+  },
+  "keywords": [
+    "m8",
+    "sdk",
+    "iframe",
+    "postmessage"
+  ],
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "post-me": "^0.4.5"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3",
+    "vite": "^8.0.1"
+  }
+}

@@ -1,7 +1,9 @@
 import { css } from '@linaria/core'
-import { type FC, useEffect, useMemo, useState } from 'react'
+import { type FC, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '../../components/Button'
+import { style } from '../../app/style/style'
 import { DEFAULT_CUSTOM_BACKGROUND_SHADER, DEFAULT_CUSTOM_BACKGROUND_SHADER_NAME, useSettingsContext } from '../settings/settings'
+import { ShaderCodeEditor } from './ShaderCodeEditor'
 import VertPostprocess from './shader/postprocess.vert?raw'
 
 type SavedBackgroundShader = {
@@ -14,13 +16,16 @@ type SavedBackgroundShader = {
 
 const STORAGE_KEY = 'M8savedBackgroundShaders'
 const LEGACY_SAVED_SHADER_NAMES = new Set([DEFAULT_CUSTOM_BACKGROUND_SHADER_NAME])
+const UNSAVED_SHADER_ID = '__current-unsaved-shader__'
+
+type UnsavedShader = Pick<SavedBackgroundShader, 'source' | 'compositeM8Screen'>
 
 const containerClass = css`
-  width: min(640px, 45vw);
+  width: min(800px, 45vw);
   min-width: 380px;
   display: grid;
   height: 90vh;
-  grid-template-rows: auto 1fr auto auto auto auto auto auto;
+  grid-template-rows: auto 1fr auto auto auto auto;
   gap: 10px;
   align-self: stretch;
   padding: 14px;
@@ -30,32 +35,9 @@ const containerClass = css`
 `
 
 const sourceClass = css`
-  width: 96%;
-  height: 97%;
+  width: 100%;
+  height: 100%;
   min-height: 0;
-  resize: none;
-  background: rgba(0, 0, 0, 0.5);
-  color: #f2f2f2;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  padding: 10px;
-  font-family: Consolas, Monaco, monospace;
-  font-size: 12px;
-`
-
-const rowClass = css`
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
-`
-
-const inputClass = css`
-  min-width: 130px;
-  flex: 1 1 130px;
-  padding: 6px;
-  background: rgba(0, 0, 0, 0.45);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #fff;
 `
 
 const selectClass = css`
@@ -71,12 +53,97 @@ const statusClass = css`
   min-height: 18px;
   font-size: 12px;
   opacity: 0.9;
+  margin-bottom: 0;
 `
 
 const hintClass = css`
+  margin: 0;
   font-size: 13px;
   opacity: 0.75;
   line-height: 1.35;
+`
+
+const editorActionBarClass = css`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+`
+
+const optionsClass = css`
+  display: grid;
+  gap: 8px;
+  padding-top: 2px;
+`
+
+const optionRowClass = css`
+  display: grid;
+  grid-template-columns: auto minmax(0, max-content) auto;
+  gap: 8px;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+
+  select {
+    min-width: 130px;
+  }
+`
+
+const libraryClass = css`
+  display: grid;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(104, 133, 142, 0.45);
+`
+
+const librarySelectClass = css`
+  display: grid;
+  grid-template-columns: auto minmax(160px, 1fr);
+  gap: 10px;
+  align-items: center;
+`
+
+const libraryActionsClass = css`
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+`
+
+const primaryButtonClass = css`
+  --border-color: ${style.colors.teal.primary};
+  color: ${style.colors.teal[100]};
+`
+
+const dangerButtonClass = css`
+  --border-color: ${style.colors.raspberry[500]};
+
+  &:hover {
+    --border-color: ${style.colors.raspberry[300]};
+    color: ${style.colors.raspberry[100]};
+  }
+`
+
+const helpButtonClass = css`
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid ${style.colors.anthracite[500]};
+  border-radius: 50%;
+  background: transparent;
+  color: ${style.colors.anthracite[300]};
+  cursor: help;
+  font: inherit;
+  font-size: 11px;
+  line-height: 1;
+
+  &:hover {
+    border-color: ${style.colors.teal.primary};
+    color: ${style.colors.teal[100]};
+  }
 `
 
 const validateFragmentShader = (fragmentSource: string): string | null => {
@@ -117,14 +184,38 @@ const validateFragmentShader = (fragmentSource: string): string | null => {
   }
 }
 
+const createUniqueShaderName = (requestedName: string, savedShaders: SavedBackgroundShader[]): string => {
+  const baseName = requestedName.trim()
+  const fallbackName = baseName || `Shader ${savedShaders.length + 1}`
+  const existingNames = new Set(savedShaders.map((shader) => shader.name))
+  if (!existingNames.has(fallbackName)) return fallbackName
+
+  let copyIndex = 1
+  let candidate = `${fallbackName} copy`
+  while (existingNames.has(candidate)) {
+    copyIndex += 1
+    candidate = `${fallbackName} copy ${copyIndex}`
+  }
+  return candidate
+}
+
+const findMatchingSavedShader = (
+  savedShaders: SavedBackgroundShader[],
+  source: string,
+  compositeM8Screen: boolean,
+): SavedBackgroundShader | null =>
+  savedShaders.find((shader) => shader.source === source && (shader.compositeM8Screen ?? true) === compositeM8Screen) ?? null
+
 export const BackgroundShaderEditor: FC = () => {
   const { settings, updateSettingValue } = useSettingsContext()
-  const [nameDraft, setNameDraft] = useState(DEFAULT_CUSTOM_BACKGROUND_SHADER_NAME)
   const [sourceDraft, setSourceDraft] = useState(settings.customBackgroundShader)
   const [compositeM8Draft, setCompositeM8Draft] = useState(settings.backgroundShaderCompositeM8Screen)
   const [selectedId, setSelectedId] = useState('')
   const [status, setStatus] = useState('')
   const [savedShaders, setSavedShaders] = useState<SavedBackgroundShader[]>([])
+  const [unsavedShader, setUnsavedShader] = useState<UnsavedShader | null>(null)
+  const initialSourceRef = useRef(settings.customBackgroundShader)
+  const initialCompositeRef = useRef(settings.backgroundShaderCompositeM8Screen)
 
   useEffect(() => {
     setSourceDraft(settings.customBackgroundShader)
@@ -140,8 +231,10 @@ export const BackgroundShaderEditor: FC = () => {
         compositeM8Screen: true,
         updatedAt: 0,
       }]
+      const initialMatch = findMatchingSavedShader(defaults, initialSourceRef.current, initialCompositeRef.current)
       setSavedShaders(defaults)
-      setSelectedId(defaults[0].id)
+      setUnsavedShader(initialMatch ? null : { source: initialSourceRef.current, compositeM8Screen: initialCompositeRef.current })
+      setSelectedId(initialMatch?.id ?? UNSAVED_SHADER_ID)
       localStorage.setItem(STORAGE_KEY, JSON.stringify(defaults))
       return
     }
@@ -157,10 +250,12 @@ export const BackgroundShaderEditor: FC = () => {
         const seeded = hasDefault ? next : [{
           id: 'default-spectrum-demo',
           name: DEFAULT_CUSTOM_BACKGROUND_SHADER_NAME,
-          source: DEFAULT_CUSTOM_BACKGROUND_SHADER,          compositeM8Screen: true,          updatedAt: 0,
+          source: DEFAULT_CUSTOM_BACKGROUND_SHADER, compositeM8Screen: true, updatedAt: 0,
         }, ...next]
+        const initialMatch = findMatchingSavedShader(seeded, initialSourceRef.current, initialCompositeRef.current)
         setSavedShaders(seeded)
-        if (seeded.length > 0) setSelectedId(seeded[0].id)
+        setUnsavedShader(initialMatch ? null : { source: initialSourceRef.current, compositeM8Screen: initialCompositeRef.current })
+        setSelectedId(initialMatch?.id ?? UNSAVED_SHADER_ID)
         localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded))
       }
     } catch {
@@ -173,36 +268,75 @@ export const BackgroundShaderEditor: FC = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
   }
 
+  const isUnsavedShaderSelected = selectedId === UNSAVED_SHADER_ID
   const selectedShader = useMemo(() => savedShaders.find((shader) => shader.id === selectedId) ?? null, [savedShaders, selectedId])
+  const hasUnsavedChanges = !!selectedShader && (
+    sourceDraft !== selectedShader.source ||
+    compositeM8Draft !== (selectedShader.compositeM8Screen ?? true)
+  )
+  const hasUnsavedShaderChanges = isUnsavedShaderSelected && !!unsavedShader && (
+    sourceDraft !== unsavedShader.source ||
+    compositeM8Draft !== unsavedShader.compositeM8Screen
+  )
+  const hasDraftChangesToDiscard = hasUnsavedChanges
 
-  const applyShader = () => {
-    const validationError = validateFragmentShader(sourceDraft)
-    if (validationError) {
-      setStatus(`Compile failed: ${validationError}`)
+  const preserveCurrentUnsavedShader = () => {
+    if (!isUnsavedShaderSelected) return
+
+    const matchingSavedShader = findMatchingSavedShader(savedShaders, sourceDraft, compositeM8Draft)
+    if (matchingSavedShader) {
+      setUnsavedShader(null)
       return
     }
-    updateSettingValue('customBackgroundShader', sourceDraft)
-    updateSettingValue('backgroundShader', true)
-    updateSettingValue('backgroundShaderCompositeM8Screen', compositeM8Draft)
-    setStatus('Custom shader applied.')
+
+    setUnsavedShader({ source: sourceDraft, compositeM8Screen: compositeM8Draft })
   }
 
-  const saveCurrent = () => {
-    const now = Date.now()
-    const trimmedName = nameDraft.trim() || `Shader ${savedShaders.length + 1}`
-    const existing = savedShaders.find((shader) => shader.name === trimmedName)
-    if (existing) {
-      const next = savedShaders.map((shader) =>
-        shader.id === existing.id ? { ...shader, source: sourceDraft, compositeM8Screen: compositeM8Draft, updatedAt: now } : shader,
-      )
-      saveShaders(next)
-      setSelectedId(existing.id)
-      setStatus(`Updated "${trimmedName}".`)
+  const applyShader = (source = sourceDraft, compositeM8Screen = compositeM8Draft, successStatus = 'Custom shader applied.') => {
+    const validationError = validateFragmentShader(source)
+    if (validationError) {
+      setStatus(`Compile failed: ${validationError}`)
+      return false
+    }
+    updateSettingValue('customBackgroundShader', source)
+    updateSettingValue('backgroundShader', true)
+    updateSettingValue('backgroundShaderCompositeM8Screen', compositeM8Screen)
+    setStatus(successStatus)
+    return true
+  }
+
+  const saveChanges = () => {
+    if (!selectedShader) {
+      setStatus('Select a saved shader before saving changes.')
       return
     }
+    const now = Date.now()
+    const next = savedShaders.map((shader) =>
+      shader.id === selectedShader.id ? { ...shader, source: sourceDraft, compositeM8Screen: compositeM8Draft, updatedAt: now } : shader,
+    )
+    saveShaders(next)
+    setStatus(`Updated "${selectedShader.name}".`)
+  }
+
+  const applyCompositeSetting = (nextComposite: boolean) => {
+    setCompositeM8Draft(nextComposite)
+    applyShader(sourceDraft, nextComposite, 'Composite setting applied.')
+  }
+
+  const applySpectrumBands = (nextBands: 64 | 128 | 256) => {
+    updateSettingValue('backgroundShaderSpectrumBands', nextBands)
+    applyShader(sourceDraft, compositeM8Draft, `Spectrum bands set to ${nextBands}. Custom shader applied.`)
+  }
+
+  const saveAsNew = () => {
+    const requestedName = window.prompt('Save shader as', selectedShader?.name ?? DEFAULT_CUSTOM_BACKGROUND_SHADER_NAME)
+    if (requestedName === null) return
+
+    const shaderName = createUniqueShaderName(requestedName, savedShaders)
+    const now = Date.now()
     const item: SavedBackgroundShader = {
       id: `${now}-${Math.random().toString(36).slice(2, 8)}`,
-      name: trimmedName,
+      name: shaderName,
       source: sourceDraft,
       compositeM8Screen: compositeM8Draft,
       updatedAt: now,
@@ -210,81 +344,140 @@ export const BackgroundShaderEditor: FC = () => {
     const next = [item, ...savedShaders]
     saveShaders(next)
     setSelectedId(item.id)
-    setStatus(`Saved "${trimmedName}".`)
+    setUnsavedShader((currentUnsavedShader) =>
+      currentUnsavedShader?.source === sourceDraft && currentUnsavedShader.compositeM8Screen === compositeM8Draft
+        ? null
+        : currentUnsavedShader,
+    )
+    setStatus(`Saved "${shaderName}".`)
   }
 
-  const loadSelected = () => {
-    if (!selectedShader) return
-    setNameDraft(selectedShader.name)
-    setSourceDraft(selectedShader.source)
-    setCompositeM8Draft(selectedShader.compositeM8Screen ?? true)
-    setStatus(`Loaded "${selectedShader.name}".`)
+  const selectShader = (shaderId: string) => {
+    if (shaderId === UNSAVED_SHADER_ID) {
+      if (!unsavedShader) return
+      if (hasDraftChangesToDiscard && !window.confirm('Discard unsaved shader changes?')) {
+        return
+      }
+      const nextComposite = unsavedShader.compositeM8Screen
+      setSelectedId(UNSAVED_SHADER_ID)
+      setSourceDraft(unsavedShader.source)
+      setCompositeM8Draft(nextComposite)
+      applyShader(unsavedShader.source, nextComposite, 'Loaded and applied current unsaved shader.')
+      return
+    }
+
+    const shader = savedShaders.find((item) => item.id === shaderId)
+    if (!shader) return
+
+    if (hasDraftChangesToDiscard && !window.confirm('Discard unsaved shader changes?')) {
+      return
+    }
+
+    preserveCurrentUnsavedShader()
+    const nextComposite = shader.compositeM8Screen ?? true
+    setSelectedId(shader.id)
+    setSourceDraft(shader.source)
+    setCompositeM8Draft(nextComposite)
+    applyShader(shader.source, nextComposite, `Loaded and applied "${shader.name}".`)
   }
 
   const deleteSelected = () => {
     if (!selectedShader) return
+    if (!window.confirm(`Delete "${selectedShader.name}"?`)) return
     const next = savedShaders.filter((shader) => shader.id !== selectedShader.id)
     saveShaders(next)
-    setSelectedId(next[0]?.id ?? '')
+    const nextSelected = next[0] ?? null
+    setSelectedId(nextSelected?.id ?? '')
+    if (nextSelected) {
+      const nextComposite = nextSelected.compositeM8Screen ?? true
+      setSourceDraft(nextSelected.source)
+      setCompositeM8Draft(nextComposite)
+      applyShader(nextSelected.source, nextComposite, `Deleted "${selectedShader.name}". Loaded and applied "${nextSelected.name}".`)
+      return
+    }
     setStatus(`Deleted "${selectedShader.name}".`)
   }
 
   return (
     <aside className={containerClass}>
       <strong>Background Shader (WebGL2 fragment)</strong>
-      <textarea
-        className={sourceClass}
-        value={sourceDraft}
-        onChange={(event) => setSourceDraft(event.target.value)}
-        spellCheck={false}
-      />
-      <div className={hintClass}>
-        Available uniforms: <code>uTime</code>, <code>uResolution</code>, <code>uMouse</code> (x, y, down, _), <code>uAudioLevel</code> (0..1), <code>uAudioSpectrum</code> (sampler2D float), <code>uAudioSpectrumBins</code>. Spectrum is log-remapped. <code>uM8Screen</code> (sampler2D) — current M8 screen frame at display resolution; use <code>texture(uM8Screen, uv)</code>.
+      <div className={sourceClass}>
+        <ShaderCodeEditor value={sourceDraft} onChange={setSourceDraft} validate={validateFragmentShader} />
       </div>
-      <div className={rowClass}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+      <footer className={editorActionBarClass}>
+        <p className={hintClass}>
+          Type <code>u</code> to show the list of available uniforms.
+        </p>
+        <Button className={primaryButtonClass} onClick={() => applyShader()}>
+          Apply
+        </Button>
+      </footer>
+      <section className={optionsClass} aria-label="Shader options">
+        <label className={optionRowClass}>
           <input
             type="checkbox"
             checked={compositeM8Draft}
-            onChange={(event) => setCompositeM8Draft(event.target.checked)}
+            onChange={(event) => applyCompositeSetting(event.target.checked)}
           />
-          Composite M8 screen on top
+          <span>Composite M8 screen on top</span>
+          <button
+            className={helpButtonClass}
+            type="button"
+            title="Draws the M8 screen over the shader result. Disable it when the shader should fully replace the screen background."
+            aria-label="Explain composite M8 screen on top"
+          >
+            ?
+          </button>
         </label>
-      </div>
-      <div className={rowClass}>
-        <span>Spectrum bands</span>
-        <select
-          className={selectClass}
-          value={settings.backgroundShaderSpectrumBands}
-          onChange={(event) => updateSettingValue('backgroundShaderSpectrumBands', Number.parseInt(event.target.value, 10) as 64 | 128 | 256)}
-        >
-          <option value="64">64</option>
-          <option value="128">128</option>
-          <option value="256">256</option>
-        </select>
-      </div>
-      <div className={rowClass}>
-        <input className={inputClass} value={nameDraft} onChange={(event) => setNameDraft(event.target.value)} placeholder="Shader name" />
-        <Button onClick={saveCurrent}>Save</Button>
-        <Button onClick={applyShader}>Apply</Button>
-      </div>
-      <div className={rowClass}>
-        <select className={selectClass} value={selectedId} onChange={(event) => setSelectedId(event.target.value)}>
-          {savedShaders.length === 0 && <option value="">No saved shaders</option>}
-          {savedShaders.map((shader) => (
-            <option key={shader.id} value={shader.id}>
-              {shader.name}
-            </option>
-          ))}
-        </select>
-        <Button onClick={loadSelected} disabled={!selectedShader}>
-          Load
-        </Button>
-        <Button onClick={deleteSelected} disabled={!selectedShader}>
-          Delete
-        </Button>
-      </div>
-      <div className={statusClass}>{status}</div>
+        <label className={optionRowClass}>
+          <span>Spectrum bands</span>
+          <select
+            className={selectClass}
+            value={settings.backgroundShaderSpectrumBands}
+            onChange={(event) => applySpectrumBands(Number.parseInt(event.target.value, 10) as 64 | 128 | 256)}
+          >
+            <option value="64">64</option>
+            <option value="128">128</option>
+            <option value="256">256</option>
+          </select>
+          <button
+            className={helpButtonClass}
+            type="button"
+            title="Controls how many audio spectrum bins are sent to the shader. Higher values give more detail but can cost more GPU work."
+            aria-label="Explain spectrum bands"
+          >
+            ?
+          </button>
+        </label>
+      </section>
+      <section className={libraryClass} aria-label="Saved shaders">
+        <label className={librarySelectClass}>
+          <span>Saved shader</span>
+          <select className={selectClass} value={selectedId} onChange={(event) => selectShader(event.target.value)}>
+            {savedShaders.length === 0 && !unsavedShader && <option value="">No saved shaders</option>}
+            {unsavedShader && (
+              <option value={UNSAVED_SHADER_ID}>
+                {hasUnsavedShaderChanges ? 'Current unsaved shader *' : 'Current unsaved shader'}
+              </option>
+            )}
+            {savedShaders.map((shader) => (
+              <option key={shader.id} value={shader.id}>
+                {shader.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className={libraryActionsClass}>
+          <Button onClick={saveChanges} disabled={!selectedShader || !hasUnsavedChanges}>
+            Save changes
+          </Button>
+          <Button onClick={saveAsNew}>Save as new</Button>
+          <Button className={dangerButtonClass} onClick={deleteSelected} disabled={!selectedShader}>
+            Delete
+          </Button>
+        </div>
+      </section>
+      <p className={statusClass} role="status">{status}</p>
     </aside>
   )
 }

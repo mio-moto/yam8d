@@ -284,6 +284,8 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
   // --- Background shaders ---
   let backgroundShader = false
   let backgroundStartTime = performance.now() / 1000
+  const globalStartTime = performance.now() / 1000
+  let globalFrameCount = 0
 
   let customProgram: WebGLProgram | null = null
   let custom_uTime: WebGLUniformLocation | null = null
@@ -294,6 +296,8 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
   let custom_uAudioSpectrumBins: WebGLUniformLocation | null = null
   let custom_uPreviousFrame: WebGLUniformLocation | null = null
   let custom_uFrameCount: WebGLUniformLocation | null = null
+  let custom_uGlobalTime: WebGLUniformLocation | null = null
+  let custom_uGlobalFrameCount: WebGLUniformLocation | null = null
   let customUsesAudioLevel = false
   let customUsesAudioSpectrum = false
   let customUsesMouse = false
@@ -313,6 +317,8 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
     uAudioSpectrumBins: WebGLUniformLocation | null
     uPreviousFrame: WebGLUniformLocation | null
     uFrameCount: WebGLUniformLocation | null
+    uGlobalTime: WebGLUniformLocation | null
+    uGlobalFrameCount: WebGLUniformLocation | null
     uM8Screen: WebGLUniformLocation | null
     usesAudioLevel: boolean
     usesAudioSpectrum: boolean
@@ -451,6 +457,8 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
       const nextAudioSpectrumBins = gl.getUniformLocation(nextProgram, 'uAudioSpectrumBins')
       const nextPreviousFrame = gl.getUniformLocation(nextProgram, 'uPreviousFrame')
       const nextFrameCount = gl.getUniformLocation(nextProgram, 'uFrameCount')
+      const nextGlobalTime = gl.getUniformLocation(nextProgram, 'uGlobalTime')
+      const nextGlobalFrameCount = gl.getUniformLocation(nextProgram, 'uGlobalFrameCount')
       const nextM8Screen = gl.getUniformLocation(nextProgram, 'uM8Screen')
 
       // Don't delete programs owned by the VJ cache — they are managed separately
@@ -468,13 +476,14 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
       custom_uAudioSpectrumBins = nextAudioSpectrumBins
       custom_uPreviousFrame = nextPreviousFrame
       custom_uFrameCount = nextFrameCount
+      custom_uGlobalTime = nextGlobalTime
+      custom_uGlobalFrameCount = nextGlobalFrameCount
       custom_uM8Screen = nextM8Screen
       customUsesAudioLevel = hasUniform(nextAudioLevel)
       customUsesAudioSpectrum = hasUniform(nextAudioSpectrum) && hasUniform(nextAudioSpectrumBins)
       customUsesMouse = hasUniform(nextMouse)
       customUsesM8Screen = hasUniform(nextM8Screen)
       backgroundStartTime = performance.now() / 1000
-      bgFrameCount = 0
       // Reset ping-pong buffers so the new shader starts with a clean slate
       destroyBgPingPongBuffers()
       queueFrame()
@@ -501,6 +510,8 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
         uAudioSpectrumBins: gl.getUniformLocation(program, 'uAudioSpectrumBins'),
         uPreviousFrame: gl.getUniformLocation(program, 'uPreviousFrame'),
         uFrameCount: gl.getUniformLocation(program, 'uFrameCount'),
+        uGlobalTime: gl.getUniformLocation(program, 'uGlobalTime'),
+        uGlobalFrameCount: gl.getUniformLocation(program, 'uGlobalFrameCount'),
         uM8Screen: gl.getUniformLocation(program, 'uM8Screen'),
         usesAudioLevel: hasUniform(gl.getUniformLocation(program, 'uAudioLevel')),
         usesAudioSpectrum: hasUniform(gl.getUniformLocation(program, 'uAudioSpectrum')) && hasUniform(gl.getUniformLocation(program, 'uAudioSpectrumBins')),
@@ -532,6 +543,8 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
     custom_uAudioSpectrumBins = cached.uAudioSpectrumBins
     custom_uPreviousFrame = cached.uPreviousFrame
     custom_uFrameCount = cached.uFrameCount
+    custom_uGlobalTime = cached.uGlobalTime
+    custom_uGlobalFrameCount = cached.uGlobalFrameCount
     custom_uM8Screen = cached.uM8Screen
     customUsesAudioLevel = cached.usesAudioLevel
     customUsesAudioSpectrum = cached.usesAudioSpectrum
@@ -539,7 +552,6 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
     customUsesM8Screen = cached.usesM8Screen
     compositeM8Screen = newCompositeM8Screen
     backgroundStartTime = performance.now() / 1000
-    bgFrameCount = 0
     destroyBgPingPongBuffers()
     queueFrame()
   }
@@ -567,6 +579,8 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
     if (customUsesMouse && custom_uMouse) gl.uniform4f(custom_uMouse, mouseX, mouseY, mouseDown, 0.0)
     if (customUsesAudioLevel && custom_uAudioLevel) gl.uniform1f(custom_uAudioLevel, externalAudioLevel)
     if (custom_uFrameCount) gl.uniform1i(custom_uFrameCount, bgFrameCount)
+    if (custom_uGlobalTime) gl.uniform1f(custom_uGlobalTime, performance.now() / 1000 - globalStartTime)
+    if (custom_uGlobalFrameCount) gl.uniform1i(custom_uGlobalFrameCount, globalFrameCount)
 
     // Bind previous frame texture
     if (custom_uPreviousFrame) {
@@ -617,6 +631,7 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
     // Swap: the current write becomes the next read
     bgPingPongReadIdx = writeIdx
     bgFrameCount++
+    globalFrameCount++
 
     gl.enable(gl.BLEND)
   }
@@ -1437,7 +1452,6 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
     setBackgroundShader: (shader: BackgroundShader) => {
       backgroundShader = shader && !!customProgram
       backgroundStartTime = performance.now() / 1000
-      bgFrameCount = 0
       // Destroy ping-pong buffers so they are recreated fresh when re-enabled
       destroyBgPingPongBuffers()
       // Do NOT invalidate rects here: the rects FBO already holds the last rendered

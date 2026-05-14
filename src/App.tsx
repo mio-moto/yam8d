@@ -1,6 +1,6 @@
 import { css } from '@linaria/core'
 import './App.css'
-import { type FC, useCallback, useState } from 'react'
+import { type FC, lazy, Suspense, useCallback, useState } from 'react'
 import { style } from './app/style/style'
 // import { DebugMenu, DebugPortalContextProvider } from './components/DebugMenu'
 import type { ConnectedBus } from './features/connection/connection'
@@ -13,12 +13,15 @@ import { Menu } from './features/settings/menu'
 import { useSettingsContext } from './features/settings/settings'
 import { VirtualKeyboard } from './features/virtualKeyboard/VirtualKeyboard'
 //import { ProgramChangeKeyboard } from './features/virtualKeyboard/ProgramChangeKeyboard'
-import { ShortcutsDisplay } from './features/shortcuts/shortcutsIntegration'
-import { TutorGameDisplay } from './features/tutor/tutorGameIntegration'
+import { ExternalAppsDisplay } from './features/externalApps/ExternalAppsDisplay'
 import { WelcomeSplash } from './features/WelcomeSplash'
-import { BackgroundShaderEditor } from './features/rendering/BackgroundShaderEditor'
 // import { StatusPanel } from './features/debug/StatusPanel'
 // import { SdkTest } from './components/SdkTest'
+
+const BackgroundShaderEditor = lazy(async () => {
+  const module = await import('./features/rendering/BackgroundShaderEditor')
+  return { default: module.BackgroundShaderEditor }
+})
 
 const appClass = css`
     min-width: 38vw;
@@ -107,9 +110,12 @@ export const App: FC = () => {
               <M8Player bus={connectedBus} fullView={settings.fullM8View} />
             </div>
           </div>
-          {settings.showBackgroundShaderEditor && <BackgroundShaderEditor />}
-          {settings.displayShortcuts && <ShortcutsDisplay bus={connectedBus} />}
-          {settings.displayTutorGame && <TutorGameDisplay bus={connectedBus} />}
+          {settings.showBackgroundShaderEditor && (
+            <Suspense fallback={null}>
+              <BackgroundShaderEditor />
+            </Suspense>
+          )}
+          {settings.displayExternalApps && <ExternalAppsDisplay bus={connectedBus} />}
           {/* <SdkTest bus={connectedBus} /> */}
           {/* <StatusPanel /> */}
         </>

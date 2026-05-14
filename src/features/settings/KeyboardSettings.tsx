@@ -707,7 +707,7 @@ export const KeyboardSettings: FC = () => {
                             </div>
 
                             {/* Interactive piano SVG */}
-                            <div style={{ flex: 1 }}>
+                            <div style={{/* flex: 1 */ }}>
                                 <PianoSVG
                                     assignedKeys={pianoAssignedKeys}
                                     selectedNote={selectedVKNote}

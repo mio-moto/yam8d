@@ -58,6 +58,18 @@ export default defineConfig({
     resolve: {
         tsconfigPaths: true,
     },
+    optimizeDeps: {
+        include: [
+            '@codemirror/autocomplete',
+            '@codemirror/commands',
+            '@codemirror/lang-cpp',
+            '@codemirror/language',
+            '@codemirror/lint',
+            '@codemirror/state',
+            '@codemirror/view',
+            '@lezer/highlight',
+        ],
+    },
     plugins: [
         wyw({
             include: ['**/*.{ts,tsx}'],

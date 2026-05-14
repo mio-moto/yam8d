@@ -17,36 +17,37 @@
 
       :root {
         --anthracite-900: #2e383c;
+        --anthracite-800: #3f4e52;
         --anthracite-700: #4d6167;
         --anthracite-500: #68858e;
+        --anthracite-300: #97aab0;
+        --anthracite-100: #d4dadc;
         --teal-700: #229fb7;
         --teal-500: #2ec5e6;
         --teal-300: #59d7f0;
         --lime-500: #00d585;
+        --aqua-500: #1d9dff;
         --ochre-500: #ff5d38;
-        --bg-0: #030a0d;
-        --bg-1: #081318;
-        --bg-2: #102028;
-        --panel: rgba(14, 31, 38, 0.9);
-        --panel-border: rgba(46, 197, 230, 0.25);
+        --ochre-700: #e6502e;
+        --amber-500: #ffbd59;
+        --raspberry-500: #e85d8f;
+        --bg-0: #141414;
+        --bg-1: #191d1e;
+        --bg-hover: #2e383c;
+        --panel: rgba(20, 20, 20, 0.94);
+        --panel-border: #68858e;
         --text-primary: #d4dadc;
-        --text-muted: #93a7ad;
+        --text-muted: #97aab0;
+        --border-color: var(--panel-border);
       }
 
       body {
         font-family: "Kode Mono", "Consolas", monospace;
         background:
-          radial-gradient(
-            circle at 12% 18%,
-            rgba(46, 197, 230, 0.16),
-            transparent 30%
-          ),
-          radial-gradient(
-            circle at 88% 82%,
-            rgba(0, 213, 133, 0.13),
-            transparent 32%
-          ),
-          linear-gradient(160deg, var(--bg-0), var(--bg-1) 48%, var(--bg-2));
+          linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+          var(--bg-0);
+        background-size: 28px 28px;
         color: var(--text-primary);
         padding: 18px;
         min-height: 100svh;
@@ -70,10 +71,10 @@
       }
 
       h1 {
-        color: var(--teal-300);
+        color: var(--teal-500);
         margin-bottom: 4px;
         font-size: 22px;
-        letter-spacing: 0.06em;
+        letter-spacing: 0;
       }
 
       .subtitle {
@@ -92,16 +93,16 @@
         align-items: center;
         gap: 10px;
         padding: 8px 12px;
-        border-radius: 999px;
-        border: 1px solid rgba(255, 93, 56, 0.35);
-        background: rgba(10, 22, 28, 0.88);
-        box-shadow: 0 0 0 1px rgba(255, 93, 56, 0.1) inset;
+        border-radius: 0;
+        border: 1px solid var(--anthracite-500);
+        border-left: 3px solid var(--ochre-500);
+        background: rgba(20, 20, 20, 0.94);
         min-width: 220px;
       }
 
       .status.connected {
-        border-color: rgba(0, 213, 133, 0.45);
-        box-shadow: 0 0 0 1px rgba(0, 213, 133, 0.18) inset;
+        border-color: var(--anthracite-500);
+        border-left-color: var(--lime-500);
       }
 
       .status-dot {
@@ -109,18 +110,29 @@
         height: 10px;
         border-radius: 50%;
         background: var(--ochre-500);
-        box-shadow: 0 0 10px rgba(255, 93, 56, 0.55);
         flex-shrink: 0;
       }
 
       .status.connected .status-dot {
         background: var(--lime-500);
-        box-shadow: 0 0 12px rgba(0, 213, 133, 0.65);
       }
 
       .status-copy {
         display: grid;
         gap: 2px;
+      }
+
+      .status-panel {
+        display: grid;
+        gap: 8px;
+        justify-items: end;
+      }
+
+      .status-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
       }
 
       .status-label {
@@ -135,6 +147,35 @@
         font-size: 12px;
       }
 
+      .command-strip {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 10px;
+        align-items: center;
+        padding: 9px 12px;
+        border-radius: 0;
+        background: rgba(20, 20, 20, 0.94);
+        border: 1px solid var(--anthracite-500);
+        border-left: 3px solid var(--amber-500);
+        color: var(--text-muted);
+        font-size: 12px;
+      }
+
+      .command-strip strong {
+        color: var(--amber-500);
+        text-transform: uppercase;
+        font-size: 10px;
+        letter-spacing: 0.08em;
+      }
+
+      .command-strip.ok strong {
+        color: var(--lime-500);
+      }
+
+      .command-strip.error strong {
+        color: var(--ochre-500);
+      }
+
       .state-grid {
         display: grid;
         grid-template-columns: 1fr;
@@ -143,10 +184,10 @@
       }
 
       .state-item {
-        background: rgba(8, 22, 29, 0.88);
+        background: rgba(20, 20, 20, 0.9);
         padding: 10px 12px;
-        border-radius: 6px;
-        border: 1px solid var(--panel-border);
+        border-radius: 0;
+        border: 1px solid var(--anthracite-700);
       }
 
       .state-item.wide {
@@ -196,56 +237,73 @@
       }
 
       button {
-        background: linear-gradient(180deg, var(--teal-700), var(--teal-500));
-        color: #021015;
-        border: 1px solid rgba(46, 197, 230, 0.4);
-        padding: 10px 12px;
-        border-radius: 6px;
+        --command-color: var(--teal-500);
+        background: #20282b;
+        color: var(--text-primary);
+        border: 1px solid var(--anthracite-700);
+        border-bottom: 3px solid var(--command-color);
+        padding: 8px 14px 6px;
+        border-radius: 0;
         cursor: pointer;
         font-size: 12px;
         font-weight: 600;
+        text-transform: none;
         transition:
-          transform 0.15s ease,
-          filter 0.15s ease;
+          color 0.15s ease,
+          border-color 0.18s ease,
+          background-color 0.18s ease;
       }
 
       button:hover {
-        transform: translateY(-1px);
-        filter: brightness(1.08);
+        --command-color: var(--ochre-500);
+        border-color: var(--ochre-500);
+        color: var(--ochre-500);
+        background: #253136;
       }
 
       button:disabled {
-        background: #344247;
-        color: #90a0a6;
+        background: #191d1e;
+        color: var(--anthracite-500);
         cursor: not-allowed;
-        transform: none;
-        filter: none;
+        border-color: var(--anthracite-700);
+      }
+
+      button.secondary {
+        background: #191d1e;
+        color: var(--text-primary);
+        --command-color: var(--anthracite-500);
+      }
+
+      button.danger {
+        color: #ffd7df;
+        --command-color: var(--raspberry-500);
       }
 
       .section {
         background: var(--panel);
         padding: 13px;
-        border-radius: 8px;
+        border-radius: 0;
         border: 1px solid var(--panel-border);
+        box-shadow: inset 3px 0 rgba(46, 197, 230, 0.18);
       }
 
       .section h3 {
         font-size: 12px;
-        color: var(--text-muted);
+        color: var(--teal-500);
         margin-bottom: 12px;
         text-transform: uppercase;
         letter-spacing: 0.08em;
       }
 
       .log {
-        background: rgba(2, 9, 12, 0.98);
+        background: #0f0f0f;
         padding: 8px 10px;
-        border-radius: 4px;
+        border-radius: 0;
         font-family: monospace;
         font-size: 12px;
         max-height: 180px;
         overflow-y: auto;
-        border: 1px solid rgba(46, 197, 230, 0.2);
+        border: 1px solid var(--anthracite-700);
       }
 
       .log-entry {
@@ -280,19 +338,28 @@
       select {
         flex: 1;
         min-width: 110px;
-        background: rgba(9, 25, 31, 0.9);
-        border: 1px solid rgba(46, 197, 230, 0.2);
+        background: #0d1011;
+        border: 1px solid var(--anthracite-700);
+        border-left: 3px solid var(--anthracite-500);
         color: var(--text-primary);
-        padding: 9px 10px;
-        border-radius: 4px;
+        padding: 9px 10px 9px 12px;
+        border-radius: 0;
         font-family: "Kode Mono", monospace;
         font-size: 12px;
+        min-height: 36px;
       }
 
       input:focus,
       select:focus {
         outline: none;
-        border-color: var(--teal-500);
+        border-color: var(--ochre-700);
+        border-left-color: var(--ochre-500);
+        color: var(--ochre-500);
+        background: #111719;
+      }
+
+      input[type="checkbox"] {
+        accent-color: var(--teal-500);
       }
 
       .checkbox-row {
@@ -310,12 +377,9 @@
       }
 
       .manual {
-        background: linear-gradient(
-          180deg,
-          rgba(6, 16, 20, 0.92),
-          rgba(5, 13, 17, 0.95)
-        );
-        border: 1px solid rgba(104, 133, 142, 0.32);
+        background: rgba(20, 20, 20, 0.94);
+        border: 1px solid var(--anthracite-500);
+        box-shadow: inset 3px 0 rgba(255, 93, 56, 0.2);
       }
 
       .manual p {
@@ -328,26 +392,56 @@
       .method-card {
         margin-top: 8px;
         padding: 10px;
-        border-radius: 6px;
-        background: rgba(8, 21, 27, 0.9);
-        border: 1px solid rgba(46, 197, 230, 0.2);
+        border-radius: 0;
+        background: #191d1e;
+        border: 1px solid var(--anthracite-700);
       }
 
       .method-card h4 {
-        color: var(--teal-300);
+        color: var(--ochre-500);
         font-size: 13px;
         margin-bottom: 6px;
       }
 
       .method-card pre {
-        background: rgba(2, 8, 11, 0.95);
-        border: 1px solid rgba(46, 197, 230, 0.18);
-        border-radius: 6px;
-        color: #b5f2ff;
+        background: #0f0f0f;
+        border: 1px solid var(--anthracite-700);
+        border-radius: 0;
+        color: var(--anthracite-100);
         padding: 10px;
         overflow-x: auto;
         font-size: 12px;
         line-height: 1.45;
+      }
+
+      .method-card pre .syntax-keyword {
+        color: var(--teal-500);
+        font-weight: 600;
+      }
+
+      .method-card pre .syntax-string {
+        color: var(--lime-500);
+      }
+
+      .method-card pre .syntax-number {
+        color: var(--raspberry-500);
+      }
+
+      .method-card pre .syntax-comment {
+        color: var(--anthracite-300);
+      }
+
+      .method-card pre .syntax-function {
+        color: var(--aqua-500);
+      }
+
+      .method-card pre .syntax-command {
+        color: var(--ochre-500);
+        font-weight: 600;
+      }
+
+      .method-card pre .syntax-package {
+        color: var(--amber-500);
       }
 
       .note {
@@ -386,6 +480,18 @@
           min-width: 0;
         }
 
+        .status-panel {
+          justify-items: stretch;
+        }
+
+        .status-actions {
+          justify-content: stretch;
+        }
+
+        .status-actions button {
+          flex: 1;
+        }
+
         .cursor-meta,
         .compact-grid {
           grid-template-columns: 1fr;
@@ -404,14 +510,25 @@
               integrations.
             </p>
           </div>
-          <div id="status" class="status">
-            <span class="status-dot" aria-hidden="true"></span>
-            <div class="status-copy">
-              <div class="status-label">Connection</div>
-              <div id="connection-state" class="status-value">Connecting...</div>
+          <div class="status-panel">
+            <div id="status" class="status">
+              <span class="status-dot" aria-hidden="true"></span>
+              <div class="status-copy">
+                <div class="status-label">Connection</div>
+                <div id="connection-state" class="status-value">Connecting...</div>
+              </div>
+            </div>
+            <div class="status-actions">
+              <button class="secondary" onclick="fetchFreshState()">Fetch State</button>
+              <button class="secondary" onclick="reconnect()">Reconnect</button>
             </div>
           </div>
         </header>
+
+        <div id="command-strip" class="command-strip">
+          <strong id="command-label">Ready</strong>
+          <span id="command-status">Waiting for SDK connection.</span>
+        </div>
 
         <div class="section">
           <h3>Current State</h3>
@@ -581,6 +698,14 @@
             methods to drive the M8 cursor and values.
           </p>
           <div class="method-card">
+            <h4>SDK Package</h4>
+            <pre>
+npm install @yam8d/m8-sdk
+
+import { createM8Client } from "@yam8d/m8-sdk";</pre
+            >
+          </div>
+          <div class="method-card">
             <h4>1) Connect and Fetch Initial State</h4>
             <pre>
 const m8 = await createM8Client({ debug: false });
@@ -672,6 +797,64 @@ await m8.browseFile("bass", false); // partial match
         console.log(`[SDK Test] ${message}`);
       };
 
+      const setCommandStatus = (label, message, type = "info") => {
+        const strip = document.getElementById("command-strip");
+        document.getElementById("command-label").textContent = label;
+        document.getElementById("command-status").textContent = message;
+        strip.classList.toggle("ok", type === "ok");
+        strip.classList.toggle("error", type === "error");
+      };
+
+      const runCommand = async (label, fn) => {
+        setCommandStatus(label, "Running...");
+        try {
+          const result = await fn();
+          setCommandStatus(label, "Completed.", "ok");
+          return result;
+        } catch (error) {
+          setCommandStatus(label, error.message, "error");
+          throw error;
+        }
+      };
+
+      const escapeHtml = (value) =>
+        value
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;");
+
+      const highlightToken = (token) => {
+        if (token.startsWith("//")) {
+          return `<span class="syntax-comment">${token}</span>`;
+        }
+        if (token.startsWith('"') || token.startsWith("'")) {
+          return `<span class="syntax-string">${token}</span>`;
+        }
+        if (/^@[\w/-]+$/.test(token)) {
+          return `<span class="syntax-package">${token}</span>`;
+        }
+        if (/^(npm|install|import|from|const|await|async|return|true|false|null)$/.test(token)) {
+          return `<span class="syntax-keyword">${token}</span>`;
+        }
+        if (/^(0x[\da-f]+|\d+(?:\.\d+)?)$/i.test(token)) {
+          return `<span class="syntax-number">${token}</span>`;
+        }
+        if (/^[A-Za-z_$][\w$]*(?=\()/.test(token)) {
+          return `<span class="syntax-function">${token}</span>`;
+        }
+        return token;
+      };
+
+      const highlightCodeBlocks = () => {
+        const tokenPattern =
+          /\/\/.*|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|@[\w/-]+|\b(?:npm|install|import|from|const|await|async|return|true|false|null)\b|\b0x[\da-f]+\b|\b\d+(?:\.\d+)?\b|\b[A-Za-z_$][\w$]*(?=\()/gi;
+
+        document.querySelectorAll(".method-card pre").forEach((pre) => {
+          const escaped = escapeHtml(pre.textContent.trim());
+          pre.innerHTML = escaped.replace(tokenPattern, highlightToken);
+        });
+      };
+
       // Minimal SDK Client implementation for testing
       class M8TestClient {
         constructor() {
@@ -694,6 +877,8 @@ await m8.browseFile("bass", false); // partial match
 
         async connect() {
           try {
+            this.disconnect();
+            setCommandStatus("Connect", "Opening SDK handshake...");
             log("Attempting to connect to parent...");
 
             // Check if post-me is available
@@ -749,7 +934,7 @@ await m8.browseFile("bass", false); // partial match
               "cursorMoved",
               ({ pos, rect, selectionMode }) => {
                 log(
-                  `Event: cursorMoved - (${pos?.x}, ${pos?.y}) - Rect ${rect?.x}, ${rect?.y}, ${rect?.w}×${rect?.h} sel=${selectionMode}`,
+                  `Event: cursorMoved - (${pos?.x}, ${pos?.y}) - Rect ${rect?.x}, ${rect?.y}, ${rect?.w}x${rect?.h} sel=${selectionMode}`,
                 );
                 this.state.cursorPos = pos;
                 this.state.cursorRect = rect;
@@ -787,7 +972,8 @@ await m8.browseFile("bass", false); // partial match
             document.getElementById("status").classList.add("connected");
             document.getElementById("connection-state").textContent =
               `${this.state.deviceModel || "Unknown device"} connected`;
-            log("✅ Connected to M8 host successfully!");
+            setCommandStatus("Connect", "SDK handshake complete.", "ok");
+            log("Connected to M8 host successfully!");
 
             // Emit ready
             this.localHandle.emit("ready", undefined);
@@ -798,6 +984,11 @@ await m8.browseFile("bass", false); // partial match
             document.getElementById("status").classList.remove("connected");
             document.getElementById("connection-state").textContent =
               `Connection failed: ${error.message}`;
+            setCommandStatus(
+              "Connect",
+              `Retrying in 3 seconds: ${error.message}`,
+              "error",
+            );
             setTimeout(() => this.connect(), 3000);
           }
         }
@@ -936,6 +1127,24 @@ await m8.browseFile("bass", false); // partial match
             throw error;
           }
         }
+
+        async fetchState() {
+          if (!this.isConnected) throw new Error("Not connected");
+          log("Calling getState");
+          const state = await this.remoteHandle.call("getState");
+          this.state = { ...this.state, ...state };
+          updateUI();
+          return state;
+        }
+
+        disconnect() {
+          this.connection?.close();
+          this.connection = null;
+          this.remoteHandle = null;
+          this.localHandle = null;
+          this.isConnected = false;
+          document.getElementById("status")?.classList.remove("connected");
+        }
       }
 
       // Global client instance
@@ -988,9 +1197,6 @@ await m8.browseFile("bass", false); // partial match
           state.currentLine || "-";
         document.getElementById("selection-mode").textContent =
           selection;
-        document.getElementById("cursor-rect").textContent = state.cursorRect
-          ? `${state.cursorRect.x}, ${state.cursorRect.y}, ${state.cursorRect.w}×${state.cursorRect.h}`
-          : "-";
         document.getElementById("device-model").textContent =
           state.deviceModel || "-";
         document.getElementById("cursor-rect").textContent = cursorRectSummary;
@@ -1004,7 +1210,9 @@ await m8.browseFile("bass", false); // partial match
       // Expose functions to global scope for button onclick handlers
       window.navigateToView = async (viewName) => {
         try {
-          await window.m8Client.navigateToView(viewName);
+          await runCommand("Navigate View", () =>
+            window.m8Client.navigateToView(viewName),
+          );
           log(`Navigation to ${viewName} initiated`);
         } catch (error) {
           log(`Navigation failed: ${error.message}`, "error");
@@ -1024,7 +1232,7 @@ await m8.browseFile("bass", false); // partial match
         const x = parseInt(document.getElementById("nav-x").value, 10);
         const y = parseInt(document.getElementById("nav-y").value, 10);
         try {
-          await window.m8Client.navigateTo(x, y);
+          await runCommand("Navigate XY", () => window.m8Client.navigateTo(x, y));
           log(`Navigation to (${x}, ${y}) initiated`);
         } catch (error) {
           log(`Navigation failed: ${error.message}`, "error");
@@ -1034,7 +1242,9 @@ await m8.browseFile("bass", false); // partial match
       window.setValueToHex = async () => {
         const hex = document.getElementById("hex-value").value;
         try {
-          const result = await window.m8Client.setValueToHex(hex);
+          const result = await runCommand("Set Hex", () =>
+            window.m8Client.setValueToHex(hex),
+          );
           log(`Set hex result: ${result ? "success" : "failed"}`);
         } catch (error) {
           log(`Set value failed: ${error.message}`, "error");
@@ -1044,7 +1254,9 @@ await m8.browseFile("bass", false); // partial match
       window.setValueToInt = async () => {
         const value = document.getElementById("int-value").value;
         try {
-          const result = await window.m8Client.setValueToInt(value);
+          const result = await runCommand("Set Int", () =>
+            window.m8Client.setValueToInt(value),
+          );
           log(`Set int result: ${result ? "success" : "failed"}`);
         } catch (error) {
           log(`Set int failed: ${error.message}`, "error");
@@ -1054,7 +1266,9 @@ await m8.browseFile("bass", false); // partial match
       window.setNote = async () => {
         const noteString = document.getElementById("note-value").value;
         try {
-          const result = await window.m8Client.setNote(noteString);
+          const result = await runCommand("Set Note", () =>
+            window.m8Client.setNote(noteString),
+          );
           log(`Set note result: ${result ? "exact" : "closest/failed"}`);
         } catch (error) {
           log(`Set note failed: ${error.message}`, "error");
@@ -1066,10 +1280,8 @@ await m8.browseFile("bass", false); // partial match
         const exact = document.getElementById("string-exact").checked;
         const inLine = document.getElementById("string-in-line").checked;
         try {
-          const result = await window.m8Client.setValueToString(
-            targetString,
-            exact,
-            inLine,
+          const result = await runCommand("Set Text", () =>
+            window.m8Client.setValueToString(targetString, exact, inLine),
           );
           log(`Set string result: ${result ? "success" : "failed"}`);
         } catch (error) {
@@ -1085,11 +1297,28 @@ await m8.browseFile("bass", false); // partial match
           return;
         }
         try {
-          const result = await window.m8Client.browseFile(targetText, exact);
+          const result = await runCommand("Browse File", () =>
+            window.m8Client.browseFile(targetText, exact),
+          );
           log(`Browse file result: ${result ? "success" : "not found"}`);
         } catch (error) {
           log(`Browse file failed: ${error.message}`, "error");
         }
+      };
+
+      window.fetchFreshState = async () => {
+        try {
+          await runCommand("Fetch State", () => window.m8Client.fetchState());
+          log("Fresh state fetched");
+        } catch (error) {
+          log(`Fetch state failed: ${error.message}`, "error");
+        }
+      };
+
+      window.reconnect = async () => {
+        window.m8Client.disconnect();
+        updateUI();
+        await window.m8Client.connect();
       };
 
       window.clearLog = () => {
@@ -1098,7 +1327,7 @@ await m8.browseFile("bass", false); // partial match
 
       window.sendKey = async (keys) => {
         try {
-          await window.m8Client.sendKeyPress(keys);
+          await runCommand("Send Key", () => window.m8Client.sendKeyPress(keys));
           log(`Key press sent: [${keys.join(", ")}]`);
         } catch (error) {
           log(`Key press failed: ${error.message}`, "error");
@@ -1108,6 +1337,7 @@ await m8.browseFile("bass", false); // partial match
       // Connect on load
       window.addEventListener("load", () => {
         log("SDK Test Client loaded");
+        highlightCodeBlocks();
         loadViewOptions();
         window.m8Client.connect();
       });

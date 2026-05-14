@@ -182,6 +182,7 @@ export const useM8SdkHost = (bus: ConnectedBus | undefined, config: M8SdkConfig 
     const localHandleRef = useRef<LocalHandle<M8HostMethods, M8HostEvents> | null>(null)
     const [clientConnected, setClientConnected] = useState(false)
     const busRef = useRef(bus)
+    const connectionAttemptRef = useRef(0)
 
     const debugLog = useCallback((...args: unknown[]) => {
         if (config.debug) {
@@ -1305,12 +1306,16 @@ export const useM8SdkHost = (bus: ConnectedBus | undefined, config: M8SdkConfig 
     useEffect(() => {
         if (!iframeRef.current) return
 
-        const childWindow = iframeRef.current.contentWindow
-        if (!childWindow) return
-
         let isActive = true
 
         const setupConnection = async () => {
+            const attemptId = connectionAttemptRef.current + 1
+            connectionAttemptRef.current = attemptId
+            const childWindow = iframeRef.current?.contentWindow
+            if (!childWindow) {
+                return
+            }
+
             try {
                 // Create messenger
                 let messenger = new WindowMessenger({
@@ -1440,7 +1445,7 @@ export const useM8SdkHost = (bus: ConnectedBus | undefined, config: M8SdkConfig 
                     methods
                 )
 
-                if (!isActive) {
+                if (!isActive || attemptId !== connectionAttemptRef.current) {
                     connection.close()
                     return
                 }
@@ -1468,6 +1473,10 @@ export const useM8SdkHost = (bus: ConnectedBus | undefined, config: M8SdkConfig 
         const iframe = iframeRef.current
         const handleLoad = () => {
             if (isActive) {
+                connectionRef.current?.close()
+                connectionRef.current = null
+                localHandleRef.current = null
+                setClientConnected(false)
                 void setupConnection()
             }
         }
@@ -1476,6 +1485,7 @@ export const useM8SdkHost = (bus: ConnectedBus | undefined, config: M8SdkConfig 
 
         return () => {
             isActive = false
+            connectionAttemptRef.current += 1
             iframe.removeEventListener('load', handleLoad)
             connectionRef.current?.close()
             connectionRef.current = null
