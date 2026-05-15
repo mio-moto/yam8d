@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react'
 import type { ConnectedBus } from '../connection/connection.ts'
 import { useSettingsContext } from '../settings/settings.tsx'
 import { defaultInputMap } from './defaultInputMap'
+import { shouldIgnoreAppKeyboardEvent } from './inputGate'
 
 const INPUT_MAP_SETTINGS = 'inputMap'
 
@@ -68,6 +69,7 @@ export const useM8Input = (connection?: ConnectedBus) => {
 
         const handleKeyDown = (ev: KeyboardEvent) => {
             if (!ev.code) return
+            if (shouldIgnoreAppKeyboardEvent(ev)) return
             if (!inputMap[ev.code]) return
             ev.preventDefault()
             handleInput(ev.code, true)
@@ -75,6 +77,7 @@ export const useM8Input = (connection?: ConnectedBus) => {
 
         const handleKeyUp = (ev: KeyboardEvent) => {
             if (!ev.code) return
+            if (shouldIgnoreAppKeyboardEvent(ev)) return
             if (!inputMap[ev.code]) return
             ev.preventDefault()
             handleInput(ev.code, false)

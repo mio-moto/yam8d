@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ConnectedBus } from '../connection/connection.ts'
+import { shouldIgnoreAppKeyboardEvent } from '../inputs/inputGate'
 import { useSettingsContext } from '../settings/settings.tsx'
 
 export const defaultKeyMap = Object.freeze({
@@ -43,6 +44,7 @@ export const useVirtualKeyboard = (connection?: ConnectedBus) => {
     const handleKey = useCallback(
         (ev: KeyboardEvent, isDown: boolean) => {
             if (!ev || !ev.code) return
+            if (shouldIgnoreAppKeyboardEvent(ev)) return
 
             const mapped = keyMap[ev.code]
             // exit if the key pressed isn't found in the key map
