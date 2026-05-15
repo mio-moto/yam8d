@@ -2,6 +2,7 @@ import { forwardRef, type MouseEventHandler, useEffect, useImperativeHandle, use
 import { useSetAtom } from 'jotai'
 import type { ConnectedBus } from '../connection/connection'
 import type { CharacterCommand, RectCommand, SystemCommand, WaveCommand } from '../connection/protocol'
+import { shouldIgnoreAppKeyboardEvent } from '../inputs/inputGate'
 import { useSettingsContext } from '../settings/settings'
 import { vjActiveKeyAtom } from '../state/viewStore'
 import type { ScreenLayout } from './renderer'
@@ -345,6 +346,7 @@ export const M8Screen = forwardRef<HTMLCanvasElement, { bus?: ConnectedBus | nul
         }
 
         const onKeyDown = (e: KeyboardEvent) => {
+            if (shouldIgnoreAppKeyboardEvent(e)) return
             if (!e.code.startsWith('Numpad')) return
             const key = e.code.replace('Numpad', '')
             if (!/^[0-9]$/.test(key)) return

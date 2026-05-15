@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ConnectedBus } from '../connection/connection'
+import { shouldIgnoreAppKeyboardEvent } from '../inputs/inputGate'
 
 // Key mapping for numeric keypad (0-9)
 const programKeyMap: Record<string, number> = {
@@ -50,6 +51,7 @@ export const useProgramChangeKeyboard = (connection?: ConnectedBus) => {
     const handleKey = useCallback(
         (ev: KeyboardEvent, isDown: boolean) => {
             if (!ev || !ev.code) return
+            if (shouldIgnoreAppKeyboardEvent(ev)) return
 
             const mapped = programKeyMap[ev.code]
             ev.preventDefault()

@@ -2,6 +2,7 @@ import { useCallback, useEffect } from 'react'
 import type { ConnectedBus } from '../connection/connection.ts'
 import { useSettingsContext } from '../settings/settings'
 import { defaultMacroInputMap } from './defaultMacroInputMap'
+import { shouldIgnoreAppKeyboardEvent } from '../inputs/inputGate'
 import { useMacroRunner } from './macroRunner'
 import { useViewNavigation } from './useViewNavigation'
 
@@ -14,6 +15,7 @@ export const useMacroInput = (connection?: ConnectedBus) => {
     const handleInput = useCallback(
         (ev: KeyboardEvent) => {
             if (!ev || !ev.code) return
+            if (shouldIgnoreAppKeyboardEvent(ev)) return
             if (ev.repeat) return
 
             // Any key should preempt current macro

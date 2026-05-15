@@ -1,20 +1,27 @@
 let installed = false
 
-function shouldBlock(ev: KeyboardEvent): boolean {
+export function shouldIgnoreAppKeyboardEvent(ev: KeyboardEvent): boolean {
     const tgt = ev.target as HTMLElement | null
     const codeMirrorTarget = !!tgt?.closest?.('.cm-editor')
-    if (codeMirrorTarget) return false
 
     const typingTarget = !!(
         tgt && (tgt.tagName === 'INPUT' || tgt.tagName === 'TEXTAREA' || tgt.tagName === 'SELECT' || tgt.isContentEditable)
     )
     const menuOpen = typeof document !== 'undefined' && (document.body.dataset.m8MenuOpen === 'true')
-    return typingTarget || menuOpen
+    return codeMirrorTarget || typingTarget || menuOpen
+}
+
+function shouldCaptureBlock(ev: KeyboardEvent): boolean {
+    const tgt = ev.target as HTMLElement | null
+    const codeMirrorTarget = !!tgt?.closest?.('.cm-editor')
+    if (codeMirrorTarget) return false
+
+    return shouldIgnoreAppKeyboardEvent(ev)
 }
 
 function captureHandler(ev: KeyboardEvent) {
     if (!ev || !ev.type) return
-    if (shouldBlock(ev)) {
+    if (shouldCaptureBlock(ev)) {
         // Block app hooks by preventing further propagation.
         // Do NOT preventDefault so native input behavior still works.
         ev.stopImmediatePropagation?.()
