@@ -79,7 +79,7 @@
 
       .subtitle {
         color: var(--text-muted);
-        font-size: 12px;
+        font-size: 22px;
         margin-bottom: 0;
       }
 
@@ -259,7 +259,7 @@
       }
 
       .section h3 {
-        font-size: 12px;
+        font-size: 18px;
         color: var(--teal-500);
         margin-bottom: 12px;
         text-transform: uppercase;
@@ -275,6 +275,7 @@
 
       input[type="text"],
       input[type="number"],
+      textarea,
       select {
         flex: 1;
         min-width: 110px;
@@ -287,6 +288,10 @@
         font-family: "Kode Mono", monospace;
         font-size: 12px;
         min-height: 36px;
+      }
+
+      textarea {
+        color: var(--teal-300);
       }
 
       input:focus,
@@ -399,6 +404,34 @@
         </div>
 
         <div class="section">
+          <h3><a onclick="storeView();">About the current view
+              (click this title to store)</a></h3>
+          <h4>Short description</h4>
+          <div class="inline-actions">
+            <textarea type="text" id="view-desc-short" rows="1"
+                placeholder="This view is..."></textarea>
+          </div>
+          <h4>Long description</h4>
+          <div class="inline-actions">
+            <textarea type="text" id="view-desc-long"
+                placeholder="I wanted a powerful but soothing..."></textarea>
+          </div>
+          <h3><a onclick="storeCell();">About the cell you hover over
+              (click this title to store)</a></h3>
+          <h4>Short description</h4>
+          <div class="inline-actions">
+            <textarea type="text" id="cursor-desc-short" rows="1"
+                placeholder="This cell is..."></textarea>
+          </div>
+          <h4>Long description</h4>
+          <div class="inline-actions">
+            <textarea type="text" id="cursor-desc-long"
+                placeholder="I wanted a powerful but memorable..."></textarea>
+          </div>
+          <p>Click the "About..." titles to store the text.</p>
+        </div>
+
+        <div class="section" style="display:none;">
           <h3>Event Log</h3>
           <div class="log" id="log"></div>
           <button onclick="clearLog()" style="margin-top: 10px">
@@ -663,6 +696,32 @@
         window.m8Client.disconnect();
         updateUI();
         await window.m8Client.connect();
+      };
+
+      window.storeView = async () => {
+        cleanTitles();
+        try {
+        } catch (error) {
+          log(`Store view info failed: ${error.message}`, "error");
+        }
+      };
+
+      window.storeCell = async () => {
+        cleanTitles();
+        try {
+        } catch (error) {
+          log(`Store cell info failed: ${error.message}`, "error");
+        }
+      };
+
+      window.cleanTitles = async () => {
+        try {
+          document.querySelectorAll('h3').forEach(h3 => {
+            h3.textContent = h3.textContent.replace(/\s*\([^)]*\)/g, '');
+          });
+        } catch (error) {
+          log(`Clean titles failed: ${error.message}`, "error");
+        }
       };
 
       // Connect on load
