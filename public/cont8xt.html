@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>M8 SDK Test Page</title>
+    <title>M8 Context</title>
     <link
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Kode+Mono:wght@400;500;600;700&display=swap"
@@ -504,10 +504,10 @@
       <section class="stack">
         <header>
           <div>
-            <h1>M8 SDK Test Client</h1>
+            <h1>Cont8xt</h1>
             <p class="subtitle">
-              Interactive test harness and implementation manual for iframe SDK
-              integrations.
+              YAM8D companion app for taking notes about a song, an instrument
+              or any view or anything your cursor can point to.
             </p>
           </div>
           <div class="status-panel">
@@ -794,7 +794,7 @@ await m8.browseFile("bass", false); // partial match
         entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
         logEl.appendChild(entry);
         logEl.scrollTop = logEl.scrollHeight;
-        console.log(`[SDK Test] ${message}`);
+        console.log(`[Cont8xt] ${message}`);
       };
 
       const setCommandStatus = (label, message, type = "info") => {
@@ -855,7 +855,7 @@ await m8.browseFile("bass", false); // partial match
         });
       };
 
-      // Minimal SDK Client implementation for testing
+      // Hack the Minimal SDK Client implementation for testing
       class M8TestClient {
         constructor() {
           this.state = {
@@ -1336,7 +1336,7 @@ await m8.browseFile("bass", false); // partial match
 
       // Connect on load
       window.addEventListener("load", () => {
-        log("SDK Test Client loaded");
+        log("Cont8xt Client loaded");
         highlightCodeBlocks();
         loadViewOptions();
         window.m8Client.connect();
