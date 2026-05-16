@@ -207,35 +207,6 @@
         font-family: monospace;
       }
 
-      .cursor-summary {
-        display: grid;
-        gap: 8px;
-      }
-
-      .cursor-meta {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 8px;
-      }
-
-      .micro-stat {
-        padding: 8px 10px;
-        border-radius: 4px;
-        background: rgba(3, 13, 17, 0.72);
-        border: 1px solid rgba(46, 197, 230, 0.14);
-      }
-
-      .micro-stat .label {
-        display: block;
-        margin-bottom: 3px;
-      }
-
-      .controls {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-        gap: 8px;
-      }
-
       button {
         --command-color: var(--teal-500);
         background: #20282b;
@@ -295,37 +266,6 @@
         letter-spacing: 0.08em;
       }
 
-      .log {
-        background: #0f0f0f;
-        padding: 8px 10px;
-        border-radius: 0;
-        font-family: monospace;
-        font-size: 12px;
-        max-height: 180px;
-        overflow-y: auto;
-        border: 1px solid var(--anthracite-700);
-      }
-
-      .log-entry {
-        padding: 4px 0;
-        border-bottom: 1px solid rgba(147, 167, 173, 0.2);
-      }
-
-      .log-entry:last-child {
-        border-bottom: none;
-      }
-
-      .log-entry.info {
-        color: var(--teal-300);
-      }
-      .log-entry.warn {
-        color: #ffbd59;
-      }
-      .log-entry.error {
-        color: var(--ochre-500);
-      }
-
-      .input-group,
       .inline-actions {
         display: flex;
         flex-wrap: wrap;
@@ -356,98 +296,6 @@
         border-left-color: var(--ochre-500);
         color: var(--ochre-500);
         background: #111719;
-      }
-
-      input[type="checkbox"] {
-        accent-color: var(--teal-500);
-      }
-
-      .checkbox-row {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        color: var(--text-muted);
-        font-size: 12px;
-      }
-
-      .checkbox-list {
-        display: grid;
-        gap: 6px;
-        margin-top: 8px;
-      }
-
-      .manual {
-        background: rgba(20, 20, 20, 0.94);
-        border: 1px solid var(--anthracite-500);
-        box-shadow: inset 3px 0 rgba(255, 93, 56, 0.2);
-      }
-
-      .manual p {
-        color: var(--text-muted);
-        font-size: 13px;
-        line-height: 1.5;
-        margin-bottom: 10px;
-      }
-
-      .method-card {
-        margin-top: 8px;
-        padding: 10px;
-        border-radius: 0;
-        background: #191d1e;
-        border: 1px solid var(--anthracite-700);
-      }
-
-      .method-card h4 {
-        color: var(--ochre-500);
-        font-size: 13px;
-        margin-bottom: 6px;
-      }
-
-      .method-card pre {
-        background: #0f0f0f;
-        border: 1px solid var(--anthracite-700);
-        border-radius: 0;
-        color: var(--anthracite-100);
-        padding: 10px;
-        overflow-x: auto;
-        font-size: 12px;
-        line-height: 1.45;
-      }
-
-      .method-card pre .syntax-keyword {
-        color: var(--teal-500);
-        font-weight: 600;
-      }
-
-      .method-card pre .syntax-string {
-        color: var(--lime-500);
-      }
-
-      .method-card pre .syntax-number {
-        color: var(--raspberry-500);
-      }
-
-      .method-card pre .syntax-comment {
-        color: var(--anthracite-300);
-      }
-
-      .method-card pre .syntax-function {
-        color: var(--aqua-500);
-      }
-
-      .method-card pre .syntax-command {
-        color: var(--ochre-500);
-        font-weight: 600;
-      }
-
-      .method-card pre .syntax-package {
-        color: var(--amber-500);
-      }
-
-      .note {
-        color: #9dd6e5;
-        font-size: 12px;
-        margin-top: 8px;
       }
 
       .compact-grid {
@@ -492,7 +340,6 @@
           flex: 1;
         }
 
-        .cursor-meta,
         .compact-grid {
           grid-template-columns: 1fr;
         }
@@ -552,135 +399,6 @@
         </div>
 
         <div class="section">
-          <h3>View Navigation</h3>
-          <div class="inline-actions">
-            <select id="view-select" aria-label="Select target view">
-              <option value="">Loading views...</option>
-            </select>
-            <button onclick="navigateToSelectedView()">Go</button>
-          </div>
-        </div>
-
-        <div class="section">
-          <h3>Coordinate Navigation</h3>
-          <div class="input-group">
-            <input
-              type="number"
-              id="nav-x"
-              placeholder="X (0-39)"
-              min="0"
-              max="39"
-              value="22"
-            />
-            <input
-              type="number"
-              id="nav-y"
-              placeholder="Y (0-23)"
-              min="0"
-              max="23"
-              value="15"
-            />
-            <button onclick="navigateToCoords()">Navigate</button>
-          </div>
-        </div>
-
-        <div class="section">
-          <h3>Value Manipulation</h3>
-          <div class="compact-grid">
-            <div class="inline-actions">
-              <input type="text" id="hex-value" placeholder="Hex" value="3F" />
-              <button onclick="setValueToHex()">Hex</button>
-            </div>
-            <div class="inline-actions">
-              <input
-                type="number"
-                id="int-value"
-                placeholder="Int"
-                value="63"
-              />
-              <button onclick="setValueToInt()">Int</button>
-            </div>
-            <div class="inline-actions">
-              <input
-                type="text"
-                id="note-value"
-                placeholder="Note"
-                value="C#4"
-              />
-              <button onclick="setNote()">Note</button>
-            </div>
-            <div class="inline-actions">
-              <input
-                type="text"
-                id="string-value"
-                placeholder="String target"
-                value="sine"
-              />
-              <button onclick="setValueToString()">Text</button>
-            </div>
-          </div>
-          <div class="checkbox-list">
-            <label class="checkbox-row">
-              <input type="checkbox" id="string-exact" checked />
-              Exact match
-            </label>
-            <label class="checkbox-row">
-              <input type="checkbox" id="string-in-line" />
-              Search current line
-            </label>
-          </div>
-          <p class="note">
-            Note: setValueToString first anchors to bottom using edit+down, then
-            scans with edit+right.
-          </p>
-        </div>
-
-        <div class="section">
-          <h3>File Browser</h3>
-          <div class="inline-actions">
-            <input
-              type="text"
-              id="browse-file-target"
-              placeholder="File name contains..."
-              value="bass"
-            />
-            <button onclick="browseFile()">Browse File</button>
-          </div>
-          <div class="checkbox-list">
-            <label class="checkbox-row">
-              <input type="checkbox" id="browse-file-exact" checked />
-              Exact file name
-            </label>
-          </div>
-          <p class="note">
-            Use this from an M8 file browser view whose name includes load or
-            save. The SDK walks folders recursively and presses edit on the
-            first matching M8 file. The search text can omit the extension,
-            for example <code>.MBN</code>.
-          </p>
-        </div>
-
-        <div class="section">
-          <h3>Key Press</h3>
-          <div class="controls">
-            <button onclick="sendKey(['left'])">Left</button>
-            <button onclick="sendKey(['right'])">Right</button>
-            <button onclick="sendKey(['up'])">Up</button>
-            <button onclick="sendKey(['down'])">Down</button>
-            <button onclick="sendKey(['shift'])">Shift</button>
-            <button onclick="sendKey(['play'])">Play</button>
-            <button onclick="sendKey(['opt'])">Opt</button>
-            <button onclick="sendKey(['edit'])">Edit</button>
-            <button onclick="sendKey(['left', 'shift'])">Left+Shift</button>
-            <button onclick="sendKey(['right', 'shift'])">Right+Shift</button>
-            <button onclick="sendKey(['edit', 'up'])">Edit+Up</button>
-            <button onclick="sendKey(['edit', 'down'])">Edit+Down</button>
-            <button onclick="sendKey(['edit', 'left'])">Edit+Left</button>
-            <button onclick="sendKey(['edit', 'right'])">Edit+Right</button>
-          </div>
-        </div>
-
-        <div class="section">
           <h3>Event Log</h3>
           <div class="log" id="log"></div>
           <button onclick="clearLog()" style="margin-top: 10px">
@@ -689,92 +407,6 @@
           <span id="device-model" hidden>-</span>
         </div>
       </section>
-
-      <aside class="stack">
-        <section class="section manual">
-          <h3>Implementation Manual</h3>
-          <p>
-            This page demonstrates the full host/client contract. The iframe
-            connects through post-me, receives state events, and invokes host
-            methods to drive the M8 cursor and values.
-          </p>
-          <div class="method-card">
-            <h4>SDK Package</h4>
-            <pre>
-npm install @yam8d/m8-sdk
-
-import { createM8Client } from "@yam8d/m8-sdk";</pre
-            >
-          </div>
-          <div class="method-card">
-            <h4>1) Connect and Fetch Initial State</h4>
-            <pre>
-const m8 = await createM8Client({ debug: false });
-const state = await m8.fetchState();
-console.log(state.viewName, state.textUnderCursor);</pre
-            >
-          </div>
-          <div class="method-card">
-            <h4>2) Numeric Value APIs</h4>
-            <pre>
-await m8.setValueToHex(0x3f);
-await m8.setValueToInt(63);
-</pre>
-            <p class="note">
-              Host behavior: edit+up/down is coarse movement, edit+left/right is
-              fine movement.
-            </p>
-          </div>
-          <div class="method-card">
-            <h4>3) Note API</h4>
-            <pre>
-await m8.setNote("C#4");
-// valid pattern: [A-G][#-][0-9A-F]
-// examples: C-1, D#3, G-B
-</pre>
-            <p class="note">
-              If a scale restricts notes, movement may stop at the closest
-              reachable note.
-            </p>
-          </div>
-          <div class="method-card">
-            <h4>4) String/List API</h4>
-            <pre>
-// exact full-text match
-await m8.setValueToString("sine", true);
-
-// partial match anywhere in the text
-await m8.setValueToString("sin", false);
-
-// search in full current line instead of cursor text only
-await m8.setValueToString("filter", false, true);
-</pre>
-          </div>
-          <div class="method-card">
-            <h4>5) Recommended Event Wiring</h4>
-            <pre>
-m8.onStateChange((state) => renderState(state));
-m8.onViewChange((name, title) => log("view", name ?? title));
-m8.onTextUpdate((text) => log("text", text));
-m8.onKeyPress((keys) => log("keys", keys));
-</pre>
-          </div>
-          <div class="method-card">
-            <h4>6) File Browser API</h4>
-            <pre>
-// Call this while already inside a file browser view
-// whose name contains "load" or "save".
-await m8.browseFile("bassline"); // exact full name or base name
-await m8.browseFile("bass", false); // partial match
-</pre>
-            <p class="note">
-              The host scans entries top-to-bottom, enters folders, uses /..
-              to go back up, and selects the first matching M8 file with Edit.
-              The extension is optional in the search text.
-            </p>
-          </div>
-        </section>
-      </aside>
     </main>
 
     <!-- Load the SDK client -->
@@ -816,44 +448,6 @@ await m8.browseFile("bass", false); // partial match
           setCommandStatus(label, error.message, "error");
           throw error;
         }
-      };
-
-      const escapeHtml = (value) =>
-        value
-          .replaceAll("&", "&amp;")
-          .replaceAll("<", "&lt;")
-          .replaceAll(">", "&gt;");
-
-      const highlightToken = (token) => {
-        if (token.startsWith("//")) {
-          return `<span class="syntax-comment">${token}</span>`;
-        }
-        if (token.startsWith('"') || token.startsWith("'")) {
-          return `<span class="syntax-string">${token}</span>`;
-        }
-        if (/^@[\w/-]+$/.test(token)) {
-          return `<span class="syntax-package">${token}</span>`;
-        }
-        if (/^(npm|install|import|from|const|await|async|return|true|false|null)$/.test(token)) {
-          return `<span class="syntax-keyword">${token}</span>`;
-        }
-        if (/^(0x[\da-f]+|\d+(?:\.\d+)?)$/i.test(token)) {
-          return `<span class="syntax-number">${token}</span>`;
-        }
-        if (/^[A-Za-z_$][\w$]*(?=\()/.test(token)) {
-          return `<span class="syntax-function">${token}</span>`;
-        }
-        return token;
-      };
-
-      const highlightCodeBlocks = () => {
-        const tokenPattern =
-          /\/\/.*|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|@[\w/-]+|\b(?:npm|install|import|from|const|await|async|return|true|false|null)\b|\b0x[\da-f]+\b|\b\d+(?:\.\d+)?\b|\b[A-Za-z_$][\w$]*(?=\()/gi;
-
-        document.querySelectorAll(".method-card pre").forEach((pre) => {
-          const escaped = escapeHtml(pre.textContent.trim());
-          pre.innerHTML = escaped.replace(tokenPattern, highlightToken);
-        });
       };
 
       // Hack the Minimal SDK Client implementation for testing
@@ -994,141 +588,6 @@ await m8.browseFile("bass", false); // partial match
           }
         }
 
-        async navigateToView(viewName) {
-          if (!this.isConnected) throw new Error("Not connected");
-          log(`Calling navigateToView: ${viewName}`);
-          try {
-            const result = await this.remoteHandle.call(
-              "navigateToView",
-              viewName,
-            );
-            log(`navigateToView result: ${result}`);
-            return result;
-          } catch (error) {
-            log(`navigateToView error: ${error.message}`, "error");
-            throw error;
-          }
-        }
-
-        async navigateTo(x, y) {
-          if (!this.isConnected) throw new Error("Not connected");
-          log(`Calling navigateTo: (${x}, ${y})`);
-          try {
-            await this.remoteHandle.call("navigateTo", x, y);
-            log(`navigateTo completed`);
-          } catch (error) {
-            log(`navigateTo error: ${error.message}`, "error");
-            throw error;
-          }
-        }
-
-        async setValueToHex(hex) {
-          if (!this.isConnected) throw new Error("Not connected");
-          const value = parseInt(hex, 16);
-          if (Number.isNaN(value)) {
-            log(`Invalid hex value: ${hex}`, "error");
-            return false;
-          }
-          log(
-            `Calling setValueToHex: ${value.toString(16).padStart(2, "0").toUpperCase()}`,
-          );
-          try {
-            const result = await this.remoteHandle.call("setValueToHex", value);
-            log(`setValueToHex result: ${result}`);
-            return result;
-          } catch (error) {
-            log(`setValueToHex error: ${error.message}`, "error");
-            throw error;
-          }
-        }
-
-        async setValueToInt(value) {
-          if (!this.isConnected) throw new Error("Not connected");
-          const parsed = Number.parseInt(String(value), 10);
-          if (Number.isNaN(parsed)) {
-            log(`Invalid integer value: ${value}`, "error");
-            return false;
-          }
-          log(`Calling setValueToInt: ${parsed}`);
-          try {
-            const result = await this.remoteHandle.call(
-              "setValueToInt",
-              parsed,
-            );
-            log(`setValueToInt result: ${result}`);
-            return result;
-          } catch (error) {
-            log(`setValueToInt error: ${error.message}`, "error");
-            throw error;
-          }
-        }
-
-        async setNote(noteString) {
-          if (!this.isConnected) throw new Error("Not connected");
-          log(`Calling setNote: ${noteString}`);
-          try {
-            const result = await this.remoteHandle.call("setNote", noteString);
-            log(`setNote result: ${result}`);
-            return result;
-          } catch (error) {
-            log(`setNote error: ${error.message}`, "error");
-            throw error;
-          }
-        }
-
-        async setValueToString(
-          targetString,
-          exact = true,
-          searchInCurrentLine = false,
-        ) {
-          if (!this.isConnected) throw new Error("Not connected");
-          log(
-            `Calling setValueToString: "${targetString}" (exact=${exact}, inLine=${searchInCurrentLine})`,
-          );
-          try {
-            const result = await this.remoteHandle.call(
-              "setValueToString",
-              targetString,
-              exact,
-              searchInCurrentLine,
-            );
-            log(`setValueToString result: ${result}`);
-            return result;
-          } catch (error) {
-            log(`setValueToString error: ${error.message}`, "error");
-            throw error;
-          }
-        }
-
-        async browseFile(targetText, exact = true) {
-          if (!this.isConnected) throw new Error("Not connected");
-          log(`Calling browseFile: "${targetText}" (exact=${exact})`);
-          try {
-            const result = await this.remoteHandle.call(
-              "browseFile",
-              targetText,
-              exact,
-            );
-            log(`browseFile result: ${result}`);
-            return result;
-          } catch (error) {
-            log(`browseFile error: ${error.message}`, "error");
-            throw error;
-          }
-        }
-
-        async sendKeyPress(keys) {
-          if (!this.isConnected) throw new Error("Not connected");
-          log(`Calling sendKeyPress: [${keys.join(", ")}]`);
-          try {
-            await this.remoteHandle.call("sendKeyPress", keys);
-            log(`sendKeyPress completed`);
-          } catch (error) {
-            log(`sendKeyPress error: ${error.message}`, "error");
-            throw error;
-          }
-        }
-
         async fetchState() {
           if (!this.isConnected) throw new Error("Not connected");
           log("Calling getState");
@@ -1156,28 +615,6 @@ await m8.browseFile("bass", false); // partial match
           .replace(/([a-z])([A-Z])/g, "$1 $2")
           .replace(/([a-z])([0-9])/g, "$1 $2")
           .replace(/^./, (char) => char.toUpperCase());
-
-      async function loadViewOptions() {
-        const select = document.getElementById("view-select");
-        try {
-          const response = await fetch("./m8Graph.generated.json");
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-          }
-          const graph = await response.json();
-          const views = Object.keys(graph).sort((a, b) => a.localeCompare(b));
-          select.innerHTML = '<option value="">Select a view...</option>';
-          for (const view of views) {
-            const option = document.createElement("option");
-            option.value = view;
-            option.textContent = formatViewLabel(view);
-            select.appendChild(option);
-          }
-        } catch (error) {
-          log(`Unable to load view list: ${error.message}`, "warn");
-          select.innerHTML = '<option value="">Views unavailable</option>';
-        }
-      }
 
       // UI Update function
       function updateUI() {
@@ -1209,104 +646,6 @@ await m8.browseFile("bass", false); // partial match
       }
 
       // Expose functions to global scope for button onclick handlers
-      window.navigateToView = async (viewName) => {
-        try {
-          await runCommand("Navigate View", () =>
-            window.m8Client.navigateToView(viewName),
-          );
-          log(`Navigation to ${viewName} initiated`);
-        } catch (error) {
-          log(`Navigation failed: ${error.message}`, "error");
-        }
-      };
-
-      window.navigateToSelectedView = async () => {
-        const viewName = document.getElementById("view-select").value;
-        if (!viewName) {
-          log("Select a view before navigating", "warn");
-          return;
-        }
-        await window.navigateToView(viewName);
-      };
-
-      window.navigateToCoords = async () => {
-        const x = parseInt(document.getElementById("nav-x").value, 10);
-        const y = parseInt(document.getElementById("nav-y").value, 10);
-        try {
-          await runCommand("Navigate XY", () => window.m8Client.navigateTo(x, y));
-          log(`Navigation to (${x}, ${y}) initiated`);
-        } catch (error) {
-          log(`Navigation failed: ${error.message}`, "error");
-        }
-      };
-
-      window.setValueToHex = async () => {
-        const hex = document.getElementById("hex-value").value;
-        try {
-          const result = await runCommand("Set Hex", () =>
-            window.m8Client.setValueToHex(hex),
-          );
-          log(`Set hex result: ${result ? "success" : "failed"}`);
-        } catch (error) {
-          log(`Set value failed: ${error.message}`, "error");
-        }
-      };
-
-      window.setValueToInt = async () => {
-        const value = document.getElementById("int-value").value;
-        try {
-          const result = await runCommand("Set Int", () =>
-            window.m8Client.setValueToInt(value),
-          );
-          log(`Set int result: ${result ? "success" : "failed"}`);
-        } catch (error) {
-          log(`Set int failed: ${error.message}`, "error");
-        }
-      };
-
-      window.setNote = async () => {
-        const noteString = document.getElementById("note-value").value;
-        try {
-          const result = await runCommand("Set Note", () =>
-            window.m8Client.setNote(noteString),
-          );
-          log(`Set note result: ${result ? "exact" : "closest/failed"}`);
-        } catch (error) {
-          log(`Set note failed: ${error.message}`, "error");
-        }
-      };
-
-      window.setValueToString = async () => {
-        const targetString = document.getElementById("string-value").value;
-        const exact = document.getElementById("string-exact").checked;
-        const inLine = document.getElementById("string-in-line").checked;
-        try {
-          const result = await runCommand("Set Text", () =>
-            window.m8Client.setValueToString(targetString, exact, inLine),
-          );
-          log(`Set string result: ${result ? "success" : "failed"}`);
-        } catch (error) {
-          log(`Set string failed: ${error.message}`, "error");
-        }
-      };
-
-      window.browseFile = async () => {
-        const targetText = document.getElementById("browse-file-target").value;
-        const exact = document.getElementById("browse-file-exact").checked;
-        if (!targetText.trim()) {
-          log("Enter a file name fragment before browsing", "warn");
-          return;
-        }
-        try {
-          const result = await runCommand("Browse File", () =>
-            window.m8Client.browseFile(targetText, exact),
-          );
-          log(`Browse file result: ${result ? "success" : "not found"}`);
-        } catch (error) {
-          log(`Browse file failed: ${error.message}`, "error");
-        }
-      };
-
       window.fetchFreshState = async () => {
         try {
           await runCommand("Fetch State", () => window.m8Client.fetchState());
@@ -1316,30 +655,19 @@ await m8.browseFile("bass", false); // partial match
         }
       };
 
+      window.clearLog = () => {
+        document.getElementById("log").innerHTML = "";
+      };
+
       window.reconnect = async () => {
         window.m8Client.disconnect();
         updateUI();
         await window.m8Client.connect();
       };
 
-      window.clearLog = () => {
-        document.getElementById("log").innerHTML = "";
-      };
-
-      window.sendKey = async (keys) => {
-        try {
-          await runCommand("Send Key", () => window.m8Client.sendKeyPress(keys));
-          log(`Key press sent: [${keys.join(", ")}]`);
-        } catch (error) {
-          log(`Key press failed: ${error.message}`, "error");
-        }
-      };
-
       // Connect on load
       window.addEventListener("load", () => {
         log("Cont8xt Client loaded");
-        highlightCodeBlocks();
-        loadViewOptions();
         window.m8Client.connect();
       });
     </script>
