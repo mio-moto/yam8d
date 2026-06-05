@@ -389,6 +389,8 @@
             <div class="state-item wide">
               <div class="label">View Name</div>
               <div class="value" id="view-name">-</div>
+              <div class="label">Cell Id</div>
+              <div class="value" id="cell-id">-</div>
               <div class="label">Text Under Cursor</div>
               <div class="value" id="text-cursor">-</div>
               <div class="label">Current Line</div>
@@ -489,6 +491,7 @@
           this.state = {
             viewName: null,
             viewTitle: null,
+            cellId: null,
             cursorPos: null,
             cursorRect: null,
             selectionMode: false,
@@ -564,6 +567,7 @@
                 log(
                   `Event: cursorMoved - (${pos?.x}, ${pos?.y}) - Rect ${rect?.x}, ${rect?.y}, ${rect?.w}x${rect?.h} sel=${selectionMode}`,
                 );
+                this.state.cellId = `${pos?.x}-${pos?.y}`;
                 this.state.cursorPos = pos;
                 this.state.cursorRect = rect;
                 this.state.selectionMode = selectionMode;
@@ -653,6 +657,7 @@
       function updateUI() {
         const state = window.m8Client.state;
         const viewDisplay = state.viewTitle || state.viewName || "-";
+        const cellId = state.cellId || "-";
         const cursorPos = state.cursorPos
           ? `(${state.cursorPos.x}, ${state.cursorPos.y})`
           : "-";
@@ -661,6 +666,7 @@
           ? `${state.cursorRect.x}, ${state.cursorRect.y}, ${state.cursorRect.w}x${state.cursorRect.h}`
           : "-";
         document.getElementById("view-name").textContent = viewDisplay;
+        document.getElementById("cell-id").textContent = cellId;
         document.getElementById("cursor-pos").textContent = cursorPos;
         document.getElementById("text-cursor").textContent =
           state.textUnderCursor || "-";
