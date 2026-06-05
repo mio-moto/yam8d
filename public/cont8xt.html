@@ -567,7 +567,7 @@
                 log(
                   `Event: cursorMoved - (${pos?.x}, ${pos?.y}) - Rect ${rect?.x}, ${rect?.y}, ${rect?.w}x${rect?.h} sel=${selectionMode}`,
                 );
-                this.state.cellId = `${pos?.x}-${pos?.y}`;
+                this.state.cellId = _maybe_this_is_where_your_magic_fn_goes_;
                 this.state.cursorPos = pos;
                 this.state.cursorRect = rect;
                 this.state.selectionMode = selectionMode;
@@ -704,9 +704,16 @@
         await window.m8Client.connect();
       };
 
+      window.store = async (key, value) => {
+        log(`Storing info...`);
+        // do the right thing
+      }
+
       window.storeView = async () => {
         cleanTitles();
         try {
+          store(_view_ID_+"short", document.getElementById(view-desc-short).value);
+          store(_view_ID_+"long", document.getElementById(view-desc-long).value);
         } catch (error) {
           log(`Store view info failed: ${error.message}`, "error");
         }
@@ -715,6 +722,8 @@
       window.storeCell = async () => {
         cleanTitles();
         try {
+          store(_some_ID_+"short", document.getElementById(cell-desc-short).value);
+          store(_some_ID_+"long", document.getElementById(cell-desc-long).value);
         } catch (error) {
           log(`Store cell info failed: ${error.message}`, "error");
         }
