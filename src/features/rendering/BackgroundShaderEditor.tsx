@@ -263,7 +263,7 @@ export const BackgroundShaderEditor: FC = () => {
       const parsed = JSON.parse(raw) as SavedBackgroundShader[]
       if (Array.isArray(parsed)) {
         const next = parsed.map((shader) =>
-          LEGACY_SAVED_SHADER_NAMES.has(shader.name) && shader.id === 'default-spectrum-demo'
+          LEGACY_SAVED_SHADER_NAMES.has(shader.name) && shader.id === 'default-spectrum-demo' && shader.updatedAt === 0
             ? { ...shader, source: DEFAULT_CUSTOM_BACKGROUND_SHADER }
             : shader,
         )
