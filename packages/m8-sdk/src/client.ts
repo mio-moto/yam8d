@@ -3,8 +3,11 @@ import { ChildHandshake, DebugMessenger, WindowMessenger } from 'post-me'
 // @ts-expect-error - post-me types are incomplete for the generic handshake signatures used here.
 import type { Connection, LocalHandle, RemoteHandle } from 'post-me'
 import type { M8ClientEvents, M8ClientMethods, M8HostEvents, M8HostMethods, M8KeyName, M8SdkConfig, M8State } from './types'
+import { getSemanticContext, describeContext } from './viewContext'
+import type { M8SemanticContext } from './viewContext'
 
 export type { CursorPos, CursorRect, M8KeyName, M8State, RGB, SystemInfos } from './types'
+export type { M8SemanticContext } from './viewContext'
 
 export interface M8Client {
   readonly state: M8State
@@ -27,6 +30,17 @@ export interface M8Client {
   onTextUpdate(callback: (textUnderCursor: string | null, currentLine: string | null) => void): () => void
   onKeyPress(callback: (keys: number) => void): () => void
   disconnect(): void
+  /**
+   * Derives semantic context from the current state: view, row, and the typed
+   * field under the cursor. Works for the five grid views (song, chain, phrase,
+   * table, groove). Returns null when no view is active.
+   */
+  getSemanticContext(): M8SemanticContext | null
+  /**
+   * Returns a short human-readable description of what the cursor is on,
+   * e.g. "Track 3 — Chain 0A — Song View row 02".
+   */
+  describeContext(): string | null
 }
 
 const getDefaultState = (): M8State => ({
@@ -233,6 +247,15 @@ class M8ClientImpl implements M8Client {
     this.cursorCallbacks.clear()
     this.textCallbacks.clear()
     this.keyCallbacks.clear()
+  }
+
+  getSemanticContext(): M8SemanticContext | null {
+    return getSemanticContext(this._state)
+  }
+
+  describeContext(): string | null {
+    const ctx = getSemanticContext(this._state)
+    return ctx ? describeContext(ctx) : null
   }
 }
 

@@ -4,6 +4,7 @@ import { Button } from '../../components/Button'
 import { style } from '../../app/style/style'
 import { DEFAULT_CUSTOM_BACKGROUND_SHADER, DEFAULT_CUSTOM_BACKGROUND_SHADER_NAME, useSettingsContext } from '../settings/settings'
 import { ShaderCodeEditor } from './ShaderCodeEditor'
+import FontAtlasGlitchShaderSource from './shader/font_atlas_glitch.frag?raw'
 import VertPostprocess from './shader/postprocess.vert?raw'
 
 type SavedBackgroundShader = {
@@ -17,6 +18,23 @@ type SavedBackgroundShader = {
 const STORAGE_KEY = 'M8savedBackgroundShaders'
 const LEGACY_SAVED_SHADER_NAMES = new Set([DEFAULT_CUSTOM_BACKGROUND_SHADER_NAME])
 const UNSAVED_SHADER_ID = '__current-unsaved-shader__'
+const FONT_ATLAS_GLITCH_SHADER_NAME = 'Font Atlas Glitch'
+const DEFAULT_SAVED_SHADERS: SavedBackgroundShader[] = [
+  {
+    id: 'font-atlas-glitch',
+    name: FONT_ATLAS_GLITCH_SHADER_NAME,
+    source: FontAtlasGlitchShaderSource,
+    compositeM8Screen: false,
+    updatedAt: 0,
+  },
+  {
+    id: 'default-spectrum-demo',
+    name: DEFAULT_CUSTOM_BACKGROUND_SHADER_NAME,
+    source: DEFAULT_CUSTOM_BACKGROUND_SHADER,
+    compositeM8Screen: true,
+    updatedAt: 0,
+  },
+]
 
 type UnsavedShader = Pick<SavedBackgroundShader, 'source' | 'compositeM8Screen'>
 
@@ -207,6 +225,14 @@ const findMatchingSavedShader = (
 ): SavedBackgroundShader | null =>
   savedShaders.find((shader) => shader.source === source && (shader.compositeM8Screen ?? true) === compositeM8Screen) ?? null
 
+const seedDefaultShaders = (savedShaders: SavedBackgroundShader[]): SavedBackgroundShader[] => {
+  const savedIds = new Set(savedShaders.map((shader) => shader.id))
+  const savedNames = new Set(savedShaders.map((shader) => shader.name))
+  const missingDefaults = DEFAULT_SAVED_SHADERS.filter((shader) => !savedIds.has(shader.id) && !savedNames.has(shader.name))
+
+  return missingDefaults.length > 0 ? [...missingDefaults, ...savedShaders] : savedShaders
+}
+
 export const BackgroundShaderEditor: FC = () => {
   const { settings, updateSettingValue } = useSettingsContext()
   const [sourceDraft, setSourceDraft] = useState(settings.customBackgroundShader)
@@ -225,13 +251,7 @@ export const BackgroundShaderEditor: FC = () => {
   useEffect(() => {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) {
-      const defaults: SavedBackgroundShader[] = [{
-        id: 'default-spectrum-demo',
-        name: DEFAULT_CUSTOM_BACKGROUND_SHADER_NAME,
-        source: DEFAULT_CUSTOM_BACKGROUND_SHADER,
-        compositeM8Screen: true,
-        updatedAt: 0,
-      }]
+      const defaults = DEFAULT_SAVED_SHADERS
       const initialMatch = findMatchingSavedShader(defaults, initialSourceRef.current, initialCompositeRef.current)
       setSavedShaders(defaults)
       setUnsavedShader(initialMatch ? null : { source: initialSourceRef.current, compositeM8Screen: initialCompositeRef.current })
@@ -247,12 +267,7 @@ export const BackgroundShaderEditor: FC = () => {
             ? { ...shader, source: DEFAULT_CUSTOM_BACKGROUND_SHADER }
             : shader,
         )
-        const hasDefault = next.some((shader) => shader.name === DEFAULT_CUSTOM_BACKGROUND_SHADER_NAME)
-        const seeded = hasDefault ? next : [{
-          id: 'default-spectrum-demo',
-          name: DEFAULT_CUSTOM_BACKGROUND_SHADER_NAME,
-          source: DEFAULT_CUSTOM_BACKGROUND_SHADER, compositeM8Screen: true, updatedAt: 0,
-        }, ...next]
+        const seeded = seedDefaultShaders(next)
         const initialMatch = findMatchingSavedShader(seeded, initialSourceRef.current, initialCompositeRef.current)
         setSavedShaders(seeded)
         setUnsavedShader(initialMatch ? null : { source: initialSourceRef.current, compositeM8Screen: initialCompositeRef.current })

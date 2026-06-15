@@ -1,7 +1,7 @@
 {
   "name": "@yam8d/m8-sdk",
-  "version": "0.1.0",
-  "description": "Client SDK for iframe applications that communicate with an M8 host.",
+  "version": "0.2.0",
+  "description": "Client SDK for iframe applications that communicate with yam8d M8 host.",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",

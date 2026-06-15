@@ -621,15 +621,44 @@ export const useM8SdkHost = (bus: ConnectedBus | undefined, config: M8SdkConfig 
     const setNoteImpl = useCallback(async (targetNoteString: string): Promise<boolean> => {
         if (!busRef.current) return false
 
+        const normalizedTarget = targetNoteString.trim().toUpperCase()
+
+        // Handle special values: '---' (no note / delete) and 'OFF' (note off)
+        // opt+edit cycles: regular note → '---' → 'OFF' → '---' → ...
+        if (normalizedTarget === '---' || normalizedTarget === 'OFF') {
+            const currentText = store.get(textUnderCursorAtom)
+            const currentNormalized = currentText?.trim().toUpperCase() ?? ''
+
+            if (currentNormalized === normalizedTarget) return true
+
+            // If current is a regular note, one opt+edit lands on '---'
+            // then a second opt+edit lands on 'OFF'
+            await pressAndRelease(M8KeyMask.Opt | M8KeyMask.Edit)
+            await waitForTextUnderCursorChange(currentText, 250)
+
+            if (normalizedTarget === 'OFF' && currentNormalized !== '---') {
+                // Was a regular note: first press gave '---', need a second press for 'OFF'
+                const afterFirst = store.get(textUnderCursorAtom)
+                if (afterFirst?.trim().toUpperCase() === '---') {
+                    await pressAndRelease(M8KeyMask.Opt | M8KeyMask.Edit)
+                    await waitForTextUnderCursorChange(afterFirst, 250)
+                }
+            }
+
+            const finalText = store.get(textUnderCursorAtom)?.trim().toUpperCase()
+            debugLog('[M8SDK] setNote special value result:', finalText)
+            return finalText === normalizedTarget
+        }
+
         const parsedTarget = parseNoteValue(targetNoteString)
         if (!parsedTarget) {
-            console.warn('[M8SDK] Invalid note format. Expected like C-1, C#1, D#A:', targetNoteString)
+            console.warn('[M8SDK] Invalid note format. Expected like C-1, C#1, D#A, ---, OFF:', targetNoteString)
             return false
         }
 
         let currentText = store.get(textUnderCursorAtom)
-        if (currentText?.trim() === '---') {
-            debugLog('[M8SDK] Initial note is "---", priming with edit key')
+        if (currentText?.trim() === '---' || currentText?.trim().toUpperCase() === 'OFF') {
+            debugLog('[M8SDK] Initial note is "---" or "OFF", priming with edit key')
             await pressAndRelease(M8KeyMask.Edit)
             await waitForTextUnderCursorChange(currentText, 250)
             currentText = store.get(textUnderCursorAtom)

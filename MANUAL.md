@@ -13,7 +13,7 @@ You need a powered Dirtywave M8, a USB connection, and a Chromium-based browser 
 
 YAM8D prefers WebSerial when the browser supports it. If WebSerial is unavailable, it can use WebUSB or WebMIDI with SysEx support.
 
-![YAM8D connect screen](/manual-screenshots/connect-splash.png)
+![YAM8D connect screen](./manual-screenshots/connect-splash.png)
 
 ## Main Controls
 
@@ -74,7 +74,7 @@ Macro keys can be switched between `F1` to `F9` and `1` to `9`. Each macro row c
 
 Use **Save** to persist changes in browser local storage. Use **Reset to Defaults** to restore the default M8 button, virtual keyboard, and macro mappings.
 
-![Keyboard mapping settings](/manual-screenshots/keyboard-settings.png)
+![Keyboard mapping settings](./manual-screenshots/keyboard-settings.png)
 
 ## Virtual MIDI Keyboard
 
@@ -112,7 +112,7 @@ The default app list includes:
 
 Open **Configure** to add, remove, rename, reorder by active selection, or edit external app URLs. Apps can optionally use the legacy URL fallback format before the SDK connection is ready.
 
-![External apps setup](/manual-screenshots/external-apps-setup.png)
+![External apps setup](./manual-screenshots/external-apps-setup.png)
 
 ## SDK Capabilities
 
@@ -150,7 +150,7 @@ Open **Menu > Rendering** to control the display renderer.
 | Shader editor panel | Opens or closes the shader editor |
 | VJ Mode | Enables numpad shader switching when background shaders are active |
 
-![Menu and rendering settings](/manual-screenshots/menu-and-rendering.png)
+![Menu and rendering settings](./manual-screenshots/menu-and-rendering.png)
 
 ## Background Shader Editor
 

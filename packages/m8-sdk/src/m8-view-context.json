@@ -1,0 +1,206 @@
+{
+  "version": "1.0",
+  "description": "Semantic mapping of M8 tracker views: defines the structure of each grid view so cursor position + line text can be interpreted as typed field values.",
+  "notes": {
+    "fontMode": "All x/width values assume font mode 0 (standard, 12×14 px cells, 40 cols × ~22 rows). Font modes 1 (bold uppercase) and 2 (large) may shift column positions.",
+    "playbackIndicator": "The M8 renders a '>' character one column to the left of the first data column when that step/row/track is currently playing. This character is part of the text stream; the editing cursor is a separate rect overlay.",
+    "emptyCell": "An empty or unused cell displays '--' (2 chars) or '---' (3 chars) or '---00' (command+value). Parsed hexValue will be null for these.",
+    "relativeHex": "Transpose and some FX values use relative hex: 00 = no change, 01-7F = +1-127, FF-80 = -1-128. See 'Relative and Absolute FX Commands' in the manual.",
+    "rowIndex": "Row/step indices are parsed from the leftmost characters of currentLine. They are hex for all grid views."
+  },
+  "fieldTypes": {
+    "chainRef":      "Reference to a chain number (hex 00-FF). '--' means empty/unused.",
+    "phraseRef":     "Reference to a phrase number (hex 00-FF). '--' means empty/unused.",
+    "note":          "Musical note in M8 format: [A-G][#|-][0-9] e.g. 'C-4', 'A#3'. '---' = empty. 'OFF' = note-off.",
+    "velocity":      "Note velocity 00-7F (hex). Default is 64 (hex). '--' = inherit.",
+    "instrumentRef": "Instrument number 00-7F (hex). '--' = no retrigger (keep current instrument).",
+    "fxCommand":     "3-character sequencer or instrument FX command name, e.g. 'KIL', 'ARP', 'DEL'. '---' = none.",
+    "fxValue":       "2-char hex value 00-FF accompanying an FX command. Interpretation depends on the command.",
+    "transpose":     "Semitone or tick transpose. Relative: 00=none, 01-7F=+1-+127, FF-80=-1--128.",
+    "ticks":         "Number of ticks this step consumes in a groove (hex 01-FF). '00' skips the step. '--' = empty (groove loops at this point).",
+    "volume":        "Volume multiplier 00-FF (hex). Multiplied with the phrase-row velocity. '--' = no override.",    "ppq":           "Pulses Per Quarter note: resolution of the groove clock (decimal). Only editable on groove row 0.",
+    "instrumentName": "Instrument name string (up to 12 characters). Text field, no hex value.",
+    "eqSlot":         "EQ slot assignment (hex). '--' = no EQ applied to this instrument.",
+    "rowIndex":       "The positional index of this row in the current view (song row, chain position, phrase step, etc.)."
+  },
+  "views": {
+    "song": {
+      "title": "Song View",
+      "type": "grid",
+      "description": "Arranges chains across 8 independent tracks to form the song structure. Each row is a song position; each column is a track.",
+      "rowField": {
+        "x": 0, "width": 2, "parse": "hex", "type": "rowIndex",
+        "key": "songRow", "description": "Song row 00-FF. Each track loops back to row 00 when it reaches '--'."
+      },
+      "columns": [
+        { "x": 3,  "width": 2, "key": "track1", "type": "chainRef", "label": "Track 1", "meta": { "trackIndex": 1 } },
+        { "x": 6,  "width": 2, "key": "track2", "type": "chainRef", "label": "Track 2", "meta": { "trackIndex": 2 } },
+        { "x": 9,  "width": 2, "key": "track3", "type": "chainRef", "label": "Track 3", "meta": { "trackIndex": 3 } },
+        { "x": 12, "width": 2, "key": "track4", "type": "chainRef", "label": "Track 4", "meta": { "trackIndex": 4 } },
+        { "x": 15, "width": 2, "key": "track5", "type": "chainRef", "label": "Track 5", "meta": { "trackIndex": 5 } },
+        { "x": 18, "width": 2, "key": "track6", "type": "chainRef", "label": "Track 6", "meta": { "trackIndex": 6 } },
+        { "x": 21, "width": 2, "key": "track7", "type": "chainRef", "label": "Track 7", "meta": { "trackIndex": 7 } },
+        { "x": 24, "width": 2, "key": "track8", "type": "chainRef", "label": "Track 8", "meta": { "trackIndex": 8 } }
+      ]
+    },
+    "chain": {
+      "title": "Chain View",
+      "type": "grid",
+      "description": "An ordered list of up to 16 phrases. The first '--' phrase ends the chain and loops back to the song.",
+      "rowField": {
+        "x": 0, "width": 1, "parse": "hex", "type": "rowIndex",
+        "key": "chainPos", "description": "Position within the chain (0-F, max 16 entries)."
+      },
+      "columns": [
+        { "x": 2, "width": 2, "key": "phrase",    "type": "phraseRef", "label": "Phrase (PH)",        "description": "Phrase number to play at this chain position." },
+        { "x": 5, "width": 2, "key": "transpose",  "type": "transpose", "label": "Transpose (TSP)",    "description": "Optional note transpose in semitones applied to every note in the phrase (relative hex)." }
+      ]
+    },
+    "phrase": {
+      "title": "Phrase View",
+      "type": "grid",
+      "description": "A 16-step sequence. Each step holds a note, velocity, instrument assignment, and up to 3 FX command+value pairs.",
+      "rowField": {
+        "x": 0, "width": 1, "parse": "hex", "type": "rowIndex",
+        "key": "step", "description": "Step index 0-F (16th note by default; altered by groove)."
+      },
+      "columns": [
+        { "x": 2,  "width": 3, "key": "note",   "type": "note",          "label": "Note (N)" },
+        { "x": 6,  "width": 2, "key": "vel",    "type": "velocity",      "label": "Velocity (V)" },
+        { "x": 9,  "width": 2, "key": "inst",   "type": "instrumentRef", "label": "Instrument (I)" },
+        { "x": 12, "width": 3, "key": "fx1cmd", "type": "fxCommand",     "label": "FX1 Command" },
+        { "x": 15, "width": 2, "key": "fx1val", "type": "fxValue",       "label": "FX1 Value" },
+        { "x": 18, "width": 3, "key": "fx2cmd", "type": "fxCommand",     "label": "FX2 Command" },
+        { "x": 21, "width": 2, "key": "fx2val", "type": "fxValue",       "label": "FX2 Value" },
+        { "x": 24, "width": 3, "key": "fx3cmd", "type": "fxCommand",     "label": "FX3 Command" },
+        { "x": 27, "width": 2, "key": "fx3val", "type": "fxValue",       "label": "FX3 Value" }
+      ]
+    },
+    "table": {
+      "title": "Table View",
+      "type": "grid",
+      "description": "A 16-step mini-sequencer that runs alongside an instrument. Used for arpeggios, multi-stage envelopes, and automated FX.",
+      "rowField": {
+        "x": 0, "width": 1, "parse": "hex", "type": "rowIndex",
+        "key": "step", "description": "Table step 0-F. Loops from bottom unless a HOP command redirects."
+      },
+      "columns": [
+        { "x": 2,  "width": 2, "key": "transpose", "type": "transpose", "label": "Transpose (N)",   "description": "Transposes the instrument for this step (relative hex). '--' = no transpose." },
+        { "x": 5,  "width": 2, "key": "volume",    "type": "volume",    "label": "Volume (V)",      "description": "Volume multiplier applied on top of the phrase velocity (hex). '--' = no override." },
+        { "x": 8,  "width": 3, "key": "fx1cmd",    "type": "fxCommand", "label": "FX1 Command",     "description": "3-char command name for table FX slot 1." },
+        { "x": 11, "width": 2, "key": "fx1val",    "type": "fxValue",   "label": "FX1 Value",       "description": "Value for table FX1." },
+        { "x": 14, "width": 3, "key": "fx2cmd",    "type": "fxCommand", "label": "FX2 Command",     "description": "3-char command name for table FX slot 2." },
+        { "x": 17, "width": 2, "key": "fx2val",    "type": "fxValue",   "label": "FX2 Value",       "description": "Value for table FX2." },
+        { "x": 20, "width": 3, "key": "fx3cmd",    "type": "fxCommand", "label": "FX3 Command",     "description": "3-char command name for table FX slot 3." },
+        { "x": 23, "width": 2, "key": "fx3val",    "type": "fxValue",   "label": "FX3 Value",       "description": "Value for table FX3." }
+      ]
+    },
+    "groove": {
+      "title": "Groove View",
+      "type": "grid",
+      "description": "Defines the timing of each phrase step in ticks. Used to create swing, shuffle, triplets, and other rhythmic feels.",
+      "rowField": {
+        "x": 0, "width": 1, "parse": "hex", "type": "rowIndex",
+        "key": "step", "description": "Groove step 0-F. The groove loops when a '--' entry is reached."
+      },
+      "columns": [
+        { "x": 2, "width": 2, "key": "ticks", "type": "ticks", "label": "Ticks (TIC)", "description": "Number of ticks this step takes. Default is 06 (at 24 PPQN = 1 sixteenth note). '00' skips the step." },
+        { "x": 6, "width": 2, "key": "ppq",   "type": "ppq",   "label": "PPQ",         "description": "Pulses Per Quarter note. Only present on groove row 0; absent on all other rows." }
+      ]
+    },
+    "instrumentpool": {
+      "title": "Instrument Pool",
+      "type": "grid",
+      "description": "Lists all instrument slots with their mix routing. Each row shows the instrument name and its dry/FX send levels.",
+      "rowField": {
+        "x": 0, "width": 2, "parse": "hex", "type": "rowIndex",
+        "key": "instIndex", "description": "Instrument slot index 00-7F."
+      },
+      "columns": [
+        { "x": 3,  "width": 12, "key": "name", "type": "instrumentName", "label": "Instrument Name",  "description": "Name of the instrument in this slot (up to 12 chars). '------------' = empty slot." },
+        { "x": 16, "width": 2,  "key": "dry",  "type": "volume",         "label": "Dry (DRY)",        "description": "Direct output volume for this instrument (hex 00-FF)." },
+        { "x": 19, "width": 2,  "key": "mx",   "type": "volume",         "label": "ModFX (MX)",       "description": "ModFX send level (hex 00-FF)." },
+        { "x": 22, "width": 2,  "key": "de",   "type": "volume",         "label": "Delay (DE)",       "description": "Delay send level (hex 00-FF)." },
+        { "x": 25, "width": 2,  "key": "rv",   "type": "volume",         "label": "Reverb (RV)",      "description": "Reverb send level (hex 00-FF)." },
+        { "x": 28, "width": 2,  "key": "eq",   "type": "eqSlot",         "label": "EQ Slot (EQ)",    "description": "EQ slot assignment. '--' = no EQ." }
+      ]
+    }
+  },
+  "fxCommands": {
+    "sequencer": {
+      "ARP": { "description": "Arpeggio: plays 3 notes rapidly. X=first interval semitones, Y=second interval semitones." },
+      "ARC": { "description": "Arpeggio Config: X=mode, Y=speed in ticks." },
+      "CHA": { "description": "Chance: X=probability left of command (0=never, F=always), Y=probability right." },
+      "DEL": { "description": "Delay: in phrase delays entire row by XX ticks; in table delays table playhead." },
+      "GRV": { "description": "Groove: sets groove number XX for the current track." },
+      "GGR": { "description": "Global Groove: sets groove XX for all tracks." },
+      "HOP": { "description": "Hop: in phrase jumps to row Y of next phrase; HOPFF stops track. In table loops to row Y X times." },
+      "INS": { "description": "Instrument: changes active instrument to XX as an FX command." },
+      "KIL": { "description": "Kill: stops the playing instrument after XX ticks." },
+      "RND": { "description": "Random: randomises the preceding FX command. X=left range, Y=right range (0=none, F=full)." },
+      "RNL": { "description": "Randomise Left: randomises the FX command to the left." },
+      "RET": { "description": "Retrig: retriggers current row. Y≠0: retrig every Y ticks with X volume ramp. Y=0: single retrig after X ticks." },
+      "REP": { "description": "Repeat: repeats and increments the last FX command by XX each step." },
+      "RTO": { "description": "Repeat To: sets the min/max value that REP stops at." },
+      "RMX": { "description": "Remix: repositions the phrase playhead (Y) on tracks to the left (selected by X)." },
+      "NTH": { "description": "Nth Trigger: conditional trigger based on loop count." },
+      "PSL": { "description": "Pitch Slide (portamento): enables portamento for XX ticks." },
+      "PBN": { "description": "Pitch Bend: continuous pitch slide up (00-7F) or down (80-FF)." },
+      "PVB": { "description": "Vibrato: X=speed, Y=depth." },
+      "PVX": { "description": "Extreme Vibrato: like PVB but with higher range." },
+      "SCA": { "description": "Track Scale: X=key signature, Y=scale number for this track." },
+      "SCG": { "description": "Global Scale: X=key, Y=scale number for the whole song." },
+      "SNG": { "description": "Song Hop: moves this track's song position by XX rows relative to current." },
+      "SED": { "description": "Random Seed: sets the random seed XX for this track." },
+      "TBL": { "description": "Table: assigns table number XX to the current instrument." },
+      "THO": { "description": "Table Hop: jumps all table columns to position 0X." },
+      "TIC": { "description": "Table Tick: sets the table tick rate. In a table, each FX column can run independently." },
+      "TBX": { "description": "Aux Table: runs table XX in parallel with the instrument table. 00=stop aux table." },
+      "TPO": { "description": "Tempo: sets song BPM to XX (hex → decimal conversion shown in help text)." },
+      "TSP": { "description": "Global Transpose: transposes the entire song by XX semitones." },
+      "NXT": { "description": "Next Track Trigger: plays instrument XX on the next track using current note/velocity." },
+      "OFF": { "description": "Note Off: stops the playing instrument after XX ticks. Triggers ADSR release stage." },
+      "MTT": { "description": "Micro Time: adjusts row playback timing in sub-tick (1/8 tick) amounts." }
+    },
+    "instrument": {
+      "VOL": { "description": "Volume offset (relative)." },
+      "PIT": { "description": "Pitch offset in semitones (relative)." },
+      "FIN": { "description": "Fine tune: pitch offset -1 to +1 semitones (relative)." },
+      "EA1": { "description": "Envelope 1 Amount offset." },
+      "EA2": { "description": "Envelope 2 Amount offset." },
+      "AT1": { "description": "Envelope 1 Attack time offset." },
+      "AT2": { "description": "Envelope 2 Attack time offset." },
+      "HO1": { "description": "Envelope 1 Hold time offset." },
+      "HO2": { "description": "Envelope 2 Hold time offset." },
+      "DE1": { "description": "Envelope 1 Decay time offset." },
+      "DE2": { "description": "Envelope 2 Decay time offset." },
+      "ET1": { "description": "Retrigger Envelope 1 (any value > 00 retriggers)." },
+      "ET2": { "description": "Retrigger Envelope 2." },
+      "LA1": { "description": "LFO 1 Amount offset." },
+      "LA2": { "description": "LFO 2 Amount offset." },
+      "LF1": { "description": "LFO 1 Frequency offset." },
+      "LF2": { "description": "LFO 2 Frequency offset." },
+      "LT1": { "description": "Retrigger LFO 1 (value sets phase offset)." },
+      "LT2": { "description": "Retrigger LFO 2." }
+    },
+    "mixer": {
+      "VMV": { "description": "Main Volume: sets the main song output volume." },
+      "VMX": { "description": "ModFX Volume." },
+      "VDE": { "description": "Delay Volume." },
+      "VRE": { "description": "Reverb Volume." },
+      "VT1": { "description": "Track 1 Volume." },
+      "VT2": { "description": "Track 2 Volume." },
+      "VT3": { "description": "Track 3 Volume." },
+      "VT4": { "description": "Track 4 Volume." },
+      "VT5": { "description": "Track 5 Volume." },
+      "VT6": { "description": "Track 6 Volume." },
+      "VT7": { "description": "Track 7 Volume." },
+      "VT8": { "description": "Track 8 Volume." },
+      "DJC": { "description": "DJ Filter Cutoff." },
+      "DJR": { "description": "DJ Filter Resonance." },
+      "DJT": { "description": "DJ Filter Type." },
+      "EQM": { "description": "Assign main mix EQ slot." },
+      "EQI": { "description": "Assign current instrument EQ slot." }
+    }
+  }
+}
