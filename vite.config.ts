@@ -5,6 +5,27 @@ import wyw from '@wyw-in-js/vite'
 import { defineConfig, type Plugin, searchForWorkspaceRoot } from 'vite'
 import checker from 'vite-plugin-checker'
 
+const serveAndCopyM8Sdk = (): Plugin => {
+    const sdkDistPath = path.join(__dirname, 'packages', 'm8-sdk', 'dist')
+    return {
+        name: 'serve-and-copy-m8-sdk',
+        configureServer(server) {
+            server.middlewares.use((req, res, next) => {
+                if (req.url === '/m8-sdk/index.js') {
+                    res.setHeader('Content-Type', 'text/javascript; charset=utf-8')
+                    res.end(fs.readFileSync(path.join(sdkDistPath, 'index.js')))
+                    return
+                }
+                next()
+            })
+        },
+        generateBundle() {
+            const source = fs.readFileSync(path.join(sdkDistPath, 'index.js'), 'utf-8')
+            this.emitFile({ type: 'asset', fileName: 'm8-sdk/index.js', source })
+        },
+    }
+}
+
 const fixSourceMaps = (): Plugin => {
     let interval: ReturnType<typeof setInterval> | null = null
     return {
@@ -81,6 +102,7 @@ export default defineConfig({
         checker({ overlay: { initialIsOpen: false, position: 'br' }, typescript: true, biome: { command: 'lint' } }),
 
         fixSourceMaps(),
+        serveAndCopyM8Sdk(),
         //mkcert()
     ],
     build: {

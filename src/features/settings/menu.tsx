@@ -216,7 +216,7 @@ export const Menu: FC = () => {
                 <div className="menu-section">
                     <span className="section-title">Rendering</span>
                     <div className="menu-item">
-                        <span className="title">Smooth rendering</span>
+                        <span className="title">Smooth font rendering</span>
                         <div>
                             <Button selected={settings.smoothRendering} onClick={() => updateSettingValue('smoothRendering', true)}>
                                 Yes
