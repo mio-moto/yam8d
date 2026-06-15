@@ -1,0 +1,749 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>M8 Context</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Kode+Mono:wght@400;500;600;700&display=swap"
+    />
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --anthracite-900: #2e383c;
+        --anthracite-800: #3f4e52;
+        --anthracite-700: #4d6167;
+        --anthracite-500: #68858e;
+        --anthracite-300: #97aab0;
+        --anthracite-100: #d4dadc;
+        --teal-700: #229fb7;
+        --teal-500: #2ec5e6;
+        --teal-300: #59d7f0;
+        --lime-500: #00d585;
+        --aqua-500: #1d9dff;
+        --ochre-500: #ff5d38;
+        --ochre-700: #e6502e;
+        --amber-500: #ffbd59;
+        --raspberry-500: #e85d8f;
+        --bg-0: #141414;
+        --bg-1: #191d1e;
+        --bg-hover: #2e383c;
+        --panel: rgba(20, 20, 20, 0.94);
+        --panel-border: #68858e;
+        --text-primary: #d4dadc;
+        --text-muted: #97aab0;
+        --border-color: var(--panel-border);
+      }
+
+      body {
+        font-family: "Kode Mono", "Consolas", monospace;
+        background:
+          linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+          var(--bg-0);
+        background-size: 28px 28px;
+        color: var(--text-primary);
+        padding: 18px;
+        min-height: 100svh;
+        display: flex;
+        justify-content: center;
+      }
+
+      .layout {
+        width: min(1220px, 100%);
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
+        gap: 14px;
+        align-items: start;
+      }
+
+      header {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: flex-start;
+      }
+
+      h1 {
+        color: var(--teal-500);
+        margin-bottom: 4px;
+        font-size: 22px;
+        letter-spacing: 0;
+      }
+
+      .subtitle {
+        color: var(--text-muted);
+        font-size: 22px;
+        margin-bottom: 0;
+      }
+
+      .stack {
+        display: grid;
+        gap: 12px;
+      }
+
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 12px;
+        border-radius: 0;
+        border: 1px solid var(--anthracite-500);
+        border-left: 3px solid var(--ochre-500);
+        background: rgba(20, 20, 20, 0.94);
+        min-width: 220px;
+      }
+
+      .status.connected {
+        border-color: var(--anthracite-500);
+        border-left-color: var(--lime-500);
+      }
+
+      .status-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--ochre-500);
+        flex-shrink: 0;
+      }
+
+      .status.connected .status-dot {
+        background: var(--lime-500);
+      }
+
+      .status-copy {
+        display: grid;
+        gap: 2px;
+      }
+
+      .status-panel {
+        display: grid;
+        gap: 8px;
+        justify-items: end;
+      }
+
+      .status-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+
+      .status-label {
+        color: var(--text-muted);
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .status-value {
+        color: var(--text-primary);
+        font-size: 12px;
+      }
+
+      .command-strip {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 10px;
+        align-items: center;
+        padding: 9px 12px;
+        border-radius: 0;
+        background: rgba(20, 20, 20, 0.94);
+        border: 1px solid var(--anthracite-500);
+        border-left: 3px solid var(--amber-500);
+        color: var(--text-muted);
+        font-size: 12px;
+      }
+
+      .command-strip strong {
+        color: var(--amber-500);
+        text-transform: uppercase;
+        font-size: 10px;
+        letter-spacing: 0.08em;
+      }
+
+      .command-strip.ok strong {
+        color: var(--lime-500);
+      }
+
+      .command-strip.error strong {
+        color: var(--ochre-500);
+      }
+
+      .state-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+        font-size: 13px;
+      }
+
+      .state-item {
+        background: rgba(20, 20, 20, 0.9);
+        padding: 10px 12px;
+        border-radius: 0;
+        border: 1px solid var(--anthracite-700);
+      }
+
+      .state-item.wide {
+        display: grid;
+        grid-template-columns: 0.5fr 1.5fr;
+        gap: 8px;
+      }
+
+      .state-item .label {
+        color: var(--text-muted);
+        font-size: 11px;
+        text-transform: uppercase;
+      }
+
+      .state-item .value {
+        color: var(--teal-300);
+        font-family: monospace;
+      }
+
+      button {
+        --command-color: var(--teal-500);
+        background: #20282b;
+        color: var(--text-primary);
+        border: 1px solid var(--anthracite-700);
+        border-bottom: 3px solid var(--command-color);
+        padding: 8px 14px 6px;
+        border-radius: 0;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: none;
+        transition:
+          color 0.15s ease,
+          border-color 0.18s ease,
+          background-color 0.18s ease;
+      }
+
+      button:hover {
+        --command-color: var(--ochre-500);
+        border-color: var(--ochre-500);
+        color: var(--ochre-500);
+        background: #253136;
+      }
+
+      button:disabled {
+        background: #191d1e;
+        color: var(--anthracite-500);
+        cursor: not-allowed;
+        border-color: var(--anthracite-700);
+      }
+
+      button.secondary {
+        background: #191d1e;
+        color: var(--text-primary);
+        --command-color: var(--anthracite-500);
+      }
+
+      button.danger {
+        color: #ffd7df;
+        --command-color: var(--raspberry-500);
+      }
+
+      .section {
+        background: var(--panel);
+        padding: 13px;
+        border-radius: 0;
+        border: 1px solid var(--panel-border);
+        box-shadow: inset 3px 0 rgba(46, 197, 230, 0.18);
+      }
+
+      .section h3 {
+        font-size: 18px;
+        color: var(--teal-500);
+        margin-bottom: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .inline-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+
+      input[type="text"],
+      input[type="number"],
+      textarea,
+      select {
+        flex: 1;
+        min-width: 110px;
+        background: #0d1011;
+        border: 1px solid var(--anthracite-700);
+        border-left: 3px solid var(--anthracite-500);
+        color: var(--text-primary);
+        padding: 9px 10px 9px 12px;
+        border-radius: 0;
+        font-family: "Kode Mono", monospace;
+        font-size: 12px;
+        min-height: 36px;
+      }
+
+      textarea {
+        color: var(--teal-300);
+      }
+
+      input:focus,
+      select:focus {
+        outline: none;
+        border-color: var(--ochre-700);
+        border-left-color: var(--ochre-500);
+        color: var(--ochre-500);
+        background: #111719;
+      }
+
+      .compact-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      @media (max-width: 1080px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
+        .state-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 720px) {
+        body {
+          padding: 14px;
+        }
+
+        header {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .status {
+          min-width: 0;
+        }
+
+        .status-panel {
+          justify-items: stretch;
+        }
+
+        .status-actions {
+          justify-content: stretch;
+        }
+
+        .status-actions button {
+          flex: 1;
+        }
+
+        .compact-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="layout">
+      <section class="stack">
+        <header>
+          <div>
+            <h1>Cont8xt</h1>
+            <p class="subtitle">
+              YAM8D companion app for taking notes about a song, an instrument
+              or any view or anything your cursor can point to.
+            </p>
+          </div>
+          <button onclick="location.reload();">Reload</button>
+          <div class="status-panel">
+            <div id="status" class="status">
+              <span class="status-dot" aria-hidden="true"></span>
+              <div class="status-copy">
+                <div class="status-label">Connection</div>
+                <div id="connection-state" class="status-value">Connecting...</div>
+              </div>
+            </div>
+            <div class="status-actions">
+              <button class="secondary" onclick="fetchFreshState()">Fetch State</button>
+              <button class="secondary" onclick="reconnect()">Reconnect</button>
+            </div>
+          </div>
+        </header>
+
+        <div id="command-strip" class="command-strip">
+          <strong id="command-label">Ready</strong>
+          <span id="command-status">Waiting for SDK connection.</span>
+        </div>
+
+        <div class="section">
+          <h3>Current State</h3>
+          <div class="state-grid" id="state-grid">
+            <div class="state-item wide">
+              <div class="label">View Name</div>
+              <div class="value" id="view-name">-</div>
+              <div class="label">Cell Id</div>
+              <div class="value" id="cell-id">-</div>
+              <div class="label">Text Under Cursor</div>
+              <div class="value" id="text-cursor">-</div>
+              <div class="label">Current Line</div>
+              <div class="value" id="current-line">-</div>
+              <div class="label">Cursor Position</div>
+              <div class="value" id="cursor-pos">-</div>
+              <div class="label">Selection Mode</div>
+              <div class="value" id="selection-mode">-</div>
+              <div class="label">Cursor Rect</div>
+              <div class="value" id="cursor-rect">-</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h3><a onclick="storeView();">About the current view
+              (click this title to store)</a></h3>
+          <h4>Short description</h4>
+          <div class="inline-actions">
+            <textarea type="text" id="view-desc-short" rows="1"
+                placeholder="This view is..."></textarea>
+          </div>
+          <h4>Long description</h4>
+          <div class="inline-actions">
+            <textarea type="text" id="view-desc-long"
+                placeholder="I wanted a powerful but soothing..."></textarea>
+          </div>
+          <h3><a onclick="storeCell();">About the cell you hover over
+              (click this title to store)</a></h3>
+          <h4>Short description</h4>
+          <div class="inline-actions">
+            <textarea type="text" id="cell-desc-short" rows="1"
+                placeholder="This cell is..."></textarea>
+          </div>
+          <h4>Long description</h4>
+          <div class="inline-actions">
+            <textarea type="text" id="cell-desc-long"
+                placeholder="I wanted a powerful but memorable..."></textarea>
+          </div>
+          <p>Click the "About..." titles to store the text.</p>
+        </div>
+
+        <div class="section" style="display:none;">
+          <h3>Event Log</h3>
+          <div class="log" id="log"></div>
+          <button onclick="clearLog()" style="margin-top: 10px">
+            Clear Log
+          </button>
+          <span id="device-model" hidden>-</span>
+        </div>
+      </section>
+    </main>
+
+    <!-- Load the SDK client -->
+    <script type="module">
+      // Import post-me as ES module
+      import {
+        ChildHandshake,
+        WindowMessenger,
+      } from "https://unpkg.com/post-me@0.4.5/dist/index.esnext.mjs";
+
+      // Make available globally for debugging
+      window.PostMe = { ChildHandshake, WindowMessenger };
+
+      const log = (message, type = "info") => {
+        const logEl = document.getElementById("log");
+        const entry = document.createElement("div");
+        entry.className = `log-entry ${type}`;
+        entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+        logEl.appendChild(entry);
+        logEl.scrollTop = logEl.scrollHeight;
+        console.log(`[Cont8xt] ${message}`);
+      };
+
+      const setCommandStatus = (label, message, type = "info") => {
+        const strip = document.getElementById("command-strip");
+        document.getElementById("command-label").textContent = label;
+        document.getElementById("command-status").textContent = message;
+        strip.classList.toggle("ok", type === "ok");
+        strip.classList.toggle("error", type === "error");
+      };
+
+      const runCommand = async (label, fn) => {
+        setCommandStatus(label, "Running...");
+        try {
+          const result = await fn();
+          setCommandStatus(label, "Completed.", "ok");
+          return result;
+        } catch (error) {
+          setCommandStatus(label, error.message, "error");
+          throw error;
+        }
+      };
+
+      // Hack the Minimal SDK Client implementation for testing
+      class M8TestClient {
+        constructor() {
+          this.state = {
+            viewName: null,
+            viewTitle: null,
+            cellId: null,
+            cursorPos: null,
+            cursorRect: null,
+            selectionMode: false,
+            textUnderCursor: null,
+            currentLine: null,
+            deviceModel: null,
+            macroRunning: false,
+          };
+          this.isConnected = false;
+          this.remoteHandle = null;
+          this.localHandle = null;
+          this.connection = null;
+        }
+
+        async connect() {
+          try {
+            this.disconnect();
+            setCommandStatus("Connect", "Opening SDK handshake...");
+            log("Attempting to connect to parent...");
+
+            // Check if post-me is available
+            if (typeof PostMe === "undefined") {
+              throw new Error("PostMe library not loaded");
+            }
+
+            const { ChildHandshake, WindowMessenger } = PostMe;
+
+            if (!ChildHandshake || !WindowMessenger) {
+              throw new Error("PostMe exports not available");
+            }
+
+            log("Creating WindowMessenger...");
+            const messenger = new WindowMessenger({
+              localWindow: window,
+              remoteWindow: window.parent,
+              remoteOrigin: "*",
+            });
+
+            log("Starting ChildHandshake...");
+            const connection = await ChildHandshake(messenger, {
+              ping: async () => "pong",
+            });
+
+            log("Handshake complete!");
+
+            this.connection = connection;
+            this.remoteHandle = connection.remoteHandle();
+            this.localHandle = connection.localHandle();
+            this.isConnected = true;
+
+            // Setup event listeners
+            log("Setting up event listeners...");
+
+            this.remoteHandle.addEventListener("stateChanged", (state) => {
+              log(`Event: stateChanged received`);
+              this.state = { ...this.state, ...state };
+              updateUI();
+            });
+
+            this.remoteHandle.addEventListener(
+              "viewChanged",
+              ({ viewName, viewTitle }) => {
+                log(`Event: viewChanged - ${viewTitle || viewName}`);
+                this.state.viewName = viewName;
+                this.state.viewTitle = viewTitle;
+                updateUI();
+              },
+            );
+
+            this.remoteHandle.addEventListener(
+              "cursorMoved",
+              ({ pos, rect, selectionMode }) => {
+                log(
+                  `Event: cursorMoved - (${pos?.x}, ${pos?.y}) - Rect ${rect?.x}, ${rect?.y}, ${rect?.w}x${rect?.h} sel=${selectionMode}`,
+                );
+                this.state.cellId = _maybe_this_is_where_your_magic_fn_goes_;
+                this.state.cursorPos = pos;
+                this.state.cursorRect = rect;
+                this.state.selectionMode = selectionMode;
+                updateUI();
+              },
+            );
+
+            this.remoteHandle.addEventListener(
+              "textUpdated",
+              ({ textUnderCursor, currentLine }) => {
+                log(`Event: textUpdated - "${textUnderCursor}"`);
+                this.state.textUnderCursor = textUnderCursor;
+                this.state.currentLine = currentLine;
+                updateUI();
+              },
+            );
+
+            // Listen for key press events
+            this.remoteHandle.addEventListener("keyPressed", ({ keys }) => {
+              log(
+                `Event: keyPressed - keys: ${keys} (0x${keys.toString(16).toUpperCase().padStart(2, "0")})`,
+              );
+            });
+
+            // Fetch initial state
+            log("Fetching initial state...");
+            const initialState = await this.remoteHandle.call("getState");
+            log(
+              `Initial state received: ${JSON.stringify(initialState).slice(0, 200)}`,
+            );
+            this.state = { ...this.state, ...initialState };
+            updateUI();
+
+            document.getElementById("status").classList.add("connected");
+            document.getElementById("connection-state").textContent =
+              `${this.state.deviceModel || "Unknown device"} connected`;
+            setCommandStatus("Connect", "SDK handshake complete.", "ok");
+            log("Connected to M8 host successfully!");
+
+            // Emit ready
+            this.localHandle.emit("ready", undefined);
+          } catch (error) {
+            this.isConnected = false;
+            log(`Connection failed: ${error.message}`, "error");
+            console.error("Connection error:", error);
+            document.getElementById("status").classList.remove("connected");
+            document.getElementById("connection-state").textContent =
+              `Connection failed: ${error.message}`;
+            setCommandStatus(
+              "Connect",
+              `Retrying in 3 seconds: ${error.message}`,
+              "error",
+            );
+            setTimeout(() => this.connect(), 3000);
+          }
+        }
+
+        async fetchState() {
+          if (!this.isConnected) throw new Error("Not connected");
+          log("Calling getState");
+          const state = await this.remoteHandle.call("getState");
+          this.state = { ...this.state, ...state };
+          updateUI();
+          return state;
+        }
+
+        disconnect() {
+          this.connection?.close();
+          this.connection = null;
+          this.remoteHandle = null;
+          this.localHandle = null;
+          this.isConnected = false;
+          document.getElementById("status")?.classList.remove("connected");
+        }
+      }
+
+      // Global client instance
+      window.m8Client = new M8TestClient();
+
+      const formatViewLabel = (viewName) =>
+        viewName
+          .replace(/([a-z])([A-Z])/g, "$1 $2")
+          .replace(/([a-z])([0-9])/g, "$1 $2")
+          .replace(/^./, (char) => char.toUpperCase());
+
+      // UI Update function
+      function updateUI() {
+        const state = window.m8Client.state;
+        const viewDisplay = state.viewTitle || state.viewName || "-";
+        const cellId = state.cellId || "-";
+        const cursorPos = state.cursorPos
+          ? `(${state.cursorPos.x}, ${state.cursorPos.y})`
+          : "-";
+        const selection = state.selectionMode ? "On" : "Off";
+        const cursorRectSummary = state.cursorRect
+          ? `${state.cursorRect.x}, ${state.cursorRect.y}, ${state.cursorRect.w}x${state.cursorRect.h}`
+          : "-";
+        document.getElementById("view-name").textContent = viewDisplay;
+        document.getElementById("cell-id").textContent = cellId;
+        document.getElementById("cursor-pos").textContent = cursorPos;
+        document.getElementById("text-cursor").textContent =
+          state.textUnderCursor || "-";
+        document.getElementById("current-line").textContent =
+          state.currentLine || "-";
+        document.getElementById("selection-mode").textContent =
+          selection;
+        document.getElementById("device-model").textContent =
+          state.deviceModel || "-";
+        document.getElementById("cursor-rect").textContent = cursorRectSummary;
+        document.getElementById("connection-state").textContent =
+          window.m8Client.isConnected
+            ? `${state.deviceModel || "Unknown device"} connected`
+            : "Connecting...";
+
+      }
+
+      // Expose functions to global scope for button onclick handlers
+      window.fetchFreshState = async () => {
+        try {
+          await runCommand("Fetch State", () => window.m8Client.fetchState());
+          log("Fresh state fetched");
+        } catch (error) {
+          log(`Fetch state failed: ${error.message}`, "error");
+        }
+      };
+
+      window.clearLog = () => {
+        document.getElementById("log").innerHTML = "";
+      };
+
+      window.reconnect = async () => {
+        window.m8Client.disconnect();
+        updateUI();
+        await window.m8Client.connect();
+      };
+
+      window.store = async (key, value) => {
+        log(`Storing info...`);
+        // do the right thing
+      }
+
+      window.storeView = async () => {
+        cleanTitles();
+        try {
+          store(_view_ID_+"short", document.getElementById(view-desc-short).value);
+          store(_view_ID_+"long", document.getElementById(view-desc-long).value);
+        } catch (error) {
+          log(`Store view info failed: ${error.message}`, "error");
+        }
+      };
+
+      window.storeCell = async () => {
+        cleanTitles();
+        try {
+          store(_some_ID_+"short", document.getElementById(cell-desc-short).value);
+          store(_some_ID_+"long", document.getElementById(cell-desc-long).value);
+        } catch (error) {
+          log(`Store cell info failed: ${error.message}`, "error");
+        }
+      };
+
+      window.cleanTitles = async () => {
+        try {
+          document.querySelectorAll('h3').forEach(h3 => {
+            h3.textContent = h3.textContent.replace(/\s*\([^)]*\)/g, '');
+          });
+        } catch (error) {
+          log(`Clean titles failed: ${error.message}`, "error");
+        }
+      };
+
+      // Connect on load
+      window.addEventListener("load", () => {
+        log("Cont8xt Client loaded");
+        window.m8Client.connect();
+      });
+    </script>
+  </body>
+</html>
