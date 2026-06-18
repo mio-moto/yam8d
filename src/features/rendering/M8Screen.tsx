@@ -9,7 +9,7 @@ import type { ScreenLayout } from './renderer'
 import type { DrawCommand, WorkerInMessage, WorkerOutMessage } from './renderer.worker'
 
 const VJ_NUMPAD_STORAGE_KEY = 'M8savedBackgroundShaders'
-type VJSavedShader = { id: string; source: string; compositeM8Screen: boolean; name: string; updatedAt: number }
+type VJSavedShader = { id: string; source: string; compositeM8Screen: boolean; name: string; videoUrl?: string; updatedAt: number }
 
 const loadVJShaderById = (id: string): VJSavedShader | null => {
     try {
@@ -42,7 +42,7 @@ export const M8Screen = forwardRef<HTMLCanvasElement, { bus?: ConnectedBus | nul
     // all commands arriving within the same JS macrotask into a single postMessage
     const pendingBatchRef = useRef<DrawCommand[]>([])
     const flushTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-    const { settings } = useSettingsContext()
+    const { settings, updateSettingValue } = useSettingsContext()
 
     // Audio capture refs (AudioContext lives on the main thread, not inside the worker)
     const micStateRef = useRef<'idle' | 'starting' | 'ready' | 'error'>('idle')
@@ -53,6 +53,12 @@ export const M8Screen = forwardRef<HTMLCanvasElement, { bus?: ConnectedBus | nul
     const remappedSpectrumRef = useRef<Float32Array<ArrayBuffer> | null>(null)
     const usesAudioRef = useRef(false)
     const spectrumBandsRef = useRef<64 | 128 | 256>(128)
+
+    // Video texture refs (video element lives on the main thread, frames are transferred to worker)
+    const videoRef = useRef<HTMLVideoElement | null>(null)
+    const videoOffscreenRef = useRef<OffscreenCanvas | null>(null)
+    const videoOffscreenCtxRef = useRef<OffscreenCanvasRenderingContext2D | null>(null)
+    const usesVideoRef = useRef(false)
 
     useImperativeHandle(ref, () => innerRef.current as HTMLCanvasElement, [])
 
@@ -153,7 +159,34 @@ export const M8Screen = forwardRef<HTMLCanvasElement, { bus?: ConnectedBus | nul
             audioLoopId = requestAnimationFrame(tickAudio)
         }
 
-        // Update onmessage now that tickAudio is defined
+        // Video frame loop: captures frames from the video element and posts to the worker
+        let videoLoopId: number | undefined
+
+        const tickVideo = () => {
+            if (!usesVideoRef.current || !workerRef.current) { videoLoopId = undefined; return }
+            const video = videoRef.current
+            if (video && video.readyState >= 2 && !video.paused && video.videoWidth > 0) {
+                const w = video.videoWidth
+                const h = video.videoHeight
+                if (!videoOffscreenRef.current || videoOffscreenRef.current.width !== w || videoOffscreenRef.current.height !== h) {
+                    videoOffscreenRef.current = new OffscreenCanvas(w, h)
+                    videoOffscreenCtxRef.current = videoOffscreenRef.current.getContext('2d')
+                }
+                const ctx = videoOffscreenCtxRef.current
+                if (ctx) {
+                    try {
+                        ctx.drawImage(video, 0, 0)
+                        const bitmap = videoOffscreenRef.current.transferToImageBitmap()
+                        workerRef.current.postMessage({ type: 'videoFrame', bitmap } satisfies WorkerInMessage, [bitmap])
+                    } catch {
+                        // CORS or decode error — skip this frame silently
+                    }
+                }
+            }
+            videoLoopId = requestAnimationFrame(tickVideo)
+        }
+
+        // Update onmessage now that tickAudio and tickVideo are defined
         worker.onmessage = (event: MessageEvent<WorkerOutMessage>) => {
             const msg = event.data
             if (msg.type === 'shaderError') {
@@ -164,6 +197,13 @@ export const M8Screen = forwardRef<HTMLCanvasElement, { bus?: ConnectedBus | nul
                 } else if (!msg.usesAudio && audioLoopId !== undefined) {
                     cancelAnimationFrame(audioLoopId)
                     audioLoopId = undefined
+                }
+                usesVideoRef.current = msg.usesVideo
+                if (msg.usesVideo && videoLoopId === undefined) {
+                    videoLoopId = requestAnimationFrame(tickVideo)
+                } else if (!msg.usesVideo && videoLoopId !== undefined) {
+                    cancelAnimationFrame(videoLoopId)
+                    videoLoopId = undefined
                 }
             }
         }
@@ -226,6 +266,9 @@ export const M8Screen = forwardRef<HTMLCanvasElement, { bus?: ConnectedBus | nul
                 micTimeDomainRef.current = null
             }
             micStateRef.current = 'idle'
+            // Stop video frame loop
+            if (videoLoopId !== undefined) { cancelAnimationFrame(videoLoopId); videoLoopId = undefined }
+            usesVideoRef.current = false
             // Defer termination: if the effect re-fires immediately (StrictMode) the
             // next invocation will cancel this timer and reuse the worker.
             const w = workerRef.current
@@ -324,6 +367,55 @@ export const M8Screen = forwardRef<HTMLCanvasElement, { bus?: ConnectedBus | nul
         workerRef.current?.postMessage({ type: 'setCompositeM8Screen', value: settings.backgroundShaderCompositeM8Screen } satisfies WorkerInMessage)
     }, [settings.backgroundShaderCompositeM8Screen])
 
+    // Video texture: manage a hidden <video> element on the main thread, play/pause based on URL
+    useEffect(() => {
+        const url = settings.videoTextureUrl
+        if (!url) {
+            if (videoRef.current) {
+                videoRef.current.pause()
+                videoRef.current.src = ''
+            }
+            return
+        }
+        // Lazily create the hidden video element
+        if (!videoRef.current) {
+            const video = document.createElement('video')
+            video.style.display = 'none'
+            video.style.position = 'absolute'
+            video.style.zIndex = '-1'
+            video.muted = true
+            video.loop = true
+            video.crossOrigin = 'anonymous'
+            video.playsInline = true
+            document.body.appendChild(video)
+            videoRef.current = video
+        }
+        const video = videoRef.current
+        video.src = url
+        video.poster = url
+        video.play().catch(() => {
+            // Autoplay may be blocked — user interaction will be needed
+        })
+        return () => {
+            // Cleanup is intentionally deferred to component unmount to avoid
+            // stopping the video on every URL change before it starts playing
+        }
+    }, [settings.videoTextureUrl])
+
+    // Destroy the video element on unmount
+    useEffect(() => {
+        return () => {
+            if (videoRef.current) {
+                videoRef.current.pause()
+                videoRef.current.src = ''
+                document.body.removeChild(videoRef.current)
+                videoRef.current = null
+            }
+            videoOffscreenRef.current = null
+            videoOffscreenCtxRef.current = null
+        }
+    }, [])
+
     const setVjActiveKey = useSetAtom(vjActiveKeyAtom)
 
     // VJ mode: precompile all assigned shaders and handle numpad key switching
@@ -355,13 +447,15 @@ export const M8Screen = forwardRef<HTMLCanvasElement, { bus?: ConnectedBus | nul
             const shader = loadVJShaderById(shaderId)
             if (!shader) return
             worker.postMessage({ type: 'activateVJShader', id: shaderId, compositeM8Screen: shader.compositeM8Screen } satisfies WorkerInMessage)
+            // Keep video source in sync with the active VJ preset.
+            updateSettingValue('videoTextureUrl', shader.videoUrl ?? '')
             setVjActiveKey(key)
             e.preventDefault()
         }
 
         window.addEventListener('keydown', onKeyDown)
         return () => window.removeEventListener('keydown', onKeyDown)
-    }, [settings.vjMode, settings.vjNumpadAssignments, setVjActiveKey])
+    }, [settings.vjMode, settings.vjNumpadAssignments, setVjActiveKey, updateSettingValue])
 
     return (
         <canvas

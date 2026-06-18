@@ -20,12 +20,14 @@ export type WorkerInMessage =
   | { type: 'setCompositeM8Screen'; value: boolean }
   | { type: 'setMouseState'; x: number; y: number; down: number }
   | { type: 'audioData'; level: number; spectrum: Float32Array | null }
+  | { type: 'videoFrame'; bitmap: ImageBitmap }
   | { type: 'precompileVJShader'; id: string; source: string }
   | { type: 'activateVJShader'; id: string; compositeM8Screen: boolean }
+  | { type: 'resetState' }
   // system info from bus — drives setScreenLayout on reconnect
   | { type: 'system'; data: SystemCommand }
 
-export type WorkerOutMessage = { type: 'shaderError'; error: string | null; usesAudio: boolean }
+export type WorkerOutMessage = { type: 'shaderError'; error: string | null; usesAudio: boolean; usesVideo: boolean }
 
 let render: ReturnType<typeof renderer>
 
@@ -93,9 +95,9 @@ self.addEventListener('message', (rawEvent: Event) => {
       break
     }
     case 'setCustomBackgroundShader': {
-      const result = render?.setCustomBackgroundShader(msg.source) ?? { error: null, usesAudio: false }
+      const result = render?.setCustomBackgroundShader(msg.source) ?? { error: null, usesAudio: false, usesVideo: false }
       // biome-ignore lint/suspicious/noExplicitAny: postMessage from worker to main — no targetOrigin needed
-      ;(self as any).postMessage({ type: 'shaderError', error: result.error, usesAudio: result.usesAudio } satisfies WorkerOutMessage)
+      ;(self as any).postMessage({ type: 'shaderError', error: result.error, usesAudio: result.usesAudio, usesVideo: result.usesVideo ?? false } satisfies WorkerOutMessage)
       break
     }
     case 'setCompositeM8Screen': {
@@ -110,12 +112,24 @@ self.addEventListener('message', (rawEvent: Event) => {
       render?.setAudioData(msg.level, msg.spectrum)
       break
     }
+    case 'videoFrame': {
+      render?.setVideoFrame(msg.bitmap)
+      break
+    }
     case 'precompileVJShader': {
       render?.precompileVJShader(msg.id, msg.source)
       break
     }
     case 'activateVJShader': {
-      render?.activateVJShader(msg.id, msg.compositeM8Screen)
+      const result = render?.activateVJShader(msg.id, msg.compositeM8Screen)
+      if (result) {
+        // biome-ignore lint/suspicious/noExplicitAny: postMessage from worker to main — no targetOrigin needed
+        ;(self as any).postMessage({ type: 'shaderError', error: null, usesAudio: result.usesAudio, usesVideo: result.usesVideo } satisfies WorkerOutMessage)
+      }
+      break
+    }
+    case 'resetState': {
+      render?.resetState()
       break
     }
     case 'system': {
