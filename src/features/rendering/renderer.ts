@@ -1,4 +1,4 @@
-import type { RectCommand, WaveCommand } from '../connection/protocol'
+﻿import type { RectCommand, WaveCommand } from '../connection/protocol'
 import Font1 from './fonts/font1.png?url'
 import Font2 from './fonts/font2.png?url'
 import Font3 from './fonts/font3.png?url'
@@ -187,7 +187,7 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
     preserveDrawingBuffer: false,
     alpha: false,
     antialias: false,
-  })
+  }as WebGLContextAttributes) as WebGL2RenderingContext | null
 
   if (!gl) {
     return
@@ -306,6 +306,31 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
   let compositeM8Screen = true
   let isFrameQueued = false
 
+  // --- Video texture (uploaded frame-by-frame from main thread) ---
+  const VIDEO_TEX_UNIT = 15
+  let videoTexture: WebGLTexture | null = null
+  let videoTexW = 0
+  let videoTexH = 0
+  let customUsesVideo = false
+  let custom_uVideoTexture: WebGLUniformLocation | null = null
+
+  // --- GPGPU state texture ping-pong (display-resolution, RGBA32F or RGBA8 fallback) ---
+  // Shader opts in by declaring:  layout(location = 1) out vec4 fragState;
+  // Previous state is available via: uniform sampler2D uStateTexture;
+  // State dimensions:               uniform vec2 uStateSize;
+  const STATE_TEX_UNITS = [2, 3] as const
+  const colorBufferFloatExt = gl.getExtension('EXT_color_buffer_float')
+  const stateInternalFormat = colorBufferFloatExt ? (gl.RGBA32F as GLenum) : (gl.RGBA8 as GLenum)
+  const stateFormat = gl.RGBA
+  const stateDataType = colorBufferFloatExt ? (gl.FLOAT as GLenum) : (gl.UNSIGNED_BYTE as GLenum)
+  const stateTextures: [WebGLTexture | null, WebGLTexture | null] = [null, null]
+  let stateTexW = 0
+  let stateTexH = 0
+  let statePingPongReadIdx = 0
+  let customUsesState = false
+  let custom_uStateTexture: WebGLUniformLocation | null = null
+  let custom_uStateSize: WebGLUniformLocation | null = null
+
   // --- VJ shader cache (pre-compiled programs for instant numpad switching) ---
   type VJCachedShader = {
     program: WebGLProgram
@@ -320,10 +345,15 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
     uGlobalTime: WebGLUniformLocation | null
     uGlobalFrameCount: WebGLUniformLocation | null
     uM8Screen: WebGLUniformLocation | null
+    uVideoTexture: WebGLUniformLocation | null
+    uStateTexture: WebGLUniformLocation | null
+    uStateSize: WebGLUniformLocation | null
     usesAudioLevel: boolean
     usesAudioSpectrum: boolean
     usesMouse: boolean
     usesM8Screen: boolean
+    usesVideo: boolean
+    usesState: boolean
   }
   const vjShaderCache = new Map<string, VJCachedShader>()
   // Track whether customProgram is owned by the VJ cache (must not be deleted on swap)
@@ -374,6 +404,34 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
     bgPingPongWidth = 0
     bgPingPongHeight = 0
     bgFrameCount = 0
+  }
+
+  const ensureStateBuffers = (width: number, height: number) => {
+    if (stateTexW === width && stateTexH === height && stateTextures[0] && stateTextures[1]) return
+    for (let i = 0; i < 2; i++) {
+      if (stateTextures[i]) gl.deleteTexture(stateTextures[i])
+      stateTextures[i] = gl.createTexture()
+      gl.activeTexture(gl.TEXTURE0 + STATE_TEX_UNITS[i])
+      gl.bindTexture(gl.TEXTURE_2D, stateTextures[i])
+      gl.texImage2D(gl.TEXTURE_2D, 0, stateInternalFormat, width, height, 0, stateFormat, stateDataType, null)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+    }
+    stateTexW = width
+    stateTexH = height
+    statePingPongReadIdx = 0
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+  }
+
+  const destroyStateBuffers = () => {
+    for (let i = 0; i < 2; i++) {
+      if (stateTextures[i]) { gl.deleteTexture(stateTextures[i]); stateTextures[i] = null }
+    }
+    stateTexW = 0
+    stateTexH = 0
+    statePingPongReadIdx = 0
   }
 
   const ensureM8SceneFbo = (width: number, height: number) => {
@@ -460,8 +518,11 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
       const nextGlobalTime = gl.getUniformLocation(nextProgram, 'uGlobalTime')
       const nextGlobalFrameCount = gl.getUniformLocation(nextProgram, 'uGlobalFrameCount')
       const nextM8Screen = gl.getUniformLocation(nextProgram, 'uM8Screen')
+      const nextVideoTexture = gl.getUniformLocation(nextProgram, 'uVideoTexture')
+      const nextStateTexture = gl.getUniformLocation(nextProgram, 'uStateTexture')
+      const nextStateSize = gl.getUniformLocation(nextProgram, 'uStateSize')
 
-      // Don't delete programs owned by the VJ cache — they are managed separately
+      // Don't delete programs owned by the VJ cache â€” they are managed separately
       if (customProgram && !customProgramFromVJCache) {
         gl.deleteProgram(customProgram)
       }
@@ -483,11 +544,17 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
       customUsesAudioSpectrum = hasUniform(nextAudioSpectrum) && hasUniform(nextAudioSpectrumBins)
       customUsesMouse = hasUniform(nextMouse)
       customUsesM8Screen = hasUniform(nextM8Screen)
+      custom_uVideoTexture = nextVideoTexture
+      customUsesVideo = hasUniform(nextVideoTexture)
+      custom_uStateTexture = nextStateTexture
+      custom_uStateSize = nextStateSize
+      customUsesState = gl.getFragDataLocation(nextProgram, 'fragState') >= 0
       backgroundStartTime = performance.now() / 1000
-      // Reset ping-pong buffers so the new shader starts with a clean slate
+      // Reset ping-pong and state buffers so the new shader starts with a clean slate
       destroyBgPingPongBuffers()
+      destroyStateBuffers()
       queueFrame()
-      return { error: null, usesAudio: customUsesAudioLevel || customUsesAudioSpectrum }
+      return { error: null, usesAudio: customUsesAudioLevel || customUsesAudioSpectrum, usesVideo: customUsesVideo }
     } catch (error) {
       return { error: error instanceof Error ? error.message : 'Failed to compile custom background shader', usesAudio: false }
     }
@@ -513,10 +580,15 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
         uGlobalTime: gl.getUniformLocation(program, 'uGlobalTime'),
         uGlobalFrameCount: gl.getUniformLocation(program, 'uGlobalFrameCount'),
         uM8Screen: gl.getUniformLocation(program, 'uM8Screen'),
+        uVideoTexture: gl.getUniformLocation(program, 'uVideoTexture'),
+        uStateTexture: gl.getUniformLocation(program, 'uStateTexture'),
+        uStateSize: gl.getUniformLocation(program, 'uStateSize'),
         usesAudioLevel: hasUniform(gl.getUniformLocation(program, 'uAudioLevel')),
         usesAudioSpectrum: hasUniform(gl.getUniformLocation(program, 'uAudioSpectrum')) && hasUniform(gl.getUniformLocation(program, 'uAudioSpectrumBins')),
         usesMouse: hasUniform(gl.getUniformLocation(program, 'uMouse')),
         usesM8Screen: hasUniform(gl.getUniformLocation(program, 'uM8Screen')),
+        usesVideo: hasUniform(gl.getUniformLocation(program, 'uVideoTexture')),
+        usesState: gl.getFragDataLocation(program, 'fragState') >= 0,
       })
       return { error: null }
     } catch (error) {
@@ -528,7 +600,7 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
     const cached = vjShaderCache.get(id)
     if (!cached) return
 
-    // Don't delete programs owned by the VJ cache — they are managed separately
+    // Don't delete programs owned by the VJ cache â€” they are managed separately
     if (customProgram && !customProgramFromVJCache) {
       gl.deleteProgram(customProgram)
     }
@@ -550,10 +622,17 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
     customUsesAudioSpectrum = cached.usesAudioSpectrum
     customUsesMouse = cached.usesMouse
     customUsesM8Screen = cached.usesM8Screen
+    custom_uVideoTexture = cached.uVideoTexture
+    customUsesVideo = cached.usesVideo
+    custom_uStateTexture = cached.uStateTexture
+    custom_uStateSize = cached.uStateSize
+    customUsesState = cached.usesState
     compositeM8Screen = newCompositeM8Screen
     backgroundStartTime = performance.now() / 1000
     destroyBgPingPongBuffers()
+    destroyStateBuffers()
     queueFrame()
+    return { usesAudio: cached.usesAudioLevel || cached.usesAudioSpectrum, usesVideo: cached.usesVideo }
   }
 
   const renderBackground = () => {
@@ -596,6 +675,13 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
       gl.uniform1i(custom_uM8Screen, M8_SCREEN_TEX_UNIT)
     }
 
+    // Bind video frame texture
+    if (customUsesVideo && custom_uVideoTexture && videoTexture) {
+      gl.activeTexture(gl.TEXTURE0 + VIDEO_TEX_UNIT)
+      gl.bindTexture(gl.TEXTURE_2D, videoTexture)
+      gl.uniform1i(custom_uVideoTexture, VIDEO_TEX_UNIT)
+    }
+
     if (customUsesAudioSpectrum && custom_uAudioSpectrum && custom_uAudioSpectrumBins) {
       if (externalSpectrum) {
         ensureSpectrumTexture(externalSpectrum.length)
@@ -616,7 +702,27 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
         gl.uniform1f(custom_uAudioSpectrumBins, 0)
       }
     }
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+    // GPGPU state: MRT draw with COLOR_ATTACHMENT1 = write state texture
+    if (customUsesState) {
+      ensureStateBuffers(displayWidth, displayHeight)
+      const writeStateIdx = 1 - statePingPongReadIdx
+      const readStateTexUnit = STATE_TEX_UNITS[statePingPongReadIdx]
+      // Bind the read (previous) state texture
+      gl.activeTexture(gl.TEXTURE0 + readStateTexUnit)
+      gl.bindTexture(gl.TEXTURE_2D, stateTextures[statePingPongReadIdx])
+      if (custom_uStateTexture) gl.uniform1i(custom_uStateTexture, readStateTexUnit)
+      if (custom_uStateSize) gl.uniform2f(custom_uStateSize, stateTexW, stateTexH)
+      // Attach write state texture as COLOR_ATTACHMENT1 on the write visual FBO
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.TEXTURE_2D, stateTextures[writeStateIdx], 0)
+      gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1])
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+      // Detach state and restore single output
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.TEXTURE_2D, null, 0)
+      gl.drawBuffers([gl.COLOR_ATTACHMENT0])
+      statePingPongReadIdx = writeStateIdx
+    } else {
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+    }
 
     // Blit the result from the write FBO to the default framebuffer (screen)
     gl.bindFramebuffer(gl.READ_FRAMEBUFFER, bgPingPongFbos[writeIdx])
@@ -643,8 +749,8 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
   //   3. If smoothRendering: apply final blur+threshold shaping on SDF
   //   4. Blit glyph with a preserved postprocess fringe to output atlas
   //
-  // JFA positions encoded as (pixel_coord / 255) in RGBA8 — no float FBO needed.
-  // Max scaled glyph dim ≤ 255 px (worst case ~208 px at scale=8).
+  // JFA positions encoded as (pixel_coord / 255) in RGBA8 â€” no float FBO needed.
+  // Max scaled glyph dim â‰¤ 255 px (worst case ~208 px at scale=8).
   // ---------------------------------------------------------------------------
   const processFont = () => {
     if (!fontAtlasOrigW || !fontAtlasOrigH) return
@@ -839,7 +945,7 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
         readIdx = writeIdx
       }
 
-      // --- Distance pass: JFA result + binary glyph → normalised SDF ---
+      // --- Distance pass: JFA result + binary glyph â†’ normalised SDF ---
       gl.bindFramebuffer(gl.FRAMEBUFFER, sdfFbo)
       // biome-ignore lint/correctness/useHookAtTopLevel: ain't a hook
       gl.useProgram(sdfDistProgram)
@@ -943,7 +1049,7 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
 
           const { width: nativeW, height: nativeH } = screenLayoutConfig[screenLayout].screen
 
-          // Always render directly to screen — no scene-level post-processing.
+          // Always render directly to screen â€” no scene-level post-processing.
           // Rounded alpha atlas handles text quality; blur+threshold is baked per-glyph.
 
           if (backgroundShader && customUsesM8Screen) {
@@ -956,7 +1062,7 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
             gl.viewport(0, 0, nativeW, nativeH)
             rectRenderer.renderRects(true)
 
-            // Step 1: Blit rects into m8SceneFbo (no chroma-key — capture raw M8 content)
+            // Step 1: Blit rects into m8SceneFbo (no chroma-key â€” capture raw M8 content)
             gl.bindFramebuffer(gl.FRAMEBUFFER, m8SceneFbo)
             gl.viewport(0, 0, displayWidth, displayHeight)
             gl.clearColor(0, 0, 0, 1)
@@ -1477,6 +1583,28 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
       externalAudioLevel = level
       externalSpectrum = spectrum
     },
+    setVideoFrame: (bitmap: ImageBitmap) => {
+      if (!videoTexture) {
+        videoTexture = gl.createTexture()
+        videoTexW = 0
+        videoTexH = 0
+      }
+      gl.activeTexture(gl.TEXTURE0 + VIDEO_TEX_UNIT)
+      gl.bindTexture(gl.TEXTURE_2D, videoTexture)
+      if (bitmap.width !== videoTexW || bitmap.height !== videoTexH) {
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, bitmap)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+        videoTexW = bitmap.width
+        videoTexH = bitmap.height
+      } else {
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, bitmap)
+      }
+      bitmap.close()
+      queueFrame()
+    },
     setCompositeM8Screen: (value: boolean) => {
       if (compositeM8Screen !== value) {
         compositeM8Screen = value
@@ -1487,6 +1615,10 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
       mouseX = x
       mouseY = y
       mouseDown = down
+    },
+    resetState: () => {
+      destroyStateBuffers()
+      queueFrame()
     },
   }
 }

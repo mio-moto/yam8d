@@ -11,6 +11,7 @@ type SavedBackgroundShader = {
   name: string
   source: string
   compositeM8Screen: boolean
+  videoUrl?: string
   updatedAt: number
 }
 

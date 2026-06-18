@@ -5,6 +5,8 @@ import { style } from '../../app/style/style'
 import { DEFAULT_CUSTOM_BACKGROUND_SHADER, DEFAULT_CUSTOM_BACKGROUND_SHADER_NAME, useSettingsContext } from '../settings/settings'
 import { ShaderCodeEditor } from './ShaderCodeEditor'
 import FontAtlasGlitchShaderSource from './shader/font_atlas_glitch.frag?raw'
+import VideoBackgroundShaderSource from './shader/video_background.frag?raw'
+import CyberPunkShaderSource from './shader/cyberpunk.frag?raw'
 import VertPostprocess from './shader/postprocess.vert?raw'
 
 type SavedBackgroundShader = {
@@ -12,6 +14,7 @@ type SavedBackgroundShader = {
   name: string
   source: string
   compositeM8Screen: boolean
+  videoUrl?: string
   updatedAt: number
 }
 
@@ -19,12 +22,30 @@ const STORAGE_KEY = 'M8savedBackgroundShaders'
 const LEGACY_SAVED_SHADER_NAMES = new Set([DEFAULT_CUSTOM_BACKGROUND_SHADER_NAME])
 const UNSAVED_SHADER_ID = '__current-unsaved-shader__'
 const FONT_ATLAS_GLITCH_SHADER_NAME = 'Font Atlas Glitch'
+const VIDEO_BACKGROUND_SHADER_NAME = 'Video Background'
 const DEFAULT_SAVED_SHADERS: SavedBackgroundShader[] = [
+  {
+    id: 'ym8d-cyberpunk',
+    name: 'YAM8D - Shader Demo "CYBERPUNK DATASTREAM"',
+    source: CyberPunkShaderSource,
+    compositeM8Screen: false,
+    videoUrl: '',
+    updatedAt: 0,
+  },
+  {
+    id: 'video-background',
+    name: VIDEO_BACKGROUND_SHADER_NAME,
+    source: VideoBackgroundShaderSource,
+    compositeM8Screen: false,
+    videoUrl: '',
+    updatedAt: 0,
+  },
   {
     id: 'font-atlas-glitch',
     name: FONT_ATLAS_GLITCH_SHADER_NAME,
     source: FontAtlasGlitchShaderSource,
     compositeM8Screen: false,
+    videoUrl: '',
     updatedAt: 0,
   },
   {
@@ -32,18 +53,19 @@ const DEFAULT_SAVED_SHADERS: SavedBackgroundShader[] = [
     name: DEFAULT_CUSTOM_BACKGROUND_SHADER_NAME,
     source: DEFAULT_CUSTOM_BACKGROUND_SHADER,
     compositeM8Screen: true,
+    videoUrl: '',
     updatedAt: 0,
   },
 ]
 
-type UnsavedShader = Pick<SavedBackgroundShader, 'source' | 'compositeM8Screen'>
+type UnsavedShader = Pick<SavedBackgroundShader, 'source' | 'compositeM8Screen' | 'videoUrl'>
 
 const containerClass = css`
   width: min(800px, 45vw);
   min-width: 380px;
   display: grid;
   height: 90vh;
-  grid-template-rows: auto 1fr auto auto auto auto;
+  grid-template-rows: auto 1fr auto auto auto auto auto;
   gap: 10px;
   align-self: stretch;
   padding: 14px;
@@ -144,6 +166,42 @@ const dangerButtonClass = css`
   }
 `
 
+const videoSectionClass = css`
+  display: grid;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(104, 133, 142, 0.45);
+`
+
+const videoRowClass = css`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+`
+
+const videoInputClass = css`
+  width: 100%;
+  padding: 6px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.35);
+  }
+`
+
+const videoHintClass = css`
+  font-size: 11px;
+  opacity: 0.7;
+  color: ${style.colors.raspberry[300]};
+  margin: 0;
+  line-height: 1.35;
+`
+
 const helpButtonClass = css`
   width: 18px;
   height: 18px;
@@ -225,6 +283,16 @@ const findMatchingSavedShader = (
 ): SavedBackgroundShader | null =>
   savedShaders.find((shader) => shader.source === source && (shader.compositeM8Screen ?? true) === compositeM8Screen) ?? null
 
+const isYouTubeUrl = (url: string): boolean =>
+  /^https?:\/\/(www\.)?(youtube\.com\/watch|youtu\.be\/)/.test(url)
+
+const videoUrlHint = (url: string): string | null => {
+  if (!url) return null
+  if (isYouTubeUrl(url))
+    return 'YouTube URLs cannot be used as WebGL textures due to browser CORS restrictions. Use a direct MP4/WebM URL instead.'
+  return null
+}
+
 const seedDefaultShaders = (savedShaders: SavedBackgroundShader[]): SavedBackgroundShader[] => {
   const savedIds = new Set(savedShaders.map((shader) => shader.id))
   const savedNames = new Set(savedShaders.map((shader) => shader.name))
@@ -241,8 +309,10 @@ export const BackgroundShaderEditor: FC = () => {
   const [status, setStatus] = useState('')
   const [savedShaders, setSavedShaders] = useState<SavedBackgroundShader[]>([])
   const [unsavedShader, setUnsavedShader] = useState<UnsavedShader | null>(null)
+  const [videoUrlDraft, setVideoUrlDraft] = useState(settings.videoTextureUrl)
   const initialSourceRef = useRef(settings.customBackgroundShader)
   const initialCompositeRef = useRef(settings.backgroundShaderCompositeM8Screen)
+  const initialVideoUrlRef = useRef(settings.videoTextureUrl)
 
   useEffect(() => {
     setSourceDraft(settings.customBackgroundShader)
@@ -254,8 +324,9 @@ export const BackgroundShaderEditor: FC = () => {
       const defaults = DEFAULT_SAVED_SHADERS
       const initialMatch = findMatchingSavedShader(defaults, initialSourceRef.current, initialCompositeRef.current)
       setSavedShaders(defaults)
-      setUnsavedShader(initialMatch ? null : { source: initialSourceRef.current, compositeM8Screen: initialCompositeRef.current })
+      setUnsavedShader(initialMatch ? null : { source: initialSourceRef.current, compositeM8Screen: initialCompositeRef.current, videoUrl: initialVideoUrlRef.current })
       setSelectedId(initialMatch?.id ?? UNSAVED_SHADER_ID)
+      if (initialMatch) setVideoUrlDraft(initialMatch.videoUrl ?? '')
       localStorage.setItem(STORAGE_KEY, JSON.stringify(defaults))
       return
     }
@@ -270,8 +341,9 @@ export const BackgroundShaderEditor: FC = () => {
         const seeded = seedDefaultShaders(next)
         const initialMatch = findMatchingSavedShader(seeded, initialSourceRef.current, initialCompositeRef.current)
         setSavedShaders(seeded)
-        setUnsavedShader(initialMatch ? null : { source: initialSourceRef.current, compositeM8Screen: initialCompositeRef.current })
+        setUnsavedShader(initialMatch ? null : { source: initialSourceRef.current, compositeM8Screen: initialCompositeRef.current, videoUrl: initialVideoUrlRef.current })
         setSelectedId(initialMatch?.id ?? UNSAVED_SHADER_ID)
+        if (initialMatch) setVideoUrlDraft(initialMatch.videoUrl ?? '')
         localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded))
       }
     } catch {
@@ -288,11 +360,13 @@ export const BackgroundShaderEditor: FC = () => {
   const selectedShader = useMemo(() => savedShaders.find((shader) => shader.id === selectedId) ?? null, [savedShaders, selectedId])
   const hasUnsavedChanges = !!selectedShader && (
     sourceDraft !== selectedShader.source ||
-    compositeM8Draft !== (selectedShader.compositeM8Screen ?? true)
+    compositeM8Draft !== (selectedShader.compositeM8Screen ?? true) ||
+    videoUrlDraft !== (selectedShader.videoUrl ?? '')
   )
   const hasUnsavedShaderChanges = isUnsavedShaderSelected && !!unsavedShader && (
     sourceDraft !== unsavedShader.source ||
-    compositeM8Draft !== unsavedShader.compositeM8Screen
+    compositeM8Draft !== unsavedShader.compositeM8Screen ||
+    videoUrlDraft !== (unsavedShader.videoUrl ?? '')
   )
   const hasDraftChangesToDiscard = hasUnsavedChanges
 
@@ -305,10 +379,10 @@ export const BackgroundShaderEditor: FC = () => {
       return
     }
 
-    setUnsavedShader({ source: sourceDraft, compositeM8Screen: compositeM8Draft })
+    setUnsavedShader({ source: sourceDraft, compositeM8Screen: compositeM8Draft, videoUrl: videoUrlDraft })
   }
 
-  const applyShader = (source = sourceDraft, compositeM8Screen = compositeM8Draft, successStatus = 'Custom shader applied.') => {
+  const applyShader = (source = sourceDraft, compositeM8Screen = compositeM8Draft, successStatus = 'Custom shader applied.', videoUrl = videoUrlDraft) => {
     const validationError = validateFragmentShader(source)
     if (validationError) {
       setStatus(`Compile failed: ${validationError}`)
@@ -317,6 +391,7 @@ export const BackgroundShaderEditor: FC = () => {
     updateSettingValue('customBackgroundShader', source)
     updateSettingValue('backgroundShader', true)
     updateSettingValue('backgroundShaderCompositeM8Screen', compositeM8Screen)
+    updateSettingValue('videoTextureUrl', videoUrl ?? '')
     setStatus(successStatus)
     return true
   }
@@ -328,7 +403,7 @@ export const BackgroundShaderEditor: FC = () => {
     }
     const now = Date.now()
     const next = savedShaders.map((shader) =>
-      shader.id === selectedShader.id ? { ...shader, source: sourceDraft, compositeM8Screen: compositeM8Draft, updatedAt: now } : shader,
+      shader.id === selectedShader.id ? { ...shader, source: sourceDraft, compositeM8Screen: compositeM8Draft, videoUrl: videoUrlDraft, updatedAt: now } : shader,
     )
     saveShaders(next)
     setStatus(`Updated "${selectedShader.name}".`)
@@ -355,13 +430,14 @@ export const BackgroundShaderEditor: FC = () => {
       name: shaderName,
       source: sourceDraft,
       compositeM8Screen: compositeM8Draft,
+      videoUrl: videoUrlDraft,
       updatedAt: now,
     }
     const next = [item, ...savedShaders]
     saveShaders(next)
     setSelectedId(item.id)
     setUnsavedShader((currentUnsavedShader) =>
-      currentUnsavedShader?.source === sourceDraft && currentUnsavedShader.compositeM8Screen === compositeM8Draft
+      currentUnsavedShader?.source === sourceDraft && currentUnsavedShader.compositeM8Screen === compositeM8Draft && currentUnsavedShader.videoUrl === videoUrlDraft
         ? null
         : currentUnsavedShader,
     )
@@ -375,10 +451,12 @@ export const BackgroundShaderEditor: FC = () => {
         return
       }
       const nextComposite = unsavedShader.compositeM8Screen
+      const nextVideoUrl = unsavedShader.videoUrl ?? ''
       setSelectedId(UNSAVED_SHADER_ID)
       setSourceDraft(unsavedShader.source)
       setCompositeM8Draft(nextComposite)
-      applyShader(unsavedShader.source, nextComposite, 'Loaded and applied current unsaved shader.')
+      setVideoUrlDraft(nextVideoUrl)
+      applyShader(unsavedShader.source, nextComposite, 'Loaded and applied current unsaved shader.', nextVideoUrl)
       return
     }
 
@@ -391,10 +469,12 @@ export const BackgroundShaderEditor: FC = () => {
 
     preserveCurrentUnsavedShader()
     const nextComposite = shader.compositeM8Screen ?? true
+    const nextVideoUrl = shader.videoUrl ?? ''
     setSelectedId(shader.id)
     setSourceDraft(shader.source)
     setCompositeM8Draft(nextComposite)
-    applyShader(shader.source, nextComposite, `Loaded and applied "${shader.name}".`)
+    setVideoUrlDraft(nextVideoUrl)
+    applyShader(shader.source, nextComposite, `Loaded and applied "${shader.name}".`, nextVideoUrl)
   }
 
   const deleteSelected = () => {
@@ -406,12 +486,29 @@ export const BackgroundShaderEditor: FC = () => {
     setSelectedId(nextSelected?.id ?? '')
     if (nextSelected) {
       const nextComposite = nextSelected.compositeM8Screen ?? true
+      const nextVideoUrl = nextSelected.videoUrl ?? ''
       setSourceDraft(nextSelected.source)
       setCompositeM8Draft(nextComposite)
-      applyShader(nextSelected.source, nextComposite, `Deleted "${selectedShader.name}". Loaded and applied "${nextSelected.name}".`)
+      setVideoUrlDraft(nextVideoUrl)
+      applyShader(nextSelected.source, nextComposite, `Deleted "${selectedShader.name}". Loaded and applied "${nextSelected.name}".`, nextVideoUrl)
       return
     }
     setStatus(`Deleted "${selectedShader.name}".`)
+  }
+
+  const loadVideoUrl = () => {
+    const hint = videoUrlHint(videoUrlDraft)
+    if (hint) { setStatus(hint); return }
+    const trimmed = videoUrlDraft.trim()
+    setVideoUrlDraft(trimmed)
+    updateSettingValue('videoTextureUrl', trimmed)
+    setStatus(trimmed ? 'Video URL applied.' : 'Video texture cleared.')
+  }
+
+  const clearVideoUrl = () => {
+    setVideoUrlDraft('')
+    updateSettingValue('videoTextureUrl', '')
+    setStatus('Video texture cleared.')
   }
 
   return (
@@ -492,6 +589,34 @@ export const BackgroundShaderEditor: FC = () => {
             Delete
           </Button>
         </div>
+      </section>
+      <section className={videoSectionClass} aria-label="Video texture">
+        <label className={librarySelectClass}>
+          <span style={{ whiteSpace: 'nowrap' }}>Video URL <code style={{ fontSize: 10, opacity: 0.7 }}>uVideoTexture</code></span>
+          <div className={videoRowClass}>
+            <input
+              className={videoInputClass}
+              type="url"
+              value={videoUrlDraft}
+              onChange={(e) => setVideoUrlDraft(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') loadVideoUrl() }}
+              placeholder="https://example.com/video.mp4"
+              spellCheck={false}
+            />
+            <Button className={primaryButtonClass} onClick={loadVideoUrl}>Load</Button>
+          </div>
+        </label>
+        {videoUrlDraft && isYouTubeUrl(videoUrlDraft) && (
+          <p className={videoHintClass}>
+            YouTube URLs cannot be used as WebGL textures (browser CORS restriction).
+            Use a direct MP4/WebM URL instead.
+          </p>
+        )}
+        {settings.videoTextureUrl && (
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <Button className={dangerButtonClass} onClick={clearVideoUrl}>Clear video</Button>
+          </div>
+        )}
       </section>
       <p className={statusClass} role="status">{status}</p>
     </aside>

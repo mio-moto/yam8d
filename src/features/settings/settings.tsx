@@ -124,6 +124,7 @@ export type Settings = {
     backgroundShaderSpectrumBands: 64 | 128 | 256
     backgroundShaderCompositeM8Screen: boolean
     showBackgroundShaderEditor: boolean
+    videoTextureUrl: string
     vjMode: boolean
     vjNumpadAssignments: Record<string, string | null>
     inputMap: typeof defaultInputMap
@@ -156,6 +157,7 @@ const defaultSettings: Settings = {
     backgroundShaderSpectrumBands: 128,
     backgroundShaderCompositeM8Screen: true,
     showBackgroundShaderEditor: false,
+    videoTextureUrl: '',
     vjMode: false,
     vjNumpadAssignments: {},
 
