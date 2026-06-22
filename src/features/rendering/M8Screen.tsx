@@ -9,6 +9,7 @@ import type { ScreenLayout } from './renderer'
 import type { DrawCommand, WorkerInMessage, WorkerOutMessage } from './renderer.worker'
 
 const VJ_NUMPAD_STORAGE_KEY = 'M8savedBackgroundShaders'
+const WEBCAM_VIDEO_SOURCE = 'webcam://default'
 type VJSavedShader = { id: string; source: string; compositeM8Screen: boolean; name: string; videoUrl?: string; updatedAt: number }
 
 const loadVJShaderById = (id: string): VJSavedShader | null => {
@@ -58,6 +59,7 @@ export const M8Screen = forwardRef<HTMLCanvasElement, { bus?: ConnectedBus | nul
     const videoRef = useRef<HTMLVideoElement | null>(null)
     const videoOffscreenRef = useRef<OffscreenCanvas | null>(null)
     const videoOffscreenCtxRef = useRef<OffscreenCanvasRenderingContext2D | null>(null)
+    const webcamStreamRef = useRef<MediaStream | null>(null)
     const usesVideoRef = useRef(false)
 
     useImperativeHandle(ref, () => innerRef.current as HTMLCanvasElement, [])
@@ -369,20 +371,24 @@ export const M8Screen = forwardRef<HTMLCanvasElement, { bus?: ConnectedBus | nul
 
     // Video texture: manage a hidden <video> element on the main thread, play/pause based on URL
     useEffect(() => {
-        const url = settings.videoTextureUrl
-        if (!url) {
-            if (videoRef.current) {
-                videoRef.current.pause()
-                videoRef.current.src = ''
+        const stopWebcamStream = () => {
+            if (!webcamStreamRef.current) return
+            for (const track of webcamStreamRef.current.getTracks()) {
+                track.stop()
             }
-            return
+            webcamStreamRef.current = null
         }
+
+        const url = settings.videoTextureUrl.trim()
+        const isWebcamSource = url === WEBCAM_VIDEO_SOURCE
+
         // Lazily create the hidden video element
         if (!videoRef.current) {
             const video = document.createElement('video')
             video.style.display = 'none'
             video.style.position = 'absolute'
             video.style.zIndex = '-1'
+            video.style.width = '100%'
             video.muted = true
             video.loop = true
             video.crossOrigin = 'anonymous'
@@ -390,10 +396,49 @@ export const M8Screen = forwardRef<HTMLCanvasElement, { bus?: ConnectedBus | nul
             document.body.appendChild(video)
             videoRef.current = video
         }
+
         const video = videoRef.current
+
+        if (!url) {
+            stopWebcamStream()
+            video.pause()
+            video.srcObject = null
+            video.src = ''
+            return
+        }
+
+        if (isWebcamSource) {
+            let cancelled = false
+            navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+                .then((stream) => {
+                    if (cancelled) {
+                        for (const track of stream.getTracks()) {
+                            track.stop()
+                        }
+                        return
+                    }
+                    stopWebcamStream()
+                    webcamStreamRef.current = stream
+                    video.pause()
+                    video.src = ''
+                    video.srcObject = stream
+                    void video.play().catch(() => {
+                        // Browser may require user interaction to start webcam preview playback.
+                    })
+                })
+                .catch((error) => {
+                    console.error('Failed to access webcam video source:', error)
+                })
+            return () => {
+                cancelled = true
+            }
+        }
+
+        stopWebcamStream()
+        video.srcObject = null
         video.src = url
         video.poster = url
-        video.play().catch(() => {
+        void video.play().catch(() => {
             // Autoplay may be blocked — user interaction will be needed
         })
         return () => {
@@ -405,8 +450,15 @@ export const M8Screen = forwardRef<HTMLCanvasElement, { bus?: ConnectedBus | nul
     // Destroy the video element on unmount
     useEffect(() => {
         return () => {
+            if (webcamStreamRef.current) {
+                for (const track of webcamStreamRef.current.getTracks()) {
+                    track.stop()
+                }
+                webcamStreamRef.current = null
+            }
             if (videoRef.current) {
                 videoRef.current.pause()
+                videoRef.current.srcObject = null
                 videoRef.current.src = ''
                 document.body.removeChild(videoRef.current)
                 videoRef.current = null

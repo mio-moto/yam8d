@@ -19,6 +19,7 @@ type SavedBackgroundShader = {
 }
 
 const STORAGE_KEY = 'M8savedBackgroundShaders'
+const WEBCAM_VIDEO_SOURCE = 'webcam://default'
 const LEGACY_SAVED_SHADER_NAMES = new Set([DEFAULT_CUSTOM_BACKGROUND_SHADER_NAME])
 const UNSAVED_SHADER_ID = '__current-unsaved-shader__'
 const FONT_ATLAS_GLITCH_SHADER_NAME = 'Font Atlas Glitch'
@@ -175,7 +176,7 @@ const videoSectionClass = css`
 
 const videoRowClass = css`
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 8px;
   align-items: center;
 `
@@ -286,8 +287,12 @@ const findMatchingSavedShader = (
 const isYouTubeUrl = (url: string): boolean =>
   /^https?:\/\/(www\.)?(youtube\.com\/watch|youtu\.be\/)/.test(url)
 
+const isWebcamSource = (url: string): boolean =>
+  url.trim() === WEBCAM_VIDEO_SOURCE
+
 const videoUrlHint = (url: string): string | null => {
   if (!url) return null
+  if (isWebcamSource(url)) return null
   if (isYouTubeUrl(url))
     return 'YouTube URLs cannot be used as WebGL textures due to browser CORS restrictions. Use a direct MP4/WebM URL instead.'
   return null
@@ -505,6 +510,12 @@ export const BackgroundShaderEditor: FC = () => {
     setStatus(trimmed ? 'Video URL applied.' : 'Video texture cleared.')
   }
 
+  const loadWebcam = () => {
+    setVideoUrlDraft(WEBCAM_VIDEO_SOURCE)
+    updateSettingValue('videoTextureUrl', WEBCAM_VIDEO_SOURCE)
+    setStatus('Webcam source applied. Browser permission may be requested.')
+  }
+
   const clearVideoUrl = () => {
     setVideoUrlDraft('')
     updateSettingValue('videoTextureUrl', '')
@@ -600,12 +611,18 @@ export const BackgroundShaderEditor: FC = () => {
               value={videoUrlDraft}
               onChange={(e) => setVideoUrlDraft(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') loadVideoUrl() }}
-              placeholder="https://example.com/video.mp4"
+              placeholder={`https://example.com/video.mp4 or ${WEBCAM_VIDEO_SOURCE}`}
               spellCheck={false}
             />
             <Button className={primaryButtonClass} onClick={loadVideoUrl}>Load</Button>
+            <Button onClick={loadWebcam}>Webcam</Button>
           </div>
         </label>
+        {isWebcamSource(videoUrlDraft) && (
+          <p className={videoHintClass} style={{ color: style.colors.teal[200] }}>
+            Webcam source selected. If no image appears, allow camera access in your browser.
+          </p>
+        )}
         {videoUrlDraft && isYouTubeUrl(videoUrlDraft) && (
           <p className={videoHintClass}>
             YouTube URLs cannot be used as WebGL textures (browser CORS restriction).
