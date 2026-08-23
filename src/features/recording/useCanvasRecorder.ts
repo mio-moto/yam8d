@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useSetAtom } from 'jotai'
 import { getM8InputStream, getM8OutputCaptureStream, M8_AUDIO_CAPTURE_CONSTRAINTS } from '../connection/audio'
+import { fixWebmDuration } from './fixWebmDuration'
+import { recordingStateAtom } from '../state/viewStore'
 
 export type RecordingMode = 'canvas' | 'display'
 
@@ -91,12 +94,15 @@ export const useCanvasRecorder = () => {
   const [status, setStatus] = useState<RecorderStatus>('idle')
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<RecorderResult | null>(null)
+  const [recordingMode, setRecordingMode] = useState<RecordingMode | null>(null)
+  const setRecordingState = useSetAtom(recordingStateAtom)
 
   const recorderRef = useRef<MediaRecorder | null>(null)
   const combinedStreamRef = useRef<MediaStream | null>(null)
   const videoStreamRef = useRef<MediaStream | null>(null)
   const audioStreamRef = useRef<MediaStream | null>(null)
   const chunksRef = useRef<BlobPart[]>([])
+  const startTimeRef = useRef<number>(0)
   const pendingStopRef = useRef<{
     resolve: () => void
     reject: (reason?: unknown) => void
@@ -170,6 +176,9 @@ export const useCanvasRecorder = () => {
     setError(null)
     clearResult()
     chunksRef.current = []
+    setRecordingMode(mode)
+    setRecordingState({ mode, isRecording: true })
+    startTimeRef.current = Date.now()
 
     try {
       const canvasElement = canvas
@@ -223,15 +232,19 @@ export const useCanvasRecorder = () => {
       recorder.onerror = () => {
         setError('Recording failed.')
         setStatus('error')
+        setRecordingMode(null)
+        setRecordingState({ mode: null, isRecording: false })
       }
 
-      recorder.onstop = () => {
+      recorder.onstop = async () => {
         const pendingStop = pendingStopRef.current
         pendingStopRef.current = null
 
         try {
           const mimeType = pendingStop?.mimeType || recorder.mimeType || supportedMimeType || 'video/webm'
-          const blob = new Blob(chunksRef.current, { type: mimeType })
+          const rawBlob = new Blob(chunksRef.current, { type: mimeType })
+          const duration = startTimeRef.current ? Date.now() - startTimeRef.current : 0
+          const blob = await fixWebmDuration(rawBlob, duration)
           const url = URL.createObjectURL(blob)
           const fileName = `yam8d-${pendingStop?.mode ?? mode}-${createTimestamp()}.webm`
           setResult({
@@ -242,6 +255,8 @@ export const useCanvasRecorder = () => {
             fileName,
           })
           setStatus('idle')
+          setRecordingMode(null)
+          setRecordingState({ mode: null, isRecording: false })
           cleanupStreams()
           recorderRef.current = null
           pendingStop?.resolve()
@@ -249,6 +264,8 @@ export const useCanvasRecorder = () => {
           cleanupStreams()
           recorderRef.current = null
           setStatus('error')
+          setRecordingMode(null)
+          setRecordingState({ mode: null, isRecording: false })
           setError(stopError instanceof Error ? stopError.message : 'Failed to finalize recording.')
           pendingStop?.reject(stopError)
         }
@@ -269,9 +286,11 @@ export const useCanvasRecorder = () => {
       cleanupStreams()
       recorderRef.current = null
       setStatus('error')
+      setRecordingMode(null)
+      setRecordingState({ mode: null, isRecording: false })
       setError(startError instanceof Error ? startError.message : 'Unable to start recording.')
     }
-  }, [cleanupStreams, clearResult, status, stopRecording, supportedMimeType])
+  }, [cleanupStreams, clearResult, setRecordingState, status, stopRecording, supportedMimeType])
 
   useEffect(() => {
     return () => {
@@ -283,10 +302,26 @@ export const useCanvasRecorder = () => {
     }
   }, [cleanupStreams, clearResult])
 
+  // Stop recording when Escape is pressed
+  useEffect(() => {
+    if (status !== 'recording') return
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        void stopRecording()
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown, { capture: true })
+    return () => window.removeEventListener('keydown', onKeyDown, { capture: true })
+  }, [status, stopRecording])
+
   return {
     clearResult,
     error,
     isRecording: status === 'recording',
+    recordingMode,
     result,
     startRecording,
     status,

@@ -76,6 +76,13 @@ export const systemInfoAtom = atom<SystemInfos | null>(null)
 // VJ Mode: which numpad key is currently active ('0'-'9', or null)
 export const vjActiveKeyAtom = atom<string | null>(null)
 
+// Recording state: shared between RecordingControls, useCanvasRecorder, and Menu
+// so the menu icon and record button can be hidden during full-tab recording.
+export const recordingStateAtom = atom<{ mode: 'canvas' | 'display' | null; isRecording: boolean }>({
+    mode: null,
+    isRecording: false,
+})
+
 export const useViewName = () => useAtom(viewNameAtom)
 export const useViewTitle = () => useAtom(viewTitleAtom)
 export const useMinimapKey = () => useAtom(minimapKeyAtom)

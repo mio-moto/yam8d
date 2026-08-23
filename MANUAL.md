@@ -208,6 +208,8 @@ Recording modes:
 | M8 Screen only | The rendered M8 canvas, including shader output |
 | Full tab/window | Browser display capture for the selected tab or window |
 
+Press `Escape` to stop the active recording at any time. This is especially useful during **Full tab/window** recording, where YAM8D hides its controls to keep them out of the capture.
+
 After stopping, YAM8D provides a WebM download action and a reset action to discard the captured result.
 
 Recording availability depends on browser support for `MediaRecorder`, canvas capture, and display capture.
