@@ -1,11 +1,13 @@
 import type { FC } from 'react'
 import { useEffect, useRef, useState } from 'react'
+import { useAtomValue } from 'jotai'
 import { Button } from '../../components/Button'
 import { Modal } from '../../components/Modal'
 import { useSettingsContext } from './settings'
 import { KeyboardSettings } from './KeyboardSettings'
 import { Manual } from '../manual/Manual'
 import { ExternalAppsSettings } from '../externalApps/ExternalAppsSettings'
+import { recordingStateAtom } from '../state/viewStore'
 import './menu.css'
 
 export const Menu: FC = () => {
@@ -19,6 +21,16 @@ export const Menu: FC = () => {
     const externalAppsModalRef = useRef<HTMLDialogElement | null>(null)
     const keyboardModalRef = useRef<HTMLDialogElement | null>(null)
     const manualModalRef = useRef<HTMLDialogElement | null>(null)
+    const recordingState = useAtomValue(recordingStateAtom)
+    const hideMenu = recordingState.isRecording && recordingState.mode === 'display'
+
+    // Close menu when full-tab recording starts
+    useEffect(() => {
+        if (hideMenu) {
+            setOpened(false)
+        }
+    }, [hideMenu])
+
     // Mark menu open on document body for global hooks to detect
     useEffect(() => {
         document.body.dataset.m8MenuOpen = opened ? 'true' : 'false'
@@ -133,237 +145,241 @@ export const Menu: FC = () => {
 
     return (
         <>
-            <div
-                className="menu-hitbox"
-                ref={hitboxRef}
-                onClick={() => setOpened((o) => !o)}
-                aria-label="Toggle menu"
-                role="button"
-            />
-            <div className={opened ? 'menu opened' : 'menu closed'} ref={menuRef}>
+            {!hideMenu && (
+                <div
+                    className="menu-hitbox"
+                    ref={hitboxRef}
+                    onClick={() => setOpened((o) => !o)}
+                    aria-label="Toggle menu"
+                    role="button"
+                />
+            )}
+            {!hideMenu && (
+                <div className={opened ? 'menu opened' : 'menu closed'} ref={menuRef}>
 
-                <div className="menu-section">
-                    <span className="section-title">Tools</span>
+                    <div className="menu-section">
+                        <span className="section-title">Tools</span>
 
-                    <div className="menu-item">
-                        <span className="title">External Apps</span>
-                        <div>
-                            <Button selected={settings.displayExternalApps} onClick={() => updateSettingValue('displayExternalApps', true)}>
-                                Yes
-                            </Button>
-                            <Button selected={!settings.displayExternalApps} onClick={() => updateSettingValue('displayExternalApps', false)}>
-                                No
-                            </Button>
-                        </div>
-                    </div>
-                    {settings.displayExternalApps && (
-                        <div className="menu-submenu external-apps-settings">
-                            <div className="menu-item">
-                                <span className="title">Active app</span>
-                                <div>
-                                    <select
-                                        value={settings.activeExternalAppId ?? ''}
-                                        onChange={(event) => updateSettingValue('activeExternalAppId', event.currentTarget.value)}
-                                    >
-                                        {settings.externalApps.map((app) => (
-                                            <option key={app.id} value={app.id}>
-                                                {app.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div className="menu-item">
-                                <span className="title">Setup</span>
-                                <div>
-                                    <Button onClick={() => setExternalAppsSettingsOpen(true)}>Configure</Button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                <div className="menu-section">
-                    <span className="section-title">Display</span>
-                    <div className="menu-item">
-                        <span className="title">Show M8 body</span>
-                        <div>
-                            <Button selected={settings.showM8Body} onClick={() => updateSettingValue('showM8Body', true)}>
-                                Yes
-                            </Button>
-                            <Button selected={!settings.showM8Body} onClick={() => updateSettingValue('showM8Body', false)}>
-                                No
-                            </Button>
-                        </div>
-                    </div>
-                    {settings.showM8Body && <div className="menu-submenu">
                         <div className="menu-item">
-                            <span className="title">Zoom View</span>
+                            <span className="title">External Apps</span>
                             <div>
-                                <Button selected={!settings.fullM8View} onClick={() => updateSettingValue('fullM8View', false)}>
+                                <Button selected={settings.displayExternalApps} onClick={() => updateSettingValue('displayExternalApps', true)}>
                                     Yes
                                 </Button>
-                                <Button selected={settings.fullM8View} onClick={() => updateSettingValue('fullM8View', true)}>
+                                <Button selected={!settings.displayExternalApps} onClick={() => updateSettingValue('displayExternalApps', false)}>
                                     No
                                 </Button>
                             </div>
                         </div>
-                    </div>
-                    }
-                </div>
+                        {settings.displayExternalApps && (
+                            <div className="menu-submenu external-apps-settings">
+                                <div className="menu-item">
+                                    <span className="title">Active app</span>
+                                    <div>
+                                        <select
+                                            value={settings.activeExternalAppId ?? ''}
+                                            onChange={(event) => updateSettingValue('activeExternalAppId', event.currentTarget.value)}
+                                        >
+                                            {settings.externalApps.map((app) => (
+                                                <option key={app.id} value={app.id}>
+                                                    {app.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
 
-                <div className="menu-section">
-                    <span className="section-title">Rendering</span>
-                    <div className="menu-item">
-                        <span className="title">Smooth font rendering</span>
-                        <div>
-                            <Button selected={settings.smoothRendering} onClick={() => updateSettingValue('smoothRendering', true)}>
-                                Yes
-                            </Button>
-                            <Button selected={!settings.smoothRendering} onClick={() => updateSettingValue('smoothRendering', false)}>
-                                No
-                            </Button>
-                        </div>
+                                <div className="menu-item">
+                                    <span className="title">Setup</span>
+                                    <div>
+                                        <Button onClick={() => setExternalAppsSettingsOpen(true)}>Configure</Button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
-                    {settings.smoothRendering && (
-                        <div className="menu-submenu">
-                            <div className="menu-item">
-                                <span className="title">Blur radius</span>
-                                <div>
-                                    <input
-                                        type="range"
-                                        min="0"
-                                        max="20"
-                                        step="0.1"
-                                        value={settings.smoothBlurRadius}
-                                        onChange={(e) => updateSettingValue('smoothBlurRadius', Number.parseFloat(e.target.value))}
-                                    />
-                                    <span>{settings.smoothBlurRadius.toFixed(1)}</span>
-                                </div>
-                            </div>
-                            <div className="menu-item">
-                                <span className="title">Threshold</span>
-                                <div>
-                                    <input
-                                        type="range"
-                                        min="0"
-                                        max="1"
-                                        step="0.01"
-                                        value={settings.smoothThreshold}
-                                        onChange={(e) => updateSettingValue('smoothThreshold', Number.parseFloat(e.target.value))}
-                                    />
-                                    <span>{settings.smoothThreshold.toFixed(2)}</span>
-                                </div>
-                            </div>
-                            <div className="menu-item">
-                                <span className="title">Smoothness</span>
-                                <div>
-                                    <input
-                                        type="range"
-                                        min="0"
-                                        max="0.5"
-                                        step="0.01"
-                                        value={settings.smoothSmoothness}
-                                        onChange={(e) => updateSettingValue('smoothSmoothness', Number.parseFloat(e.target.value))}
-                                    />
-                                    <span>{settings.smoothSmoothness.toFixed(2)}</span>
-                                </div>
+
+                    <div className="menu-section">
+                        <span className="section-title">Display</span>
+                        <div className="menu-item">
+                            <span className="title">Show M8 body</span>
+                            <div>
+                                <Button selected={settings.showM8Body} onClick={() => updateSettingValue('showM8Body', true)}>
+                                    Yes
+                                </Button>
+                                <Button selected={!settings.showM8Body} onClick={() => updateSettingValue('showM8Body', false)}>
+                                    No
+                                </Button>
                             </div>
                         </div>
-                    )}
-                    <div className="menu-item">
-                        <span className="title">Background shader</span>
-                        <div>
-                            <Button selected={settings.backgroundShader} onClick={() => updateSettingValue('backgroundShader', true)}>
-                                Yes
-                            </Button>
-                            <Button selected={!settings.backgroundShader} onClick={() => updateSettingValue('backgroundShader', false)}>
-                                No
-                            </Button>
-                        </div>
-                    </div>
-                    {settings.backgroundShader && (
-                        <div className="menu-submenu">
+                        {settings.showM8Body && <div className="menu-submenu">
                             <div className="menu-item">
-                                <span className="title">Shader editor panel</span>
+                                <span className="title">Zoom View</span>
                                 <div>
-                                    <Button
-                                        selected={settings.showBackgroundShaderEditor}
-                                        onClick={() => updateSettingValue('showBackgroundShaderEditor', true)}
-                                    >
-                                        Open
+                                    <Button selected={!settings.fullM8View} onClick={() => updateSettingValue('fullM8View', false)}>
+                                        Yes
                                     </Button>
-                                    <Button
-                                        selected={!settings.showBackgroundShaderEditor}
-                                        onClick={() => updateSettingValue('showBackgroundShaderEditor', false)}
-                                    >
-                                        Close
-                                    </Button>
-                                </div>
-                            </div>
-                            <div className="menu-item">
-                                <span className="title">VJ Mode</span>
-                                <div>
-                                    <Button selected={settings.vjMode} onClick={() => updateSettingValue('vjMode', true)}>
-                                        On
-                                    </Button>
-                                    <Button selected={!settings.vjMode} onClick={() => updateSettingValue('vjMode', false)}>
-                                        Off
+                                    <Button selected={settings.fullM8View} onClick={() => updateSettingValue('fullM8View', true)}>
+                                        No
                                     </Button>
                                 </div>
                             </div>
                         </div>
-                    )}
-                </div>
+                        }
+                    </div>
 
-                {/* kept for WebGL -> Canvas switch
-        <div className="menu-item">
-          <span className="title">Display mode</span>
-          <div>
-            <Button selected={settings.webGLRendering} onClick={() => updateSettingValue('webGLRendering', true)}>
-              WebGL
-            </Button>
-            <Button selected={!settings.webGLRendering} onClick={() => updateSettingValue('webGLRendering', false)}>
-              HTML
-            </Button>
-          </div>
-        </div> */}
+                    <div className="menu-section">
+                        <span className="section-title">Rendering</span>
+                        <div className="menu-item">
+                            <span className="title">Smooth font rendering</span>
+                            <div>
+                                <Button selected={settings.smoothRendering} onClick={() => updateSettingValue('smoothRendering', true)}>
+                                    Yes
+                                </Button>
+                                <Button selected={!settings.smoothRendering} onClick={() => updateSettingValue('smoothRendering', false)}>
+                                    No
+                                </Button>
+                            </div>
+                        </div>
+                        {settings.smoothRendering && (
+                            <div className="menu-submenu">
+                                <div className="menu-item">
+                                    <span className="title">Blur radius</span>
+                                    <div>
+                                        <input
+                                            type="range"
+                                            min="0"
+                                            max="20"
+                                            step="0.1"
+                                            value={settings.smoothBlurRadius}
+                                            onChange={(e) => updateSettingValue('smoothBlurRadius', Number.parseFloat(e.target.value))}
+                                        />
+                                        <span>{settings.smoothBlurRadius.toFixed(1)}</span>
+                                    </div>
+                                </div>
+                                <div className="menu-item">
+                                    <span className="title">Threshold</span>
+                                    <div>
+                                        <input
+                                            type="range"
+                                            min="0"
+                                            max="1"
+                                            step="0.01"
+                                            value={settings.smoothThreshold}
+                                            onChange={(e) => updateSettingValue('smoothThreshold', Number.parseFloat(e.target.value))}
+                                        />
+                                        <span>{settings.smoothThreshold.toFixed(2)}</span>
+                                    </div>
+                                </div>
+                                <div className="menu-item">
+                                    <span className="title">Smoothness</span>
+                                    <div>
+                                        <input
+                                            type="range"
+                                            min="0"
+                                            max="0.5"
+                                            step="0.01"
+                                            value={settings.smoothSmoothness}
+                                            onChange={(e) => updateSettingValue('smoothSmoothness', Number.parseFloat(e.target.value))}
+                                        />
+                                        <span>{settings.smoothSmoothness.toFixed(2)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        <div className="menu-item">
+                            <span className="title">Background shader</span>
+                            <div>
+                                <Button selected={settings.backgroundShader} onClick={() => updateSettingValue('backgroundShader', true)}>
+                                    Yes
+                                </Button>
+                                <Button selected={!settings.backgroundShader} onClick={() => updateSettingValue('backgroundShader', false)}>
+                                    No
+                                </Button>
+                            </div>
+                        </div>
+                        {settings.backgroundShader && (
+                            <div className="menu-submenu">
+                                <div className="menu-item">
+                                    <span className="title">Shader editor panel</span>
+                                    <div>
+                                        <Button
+                                            selected={settings.showBackgroundShaderEditor}
+                                            onClick={() => updateSettingValue('showBackgroundShaderEditor', true)}
+                                        >
+                                            Open
+                                        </Button>
+                                        <Button
+                                            selected={!settings.showBackgroundShaderEditor}
+                                            onClick={() => updateSettingValue('showBackgroundShaderEditor', false)}
+                                        >
+                                            Close
+                                        </Button>
+                                    </div>
+                                </div>
+                                <div className="menu-item">
+                                    <span className="title">VJ Mode</span>
+                                    <div>
+                                        <Button selected={settings.vjMode} onClick={() => updateSettingValue('vjMode', true)}>
+                                            On
+                                        </Button>
+                                        <Button selected={!settings.vjMode} onClick={() => updateSettingValue('vjMode', false)}>
+                                            Off
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
 
-                <div className="menu-section">
-                    <span className="section-title">Input</span>
-                    <div className="menu-item">
-                        <span className="title">Virtual midi keyboard</span>
-                        <div>
-                            <Button selected={settings.virtualKeyboard} onClick={() => updateSettingValue('virtualKeyboard', true)}>
-                                Yes
-                            </Button>
-                            <Button selected={!settings.virtualKeyboard} onClick={() => updateSettingValue('virtualKeyboard', false)}>
-                                No
-                            </Button>
+                    {/* kept for WebGL -> Canvas switch
+            <div className="menu-item">
+              <span className="title">Display mode</span>
+              <div>
+                <Button selected={settings.webGLRendering} onClick={() => updateSettingValue('webGLRendering', true)}>
+                  WebGL
+                </Button>
+                <Button selected={!settings.webGLRendering} onClick={() => updateSettingValue('webGLRendering', false)}>
+                  HTML
+                </Button>
+              </div>
+            </div> */}
+
+                    <div className="menu-section">
+                        <span className="section-title">Input</span>
+                        <div className="menu-item">
+                            <span className="title">Virtual midi keyboard</span>
+                            <div>
+                                <Button selected={settings.virtualKeyboard} onClick={() => updateSettingValue('virtualKeyboard', true)}>
+                                    Yes
+                                </Button>
+                                <Button selected={!settings.virtualKeyboard} onClick={() => updateSettingValue('virtualKeyboard', false)}>
+                                    No
+                                </Button>
+                            </div>
+                        </div>
+                        <div className="menu-item">
+                            <span className="title">Keyboard mapping</span>
+                            <div>
+                                <Button onClick={() => {
+                                    setOpened(false)
+                                    setKeyboardSettingsOpen(true)
+                                }}>Configure</Button>
+                            </div>
                         </div>
                     </div>
-                    <div className="menu-item">
-                        <span className="title">Keyboard mapping</span>
-                        <div>
-                            <Button onClick={() => {
-                                setOpened(false)
-                                setKeyboardSettingsOpen(true)
-                            }}>Configure</Button>
-                        </div>
-                    </div>
-                </div>
 
-                <div className="menu-section">
-                    <span className="section-title">Help</span>
-                    <div className="menu-item">
-                        <span className="title">Manual</span>
-                        <div>
-                            <Button onClick={() => setManualOpen(true)}>Open</Button>
+                    <div className="menu-section">
+                        <span className="section-title">Help</span>
+                        <div className="menu-item">
+                            <span className="title">Manual</span>
+                            <div>
+                                <Button onClick={() => setManualOpen(true)}>Open</Button>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            )}
 
             <Modal ref={externalAppsModalRef}>
                 <ExternalAppsSettings />

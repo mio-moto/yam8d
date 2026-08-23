@@ -85,7 +85,7 @@ export const RecordingControls = ({ getCanvas }: RecordingControlsProps) => {
   const [mode, setMode] = useState<RecordingMode>('canvas')
   const [isModeOpen, setIsModeOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement | null>(null)
-  const { startRecording, stopRecording, result, status, error, isRecording, supportedMimeType, clearResult } = useCanvasRecorder()
+  const { startRecording, stopRecording, result, status, error, isRecording, recordingMode, supportedMimeType, clearResult } = useCanvasRecorder()
 
   useEffect(() => {
     if (!isModeOpen) return
@@ -105,6 +105,12 @@ export const RecordingControls = ({ getCanvas }: RecordingControlsProps) => {
       setIsModeOpen(false)
     }
   }, [result, status])
+
+  // Hide the entire control panel during full-tab recording so it
+  // doesn't appear in the capture. The ESC key stops the recording.
+  if ((isRecording || status === 'stopping') && recordingMode === 'display') {
+    return null
+  }
 
   const handleRecordClick = () => {
     if (!supportedMimeType || status === 'starting' || status === 'stopping') {
