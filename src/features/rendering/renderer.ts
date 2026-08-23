@@ -193,6 +193,17 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
     return
   }
   const textTexture = gl.createTexture()
+  // Initialize with a 1x1 dummy pixel so the texture has valid state immediately.
+  // This prevents WebGL warnings on Firefox when the texture is sampled before
+  // loadFont() completes (e.g. during initial frames).
+  gl.activeTexture(gl.TEXTURE1)
+  gl.bindTexture(gl.TEXTURE_2D, textTexture)
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 0]))
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+
   let processedFontTexture: WebGLTexture | null = null
   let fontAtlasOrigW = 0
   let fontAtlasOrigH = 0
@@ -261,8 +272,18 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
   const blurVT_uThreshold = gl.getUniformLocation(blurVThresholdProgram, 'uThreshold')
   const blurVT_uSmoothness = gl.getUniformLocation(blurVThresholdProgram, 'uSmoothness')
 
+  const quadVertexIdBuffer = gl.createBuffer()
+  gl.bindBuffer(gl.ARRAY_BUFFER, quadVertexIdBuffer)
+  gl.bufferData(gl.ARRAY_BUFFER, new Uint8Array([0, 1, 2, 3]), gl.STATIC_DRAW)
+  
   const postprocessVao = gl.createVertexArray()
+  gl.bindVertexArray(postprocessVao)
+  gl.bindBuffer(gl.ARRAY_BUFFER, quadVertexIdBuffer)
+  gl.enableVertexAttribArray(0)
+  gl.vertexAttribPointer(0, 1, gl.UNSIGNED_BYTE, false, 0, 0)
+
   const blurVT_uAlphaMode = gl.getUniformLocation(blurVThresholdProgram, 'uAlphaMode')
+
 
   // --- SDF font preprocessing programs ---
   const sdfSeedProgram = buildProgram(gl, VertPostprocess, FragSdfSeed)
@@ -749,11 +770,12 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
   //   3. If smoothRendering: apply final blur+threshold shaping on SDF
   //   4. Blit glyph with a preserved postprocess fringe to output atlas
   //
-  // JFA positions encoded as (pixel_coord / 255) in RGBA8 â€” no float FBO needed.
-  // Max scaled glyph dim â‰¤ 255 px (worst case ~208 px at scale=8).
+  // JFA positions encoded as (pixel_coord / 255) in RGBA8 no float FBO needed.
+  // Max scaled glyph dim 255 px (worst case ~208 px at scale=8).
   // ---------------------------------------------------------------------------
   const processFont = () => {
     if (!fontAtlasOrigW || !fontAtlasOrigH) return
+    if (!fontBitmap) return
 
     const scale = 8
     const glyphW = screenLayoutConfig[screenLayout].font.sizeX
@@ -794,27 +816,24 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
     const sampledGlyphH = glyphScaledH + 2 * preservedFringePx
     const slotW = sampledGlyphW + 2 * atlasPad
     const slotH = sampledGlyphH + 2 * atlasPad
-    const atlasW = numGlyphs * slotW
-    const atlasH = slotH
 
     // Output atlas texture
     if (processedFontTexture) gl.deleteTexture(processedFontTexture)
     processedFontTexture = gl.createTexture()
     gl.activeTexture(gl.TEXTURE8)
-    gl.bindTexture(gl.TEXTURE_2D, processedFontTexture)
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, atlasW, atlasH, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+    gl.bindTexture(gl.TEXTURE_2D_ARRAY, processedFontTexture)
+    gl.texImage3D(gl.TEXTURE_2D_ARRAY, 0, gl.RGBA, slotW, slotH, numGlyphs, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
+    gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+    gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+    gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+    gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+
     const atlasFbo = gl.createFramebuffer()
-    gl.bindFramebuffer(gl.FRAMEBUFFER, atlasFbo)
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, processedFontTexture, 0)
+    // no upfront attach — each glyph attaches its own layer inside the loop below
 
     // Store atlas layout
-    processedAtlasW = atlasW
-    processedAtlasH = atlasH
-    processedGlyphStride = slotW
+    processedAtlasW = slotW   // now per-layer
+    processedAtlasH = slotH   // now per-layer
     processedGlyphPad = atlasPad
     processedGlyphW = sampledGlyphW
     processedGlyphH = sampledGlyphH
@@ -987,7 +1006,8 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
       // --- Blit glyph with preserved postprocess fringe to atlas slot ---
       gl.bindFramebuffer(gl.READ_FRAMEBUFFER, smoothRendering ? blurResultFbo : sdfFbo)
       gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, atlasFbo)
-      const dstX = g * slotW + atlasPad
+      gl.framebufferTextureLayer(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, processedFontTexture, 0, g)
+      const dstX = atlasPad
       const dstY = atlasPad
       gl.blitFramebuffer(
         padPx - preservedFringePx, padPx - preservedFringePx,
@@ -1079,10 +1099,6 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
             gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
 
             // Step 2: Text + wave into m8SceneFbo
-            if (processedFontTexture) {
-              gl.activeTexture(gl.TEXTURE1)
-              gl.bindTexture(gl.TEXTURE_2D, processedFontTexture)
-            }
             textRenderer.renderText(!!processedFontTexture)
             waveRenderer.renderWave(true)
 
@@ -1150,11 +1166,7 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
             gl.uniform1f(blurH_uChromaKeyThreshold, 1.5 / 255.0)
             gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
 
-            // Step 3: Text at display res with SDF processed font
-            if (processedFontTexture) {
-              gl.activeTexture(gl.TEXTURE1)
-              gl.bindTexture(gl.TEXTURE_2D, processedFontTexture)
-            }
+
             textRenderer.renderText(!!processedFontTexture)
 
             // Step 4: Waves at display res
@@ -1191,26 +1203,32 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
       fontRenderPad: gl.getUniformLocation(textShader, 'fontRenderPad'),
     }
     gl.useProgram(textShader)
-    gl.uniform1i(gl.getUniformLocation(textShader, 'font'), 1)
+    gl.uniform1i(gl.getUniformLocation(textShader, 'fontRaw'), 1)
+    gl.uniform1i(gl.getUniformLocation(textShader, 'fontAtlas'), 8)
 
     const textVao = gl.createVertexArray()
     gl.bindVertexArray(textVao)
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadVertexIdBuffer)
+    gl.enableVertexAttribArray(0)
+    gl.vertexAttribPointer(0, 1, gl.UNSIGNED_BYTE, false, 0, 0)
+    // no divisor call → defaults to 0, genuinely per-vertex
 
     const textColors = new Uint8Array(40 * 24 * 3)
     const textColorsBuffer = gl.createBuffer()
     gl.bindBuffer(gl.ARRAY_BUFFER, textColorsBuffer)
     gl.bufferData(gl.ARRAY_BUFFER, textColors, gl.DYNAMIC_DRAW)
-    gl.enableVertexAttribArray(0)
-    gl.vertexAttribPointer(0, 3, gl.UNSIGNED_BYTE, true, 0, 0)
-    gl.vertexAttribDivisor(0, 1)
+    gl.enableVertexAttribArray(1)          // was 0
+    gl.vertexAttribPointer(1, 3, gl.UNSIGNED_BYTE, true, 0, 0)
+    gl.vertexAttribDivisor(1, 1)
 
     const textChars = new Uint8Array(40 * 24)
     const textCharsBuffer = gl.createBuffer()
     gl.bindBuffer(gl.ARRAY_BUFFER, textCharsBuffer)
     gl.bufferData(gl.ARRAY_BUFFER, textChars, gl.DYNAMIC_DRAW)
-    gl.enableVertexAttribArray(1)
-    gl.vertexAttribPointer(1, 1, gl.UNSIGNED_BYTE, false, 0, 0)
-    gl.vertexAttribDivisor(1, 1)
+    gl.enableVertexAttribArray(2)          // was 1
+    gl.vertexAttribPointer(2, 1, gl.UNSIGNED_BYTE, false, 0, 0)
+    gl.vertexAttribDivisor(2, 1)
 
     gl.activeTexture(gl.TEXTURE1)
     gl.bindTexture(gl.TEXTURE_2D, textTexture)
@@ -1313,15 +1331,19 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
     const rectVao = gl.createVertexArray()
     gl.bindVertexArray(rectVao)
 
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadVertexIdBuffer)
+    gl.enableVertexAttribArray(0)
+    gl.vertexAttribPointer(0, 1, gl.UNSIGNED_BYTE, false, 0, 0)
+
     const rectShapeBuffer = gl.createBuffer()
     gl.bindBuffer(gl.ARRAY_BUFFER, rectShapeBuffer)
     gl.bufferData(gl.ARRAY_BUFFER, rectShapes, gl.STREAM_DRAW)
-    gl.enableVertexAttribArray(0)
-    gl.vertexAttribPointer(0, 4, gl.UNSIGNED_SHORT, false, 12, 0)
-    gl.vertexAttribDivisor(0, 1)
-    gl.enableVertexAttribArray(1)
-    gl.vertexAttribPointer(1, 4, gl.UNSIGNED_BYTE, true, 12, 8)
+    gl.enableVertexAttribArray(1)          // was 0
+    gl.vertexAttribPointer(1, 4, gl.UNSIGNED_SHORT, false, 12, 0)
     gl.vertexAttribDivisor(1, 1)
+    gl.enableVertexAttribArray(2)          // was 1
+    gl.vertexAttribPointer(2, 4, gl.UNSIGNED_BYTE, true, 12, 8)
+    gl.vertexAttribDivisor(2, 1)
 
     const rectsTexture = gl.createTexture()
     gl.activeTexture(gl.TEXTURE0)
