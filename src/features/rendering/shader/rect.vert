@@ -2,8 +2,9 @@
 // Copyright 2021 James Deery
 // Released under the MIT licence, https://opensource.org/licenses/MIT
 
-layout(location = 0) in vec4 shape;
-layout(location = 1) in vec4 color;
+layout(location = 0) in float vertexId; // unused value — exists only so location 0 is a real, active attribute
+layout(location = 1) in vec4 shape;
+layout(location = 2) in vec4 color;
 
 uniform vec2 size;
 
@@ -20,7 +21,7 @@ void main() {
     vec2 camOffset = vec2(-size.x / 2.0, -size.y / 2.0);
     vec2 pos = shape.xy;
     vec2 size = shape.zw;
-    pos = ((corners[gl_VertexID] * size + pos) + camOffset) * camScale;
+    pos = ((corners[int(vertexId)] * size + pos) + camOffset) * camScale;
     pos += vec2(0, camScale.y * -3.0);
     gl_Position = vec4(pos, 0.0, 1.0);
     colorV = color;

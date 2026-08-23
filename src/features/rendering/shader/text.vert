@@ -2,9 +2,9 @@
 // Copyright 2021 James Deery
 // Released under the MIT licence, https://opensource.org/licenses/MIT
 
-layout(location = 0) in vec3 color;
-layout(location = 1) in float char;
-
+layout(location = 0) in float vertexId; // unused value — exists only so location 0 is a real, active attribute
+layout(location = 1) in vec3 color;
+layout(location = 2) in float char;
 
 // text 1: M8:01 small font
 // text 2: M8:01 large font
@@ -22,7 +22,7 @@ uniform vec2 size;
 // text 1: vec2(8.0, 10.0)
 // text 2: vec2(10.0,  12.0)
 // text 3: vec2(12.0,  14.0)
-// text 4: vec2(12.0,  14.0) 
+// text 4: vec2(12.0,  14.0)
 // text 5: vec2(15.0,  16.0)
 uniform vec2 spacing;
 
@@ -53,13 +53,13 @@ uniform vec2 posOffsetRow0;
 uniform vec2 camSize;
 
 uniform int useSmooth;
-uniform float fontGlyphStride;
-uniform float fontGlyphPad;
-uniform vec2 fontGlyphSize;
+uniform float fontGlyphPad;   // small inset within each atlas layer
+uniform vec2 fontGlyphSize;   // per-layer glyph size (was: per-atlas)
 uniform vec2 fontRenderPad;
 
 out vec3 colorV;
 out vec2 fontCoord;
+flat out float fontLayer;      // which layer of fontAtlas to sample (raw path ignores this)
 
 const vec2 corners[] = vec2[](
     vec2(0, 0),
@@ -87,17 +87,18 @@ void main() {
         renderPos -= fontRenderPad;
     }
 
-    pos = ((corners[gl_VertexID] * renderSize + renderPos) + camOffset) * camScale;
+    pos = ((corners[int(vertexId)] * renderSize + renderPos) + camOffset) * camScale;
 
     gl_Position = vec4(char == 0.0 ? vec2(2.0) : pos, 0.0, 1.0);
     colorV = color;
 
     if (useSmooth == 1) {
-        fontCoord = vec2(
-            (char - 1.0) * fontGlyphStride + fontGlyphPad,
-            fontGlyphPad
-        ) + corners[gl_VertexID] * fontGlyphSize;
+        // Each glyph now owns a whole array layer, so no horizontal stride math —
+        // just an inset within the layer, plus the layer index itself.
+        fontCoord = vec2(fontGlyphPad) + corners[int(vertexId)] * fontGlyphSize;
+        fontLayer = char - 1.0;
     } else {
-        fontCoord = (vec2(char - 1.0, 0.0) + corners[gl_VertexID]) * size;
+        fontCoord = (vec2(char - 1.0, 0.0) + corners[int(vertexId)]) * size;
+        fontLayer = 0.0; // unused by the raw path
     }
 }
