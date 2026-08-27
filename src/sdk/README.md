@@ -61,6 +61,7 @@ await m8.navigateTo(10, 15);
 // Set a value using edit+navigation keys
 await m8.setValueToHex(0x3f);
 await m8.setValueToInt(63);
+await m8.setValueFloat(440.0); // float fields like "TUNE 440.00 G"
 await m8.setNote("c#4");
 await m8.setValueToString("sine", false);
 await m8.setValueToString("cutoff", false, true); // search in full current line
@@ -114,6 +115,7 @@ await connect();
 | `navigateTo(x: number, y: number)`                                                  | Navigate to text grid coordinates (0-39 x, 0-23 y) | `Promise<void>`    |
 | `setValueToHex(targetHex: number)`                                                  | Set hex value (0-255) using edit+navigation keys   | `Promise<boolean>` |
 | `setValueToInt(targetInt: number)`                                                  | Set decimal integer value using edit+navigation    | `Promise<boolean>` |
+| `setValueFloat(targetFloat: number)`                                                | Set float value parsed from current line (e.g. `440.00`, `-10.69`) | `Promise<boolean>` |
 | `setNote(noteString: string)`                                                       | Set note value (e.g. `C#4`)                        | `Promise<boolean>` |
 | `setValueToString(targetString, exact?, searchInCurrentLine?)`                      | Select a string value from a list                  | `Promise<boolean>` |
 | `browseFile(targetText: string, exact?: boolean)`                                   | Browse file tree and select a matching M8 file     | `Promise<boolean>` |
@@ -140,6 +142,7 @@ type M8KeyName = 'left' | 'right' | 'up' | 'down' | 'shift' | 'play' | 'opt' | '
 | `navigateTo(x: number, y: number)`                                               | Navigate to text grid coordinates                  | `Promise<void>`    |
 | `setValueToHex(targetHex: number)`                                               | Set hex value (0-255)                              | `Promise<boolean>` |
 | `setValueToInt(targetInt: number)`                                               | Set decimal integer value                          | `Promise<boolean>` |
+| `setValueFloat(targetFloat: number)`                                             | Set float value parsed from current line           | `Promise<boolean>` |
 | `setNote(noteString: string)`                                                    | Set note value                                     | `Promise<boolean>` |
 | `setValueToString(targetString, exact?, searchInCurrentLine?)`                   | Select a string value from a list                  | `Promise<boolean>` |
 | `browseFile(targetText: string, exact?: boolean)`                                | Browse file tree and select a matching M8 file     | `Promise<boolean>` |

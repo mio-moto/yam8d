@@ -16,6 +16,7 @@ export interface M8Client {
   navigateTo(x: number, y: number): Promise<void>
   setValueToHex(targetHex: number): Promise<boolean>
   setValueToInt(targetInt: number): Promise<boolean>
+  setValueFloat(targetFloat: number): Promise<boolean>
   setNote(noteString: string): Promise<boolean>
   setValueToString(targetString: string, exact?: boolean, searchInCurrentLine?: boolean): Promise<boolean>
   browseFile(targetText: string, exact?: boolean): Promise<boolean>
@@ -168,6 +169,11 @@ class M8ClientImpl implements M8Client {
   async setValueToInt(targetInt: number): Promise<boolean> {
     if (!this.remoteHandle) throw new Error('M8 SDK client is not connected')
     return this.remoteHandle.call('setValueToInt', targetInt)
+  }
+
+  async setValueFloat(targetFloat: number): Promise<boolean> {
+    if (!this.remoteHandle) throw new Error('M8 SDK client is not connected')
+    return this.remoteHandle.call('setValueFloat', targetFloat)
   }
 
   async setNote(noteString: string): Promise<boolean> {

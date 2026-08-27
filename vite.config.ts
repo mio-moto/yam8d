@@ -12,8 +12,18 @@ const serveAndCopyM8Sdk = (): Plugin => {
         configureServer(server) {
             server.middlewares.use((req, res, next) => {
                 if (req.url === '/m8-sdk/index.js') {
-                    res.setHeader('Content-Type', 'text/javascript; charset=utf-8')
-                    res.end(fs.readFileSync(path.join(sdkDistPath, 'index.js')))
+                    try {
+                        const source = fs.readFileSync(path.join(sdkDistPath, 'index.js'))
+                        res.setHeader('Content-Type', 'text/javascript; charset=utf-8')
+                        res.end(source)
+                    } catch {
+                        // SDK bundle missing (fresh clone or cleaned): fail loudly but gracefully
+                        // so the browser shows an actionable hint instead of crashing the server.
+                        console.warn('[m8-sdk] Missing packages/m8-sdk/dist/index.js — run "npm run build:sdk" first.')
+                        res.statusCode = 503
+                        res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+                        res.end('// @yam8d/m8-sdk bundle not built yet. Run "npm run build:sdk" then reload this page.\n')
+                    }
                     return
                 }
                 next()

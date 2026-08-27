@@ -40,6 +40,16 @@ export interface M8Client {
      */
     setValueToHex(targetHex: number): Promise<boolean>
     setValueToInt(targetInt: number): Promise<boolean>
+    /**
+     * Set a float parameter value by parsing it from the current line
+     * (e.g. "TUNE 440.00 G" -> 440.00, "GAIN 05.25 -19.75 -15.00" -> -19.75).
+     * Works whether the cursor highlights a single digit group or the whole float:
+     * with the whole float focused, edit+up/down moves the integer part and
+     * edit+left/right the decimal part; otherwise the host relocates the cursor
+     * between the two groups for the fastest path. Negative values are supported
+     * and step sizes are measured per field from the device.
+     */
+    setValueFloat(targetFloat: number): Promise<boolean>
     setNote(noteString: string): Promise<boolean>
     setValueToString(targetString: string, exact?: boolean, searchInCurrentLine?: boolean): Promise<boolean>
     browseFile(targetText: string, exact?: boolean): Promise<boolean>
@@ -231,6 +241,13 @@ class M8ClientImpl implements M8Client {
         }
         targetInt = Math.floor(targetInt)
         return this.remoteHandle.call('setValueToInt', targetInt)
+    }
+
+    async setValueFloat(targetFloat: number): Promise<boolean> {
+        if (!this.remoteHandle) {
+            throw new Error('[M8SDK Client] Not connected')
+        }
+        return this.remoteHandle.call('setValueFloat', targetFloat)
     }
 
     async setNote(noteString: string): Promise<boolean> {

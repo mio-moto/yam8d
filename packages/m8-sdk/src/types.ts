@@ -47,6 +47,7 @@ export interface M8HostMethods {
   navigateTo(x: number, y: number): Promise<void>
   setValueToHex(targetHex: number): Promise<boolean>
   setValueToInt(targetInt: number): Promise<boolean>
+  setValueFloat(targetFloat: number): Promise<boolean>
   setNote(noteString: string): Promise<boolean>
   setValueToString(targetString: string, exact?: boolean, searchInCurrentLine?: boolean): Promise<boolean>
   browseFile(targetText: string, exact?: boolean): Promise<boolean>
