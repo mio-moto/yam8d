@@ -143,6 +143,17 @@ Sets the current field to the given hex integer (e.g. `0x0A`). Returns `true` if
 
 Sets the current field to the given decimal integer. Returns `true` on success.
 
+#### `setValueFloat(targetFloat: number): Promise<boolean>`
+
+Sets a float parameter parsed from the whole line, e.g. `TUNE 440.00 G` or `GAIN 05.25 -19.75 -15.00`
+(multiple floats per line are supported; the cursor's highlight selects which one is edited).
+Works with the cursor on a single digit group (`440` / `00`) or spanning the whole float (`19.75`,
+with the sign usually excluded from the highlight). With whole-float focus, edit+up/down moves the
+integer part and edit+left/right the decimal part; with group focus the SDK relocates the cursor
+between the groups for the fastest path. Negative values are supported and step sizes are measured
+per field from the device.
+Returns `true` when the displayed value matches.
+
 #### `setNote(noteString: string): Promise<boolean>`
 
 Sets a note field using M8 note format, e.g. `'C-4'`, `'A#3'`, `'OFF'`. Returns `true` on success.

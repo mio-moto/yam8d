@@ -611,6 +611,16 @@
             </div>
             <div class="inline-actions">
               <input
+                type="number"
+                id="float-value"
+                placeholder="Float"
+                value="440.00"
+                step="0.01"
+              />
+              <button onclick="setValueFloat()">Float</button>
+            </div>
+            <div class="inline-actions">
+              <input
                 type="text"
                 id="note-value"
                 placeholder="Note"
@@ -728,10 +738,13 @@ console.log(state.viewName, state.textUnderCursor);</pre
             <pre>
 await m8.setValueToHex(0x3f);
 await m8.setValueToInt(63);
+await m8.setValueFloat(440.0); // fields like "TUNE 440.00 G"
+await m8.setValueFloat(-10.69); // negative values supported
 </pre>
             <p class="note">
               Host behavior: edit+up/down is coarse movement, edit+left/right is
-              fine movement.
+              fine movement. Floats are parsed from the whole line, so the
+              cursor can rest on either the integer or decimal part.
             </p>
           </div>
           <div class="method-card">
@@ -1048,6 +1061,18 @@ await m8.browseFile("bass", false); // partial match
           log(`Set int result: ${result ? "success" : "failed"}`);
         } catch (error) {
           log(`Set int failed: ${error.message}`, "error");
+        }
+      };
+
+      window.setValueFloat = async () => {
+        const value = document.getElementById("float-value").value;
+        try {
+          const result = await runCommand("Set Float", () =>
+            m8Client.setValueFloat(Number.parseFloat(value)),
+          );
+          log(`Set float result: ${result ? "success" : "failed"}`);
+        } catch (error) {
+          log(`Set float failed: ${error.message}`, "error");
         }
       };
 
