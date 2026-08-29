@@ -166,6 +166,7 @@ await client.sendKeyUp()
 
 await client.setValueToHex(0x3f)
 await client.setValueToInt(63)
+await client.setValueFloat(440.0)
 await client.setNote('C#4')
 await client.setValueToString('sine')
 await client.browseFile('bassline')

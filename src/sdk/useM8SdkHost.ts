@@ -89,6 +89,150 @@ const parseIntValue = (text: string | null): number | null => {
     return Number.isNaN(parsed) ? null : parsed
 }
 
+// Parse every float value token from a full line. M8 float parameters are rendered
+// as two linked groups separated by a dot, e.g. "TUNE 440.00 G" or "C ON-10.69 7 ---".
+// The cursor can rest either on the integer part ("440") or the decimal part ("00"),
+// and changing the decimal part past its bounds carries into the integer part
+// (e.g. 1.99 -> 2.00), so the whole signed token behaves like a single number.
+const FLOAT_TOKEN_REGEX = /[+-]?\d+\.\d+/g
+
+type ParsedFloatToken = {
+    // Full token as displayed, e.g. "-10.69"
+    raw: string
+    negative: boolean
+    intDigits: string
+    decDigits: string
+    // 10 ** decDigits.length (100 for two displayed decimals)
+    decScale: number
+    // Smallest displayable step expressed in hundredths (1 for two decimals, 10 for one)
+    tickHundredths: number
+    // Signed value measured in tick steps: (-10.69 with two decimals) => -1069
+    ticks: number
+}
+
+const parseFloatTokens = (line: string | null): ParsedFloatToken[] => {
+    if (!line) return []
+    const tokens: ParsedFloatToken[] = []
+
+    FLOAT_TOKEN_REGEX.lastIndex = 0
+    let match: RegExpExecArray | null = FLOAT_TOKEN_REGEX.exec(line)
+    while (match !== null) {
+        const raw = match[0]
+        const negative = raw.startsWith('-')
+        const unsigned = negative || raw.startsWith('+') ? raw.slice(1) : raw
+        const dotIndex = unsigned.indexOf('.')
+        const intDigits = unsigned.slice(0, dotIndex)
+        const decDigits = unsigned.slice(dotIndex + 1)
+        const intValue = Number.parseInt(intDigits || '0', 10)
+        const decValue = Number.parseInt(decDigits || '0', 10)
+        const decScale = 10 ** decDigits.length
+        const tickHundredths = decScale > 0 ? 100 / decScale : 1
+        const valueHundredths = intValue * 100 + (decValue * 100) / decScale
+
+        if (!Number.isNaN(intValue) && !Number.isNaN(decValue)) {
+            tokens.push({
+                raw,
+                negative,
+                intDigits,
+                decDigits,
+                decScale,
+                tickHundredths,
+                ticks: (negative ? -1 : 1) * Math.round(valueHundredths / tickHundredths),
+            })
+        }
+
+        match = FLOAT_TOKEN_REGEX.exec(line)
+    }
+
+    return tokens
+}
+
+// When several float tokens exist on a line, prefer the one the cursor is on,
+// deduced from the highlighted text. The highlight can be the whole float —
+// possibly WITHOUT its sign ("19.75" for a "-19.75" field) — or just one digit
+// group ("440", "00", "-10"...).
+const pickFloatTokenIndex = (tokens: ParsedFloatToken[], hintText: string | null): number => {
+    if (tokens.length <= 1) return 0
+    const hint = hintText?.trim() ?? ''
+    if (!hint) return 0
+
+    const index = tokens.findIndex(token => (
+        token.raw === hint
+        || token.raw.replace(/^[+-]/, '') === hint
+        || `${token.negative ? '-' : ''}${token.intDigits}` === hint
+        || token.intDigits === hint
+        || token.decDigits === hint
+    ))
+    return index >= 0 ? index : 0
+}
+
+// What the cursor currently highlights on a float field:
+// - 'full': the whole float, e.g. "19.75" (the sign may be excluded from the highlight)
+// - 'int' / 'dec': only one digit group ("440" / "00")
+// Returns null when the hint cannot be attributed confidently; callers must cope
+// with that instead of assuming.
+type FloatCursorFocus = 'full' | 'int' | 'dec'
+
+const detectFloatCursorFocus = (token: ParsedFloatToken | null, hintText: string | null): FloatCursorFocus | null => {
+    if (!token) return null
+    const hint = hintText?.trim() ?? ''
+    if (!hint) return null
+
+    const unsignedRaw = token.raw.replace(/^[+-]/, '')
+    if (token.raw === hint || unsignedRaw === hint) return 'full'
+
+    const signedIntGroup = `${token.negative ? '-' : ''}${token.intDigits}`
+    if (signedIntGroup === hint || token.intDigits === hint) return 'int'
+    if (token.decDigits === hint) return 'dec'
+
+    // Single-digit highlight: attribute it only when the digit belongs to exactly one group.
+    if (hint.length === 1) {
+        const inIntPart = token.intDigits.includes(hint)
+        const inDecPart = token.decDigits.includes(hint)
+        if (inIntPart && !inDecPart) return 'int'
+        if (inDecPart && !inIntPart) return 'dec'
+    }
+
+    return null
+}
+
+// Does a highlighted text match one token (whole float, with or without sign, or
+// a whole digit group)? Single-character hints are only trusted for full-token
+// matches because a lone digit is too ambiguous.
+const floatHintMatchesToken = (token: ParsedFloatToken, hint: string): boolean => {
+    if (hint.length === 1) {
+        return token.raw === hint || token.raw.replace(/^[+-]/, '') === hint
+    }
+    return token.raw === hint
+        || token.raw.replace(/^[+-]/, '') === hint
+        || `${token.negative ? '-' : ''}${token.intDigits}` === hint
+        || token.intDigits === hint
+        || token.decDigits === hint
+}
+
+// Detect whether the highlighted text now belongs to a DIFFERENT float token on
+// the same line (the cursor drifted to another field mid-run). The hint must not
+// match the edited token at all while matching another one, so ambiguous cases
+// never trigger a false positive.
+const isCursorOnForeignFloat = (tokens: ParsedFloatToken[], ownIndex: number, hintText: string | null): boolean => {
+    const hint = hintText?.trim() ?? ''
+    if (!hint || !tokens[ownIndex]) return false
+    if (floatHintMatchesToken(tokens[ownIndex], hint)) return false
+    return tokens.some((token, index) => (
+        index !== ownIndex && floatHintMatchesToken(token, hint)
+    ))
+}
+
+// Pretty-print a parsed token value for logs, e.g. ticks=-1069 with 2 decimals => "-10.69"
+const formatFloatFromTicks = (ticks: number, tickHundredths: number): string => {
+    const hundredths = Math.round(ticks * tickHundredths)
+    const sign = hundredths < 0 ? '-' : ''
+    const absolute = Math.abs(hundredths)
+    const intPart = Math.floor(absolute / 100)
+    const fracPart = absolute - intPart * 100
+    return `${sign}${intPart}.${fracPart.toString().padStart(2, '0')}`
+}
+
 const NOTE_ORDER = ['C-', 'C#', 'D-', 'D#', 'E-', 'F-', 'F#', 'G-', 'G#', 'A-', 'A#', 'B-'] as const
 
 type ParsedNote = {
@@ -317,6 +461,44 @@ export const useM8SdkHost = (bus: ConnectedBus | undefined, config: M8SdkConfig 
             }, timeoutMs)
         })
     }, [getFileBrowserSnapshot, store])
+
+    // Prefer atom-change synchronization over fixed sleeps when reading post-key values.
+    const waitForCurrentLineChange = useCallback((previousValue: string | null, timeoutMs: number = 500): Promise<string | null> => {
+        return new Promise(resolve => {
+            let settled = false
+            let unsubscribe: (() => void) | null = null
+            let timeout: ReturnType<typeof setTimeout> | null = null
+
+            const finish = (value: string | null) => {
+                if (settled) return
+                settled = true
+                if (timeout !== null) {
+                    clearTimeout(timeout)
+                }
+                unsubscribe?.()
+                resolve(value)
+            }
+
+            // If the value already changed before we started waiting (race with key press timing),
+            // resolve immediately instead of subscribing and timing out.
+            const currentValue = store.get(currentLineAtom)
+            if (currentValue !== previousValue) {
+                finish(currentValue)
+                return
+            }
+
+            unsubscribe = store.sub(currentLineAtom, () => {
+                const next = store.get(currentLineAtom)
+                if (next !== previousValue) {
+                    finish(next)
+                }
+            })
+
+            timeout = setTimeout(() => {
+                finish(store.get(currentLineAtom))
+            }, timeoutMs)
+        })
+    }, [store])
 
     // Precalculate the key sequence needed to reach target value from current value
     // Uses edit+left/right for ±1 and edit+up/down for ±16
@@ -615,6 +797,366 @@ export const useM8SdkHost = (bus: ConnectedBus | undefined, config: M8SdkConfig 
         const finalValue = parseIntValue(store.get(textUnderCursorAtom))
         return finalValue === targetInt
     }, [pressAndRelease, store, waitForTextUnderCursorChange])
+
+    // Implementation of setValueFloat using edit+navigation keys.
+    //
+    // Float fields (e.g. "TUNE 440.00 G" or "GAIN 05.25 -19.75 -15.00") are rendered
+    // as two linked digit groups separated by a dot: the integer part and the decimal
+    // part. Stepping the decimal part past its bounds carries into the integer part
+    // (1.99 -> 2.00), so the whole signed token behaves like a single number that the
+    // closed loop below steers through measured edit+arrow key steps.
+    //
+    // Cursor focus modes (deduced from textUnderCursor):
+    // - 'full': the cursor spans the whole float ("19.75", sign often excluded).
+    //   There, edit+up/down moves the INTEGER part and edit+left/right the DECIMAL
+    //   part, so both granularities are directly available and no cursor relocation
+    //   is needed (attempting it could even drift to a neighboring field).
+    // - 'int' / 'dec': the cursor highlights a single digit group. The cursor is then
+    //   relocated with bare left/right onto whichever group is most efficient:
+    //   integer part for whole-unit travel, decimal part for sub-unit finishing.
+    //
+    // Step sizes and arrow polarities are measured from real device feedback
+    // ("learned") per focus mode and per arrow channel (up/down vs left/right),
+    // then reused for fast press bursts.
+    // Negative targets are supported (fields display like "-10.69").
+    // Note: opt+edit resets the field to its default value (0.00 / 440.00 / ...).
+    const setValueFloatImpl = useCallback(async (targetFloat: number): Promise<boolean> => {
+        if (!busRef.current) return false
+        if (!Number.isFinite(targetFloat)) return false
+
+        let tokenIndex = 0
+        let tickHundredths = 1
+
+        let lastTokens: ParsedFloatToken[] = []
+
+        const readFloatState = (): ParsedFloatToken | null => {
+            const tokens = parseFloatTokens(store.get(currentLineAtom))
+            lastTokens = tokens
+            if (!tokens.length) return null
+            tokenIndex = Math.min(tokenIndex, tokens.length - 1)
+            const token = tokens[tokenIndex]
+            if (token.tickHundredths > 0) tickHundredths = token.tickHundredths
+            return token
+        }
+
+        const initialTokens = parseFloatTokens(store.get(currentLineAtom))
+        if (!initialTokens.length) {
+            console.warn('[M8SDK] Could not find a float value like "440.00" or "-10.69" on the current line:', store.get(currentLineAtom))
+            return false
+        }
+
+        tokenIndex = pickFloatTokenIndex(initialTokens, store.get(textUnderCursorAtom))
+        if (initialTokens.length > 1) {
+            debugLog('[M8SDK] Multiple float values on line, editing:', initialTokens[tokenIndex]?.raw)
+        }
+
+        const initialToken = initialTokens[tokenIndex]
+        tickHundredths = initialToken.tickHundredths
+        // Caller-provided floats are quantized to the precision actually displayed.
+        const targetTicks = Math.round(Math.round(targetFloat * 100) / tickHundredths)
+
+        if (initialToken.ticks === targetTicks) {
+            debugLog('[M8SDK] Already at target float value:', formatFloatFromTicks(targetTicks, tickHundredths))
+            return true
+        }
+
+        debugLog(
+            '[M8SDK] Setting float value from',
+            formatFloatFromTicks(initialToken.ticks, tickHundredths),
+            'to',
+            formatFloatFromTicks(targetTicks, tickHundredths),
+        )
+
+        // Enter edit mode. Numeric rows do not necessarily change their text when
+        // entering edit mode, so a short settle wait is enough here.
+        await pressAndRelease(M8KeyMask.Edit)
+        await wait(80)
+
+        // Measured step size and arrow polarity per arrow channel (up/down vs
+        // left/right), tracked PER focus mode: 'full' has up/down -> integer part
+        // and left/right -> decimal part, while 'int'/'dec' group focus changes
+        // what each arrow channel steps. Measured magnitudes are in ticks.
+        type FloatChannel = 'upDown' | 'leftRight'
+        type FloatChannelStats = {
+            mag: number | null
+            bias: number
+        }
+        type FloatFocusStats = Record<FloatChannel, FloatChannelStats>
+        const makeFocusStats = (): FloatFocusStats => ({
+            upDown: { mag: null, bias: 1 },
+            leftRight: { mag: null, bias: 1 },
+        })
+        const statsByFocus: Record<FloatCursorFocus, FloatFocusStats> = {
+            full: makeFocusStats(),
+            int: makeFocusStats(),
+            dec: makeFocusStats(),
+        }
+
+        // Ticks contained in one whole unit (100 for two decimals, 10 for one).
+        const UNIT_IN_TICKS = initialToken.decScale
+
+        const COARSE_MIN_TICKS = 32
+        const MAX_RUNTIME_MS = 15000
+        const MAX_PRESSES_PER_BURST = 96
+        const startedAt = Date.now()
+
+        // Trust textUnderCursor to tell which part of the field is highlighted;
+        // when unclear, assume integer-group focus (self-corrects via measurement).
+        let focus: FloatCursorFocus = detectFloatCursorFocus(initialToken, store.get(textUnderCursorAtom)) ?? 'int'
+        debugLog('[M8SDK] Float cursor focus:', focus)
+        // Set when cursor relocation proves unreliable (layout quirks); the value
+        // closed-loop below keeps working without side management.
+        let sideControlDisabled = false
+        // Set when the cursor drifted onto another field: editing must stop at once.
+        let driftedToForeignField = false
+
+        let previousTicks = initialToken.ticks
+        let valueTwoStepsAgo: number | null = null
+        let bestTicks = initialToken.ticks
+        let bestDistance = Math.abs(initialToken.ticks - targetTicks)
+        let fruitlessStreak = 0
+        let reachedTarget = false
+        let gaveUp = false
+
+        // Build an edit+arrow mask for an arrow channel.
+        const getMaskForChannel = (channel: FloatChannel, effectiveDirection: number): number => {
+            const positiveKey = channel === 'upDown' ? M8KeyMask.Up : M8KeyMask.Right
+            const negativeKey = channel === 'upDown' ? M8KeyMask.Down : M8KeyMask.Left
+            return M8KeyMask.Edit | (effectiveDirection >= 0 ? positiveKey : negativeKey)
+        }
+
+        const applyBurst = async (channel: FloatChannel, direction: number, presses: number): Promise<void> => {
+            const stats = statsByFocus[focus][channel]
+            const mask = getMaskForChannel(channel, direction * stats.bias)
+            const beforeLine = store.get(currentLineAtom)
+            for (let i = 0; i < presses; i++) {
+                busRef.current?.commands.sendKeys(mask)
+                await wait(22)
+            }
+            await waitForCurrentLineChange(beforeLine, 350)
+        }
+
+        // Hop the cursor onto the wanted digit group using bare left/right (no edit):
+        // the decimal part sits right of the dot, the integer part left of it. The
+        // landing is verified through textUnderCursor; if the first arrow did not
+        // reach the wanted group, the opposite arrow is tried before giving up.
+        // Only ever called from 'int'/'dec' focus — never from 'full', where a bare
+        // arrow could leave the field entirely.
+        const ensureFloatCursorSide = async (side: 'int' | 'dec'): Promise<boolean> => {
+            const currentFocusOf = (): FloatCursorFocus | null => (
+                detectFloatCursorFocus(readFloatState(), store.get(textUnderCursorAtom))
+            )
+
+            const detected = currentFocusOf()
+            if (detected === side) {
+                focus = side
+                return true
+            }
+
+            const beforeHint = store.get(textUnderCursorAtom)
+            const towardDot = side === 'dec' ? M8KeyMask.Right : M8KeyMask.Left
+            const awayFromDot = side === 'dec' ? M8KeyMask.Left : M8KeyMask.Right
+
+            await pressAndRelease(towardDot, 35)
+            await waitForTextUnderCursorChange(beforeHint, 250)
+            if (currentFocusOf() === side) {
+                focus = side
+                return true
+            }
+
+            // Unexpected layout: try the reverse arrow instead of getting stuck.
+            await pressAndRelease(awayFromDot, 35)
+            await waitForTextUnderCursorChange(beforeHint, 250)
+            const landed = currentFocusOf() === side
+            if (landed) focus = side
+            return landed
+        }
+
+        while (!reachedTarget && !gaveUp && Date.now() - startedAt < MAX_RUNTIME_MS) {
+            const state = readFloatState()
+            if (!state) {
+                console.warn('[M8SDK] Float value no longer parseable while editing:', store.get(currentLineAtom))
+                gaveUp = true
+                break
+            }
+
+            // Never keep editing when the cursor moved onto another field of the line.
+            if (isCursorOnForeignFloat(lastTokens, tokenIndex, store.get(textUnderCursorAtom))) {
+                console.warn('[M8SDK] Float cursor drifted to another field, aborting to avoid editing the wrong value')
+                driftedToForeignField = true
+                gaveUp = true
+                break
+            }
+
+            const diffTicks = targetTicks - state.ticks
+            if (diffTicks === 0) {
+                reachedTarget = true
+                break
+            }
+
+            const distance = Math.abs(diffTicks)
+            if (distance < bestDistance) {
+                bestDistance = distance
+                bestTicks = state.ticks
+            }
+
+            // Detect 2-value bounce (A -> B -> A), especially when crossing the target.
+            const isOscillating = valueTwoStepsAgo !== null && state.ticks === valueTwoStepsAgo
+            const crossesTarget = (previousTicks - targetTicks) * (state.ticks - targetTicks) < 0
+            if (isOscillating && crossesTarget) {
+                debugLog('[M8SDK] Float adjustment bouncing around target, stopping')
+                break
+            }
+            valueTwoStepsAgo = previousTicks
+            previousTicks = state.ticks
+
+            // Route the cursor between digit groups for efficiency, but only when a
+            // single group is focused. With 'full' focus, up/down already drives the
+            // integer part and left/right the decimal part, so there is nothing to
+            // relocate — and a bare arrow there could leave the field entirely.
+            if (focus !== 'full' && !sideControlDisabled) {
+                const desiredSide: 'int' | 'dec' = distance >= UNIT_IN_TICKS ? 'int' : 'dec'
+                if (desiredSide !== focus) {
+                    const hopped = await ensureFloatCursorSide(desiredSide)
+                    if (!hopped) {
+                        // The cursor may have landed on another field during the
+                        // failed relocation: verify before pressing edit combos.
+                        if (isCursorOnForeignFloat(lastTokens, tokenIndex, store.get(textUnderCursorAtom))) {
+                            console.warn('[M8SDK] Float cursor drifted to another field, aborting to avoid editing the wrong value')
+                            driftedToForeignField = true
+                            gaveUp = true
+                            break
+                        }
+                        debugLog('[M8SDK] Could not relocate float cursor, continuing on current digit group')
+                        sideControlDisabled = true
+                    }
+                }
+            }
+
+            // Choose the arrow channel and burst size for this round, using only
+            // measurements gathered in the current focus mode. up/down probing is
+            // gated by focus: on the integer group a jump spans several whole units
+            // and would badly overshoot short distances; spanning the whole float it
+            // moves whole units too; on the decimal group jumps are sub-unit only,
+            // so probing pays off much sooner.
+            const focusStats = statsByFocus[focus]
+            const upDownProbeGateTicks = focus === 'int'
+                ? Math.max(COARSE_MIN_TICKS, 3 * UNIT_IN_TICKS)
+                : focus === 'full'
+                    ? UNIT_IN_TICKS
+                    : Math.max(8, Math.floor(COARSE_MIN_TICKS / 4))
+
+            let channel: FloatChannel
+            let presses = 1
+            if (focusStats.upDown.mag !== null && focusStats.upDown.mag > 0 && distance >= focusStats.upDown.mag) {
+                channel = 'upDown'
+                presses = Math.min(Math.max(1, Math.floor(distance / focusStats.upDown.mag)), MAX_PRESSES_PER_BURST)
+            } else if (focusStats.upDown.mag === null && distance >= upDownProbeGateTicks) {
+                // One probe press measures the actual up/down step in this focus mode.
+                channel = 'upDown'
+                presses = 1
+            } else if (focusStats.leftRight.mag !== null && focusStats.leftRight.mag > 0) {
+                channel = 'leftRight'
+                presses = Math.min(Math.max(1, Math.floor(distance / focusStats.leftRight.mag)), MAX_PRESSES_PER_BURST)
+            } else {
+                // left/right magnitude unknown (or not yet usable): probe it once.
+                channel = 'leftRight'
+                presses = 1
+            }
+
+            const direction = diffTicks > 0 ? 1 : -1
+            const beforeTicks = state.ticks
+            const focusAtPress = focus
+            const channelAtPress = channel
+            await applyBurst(channel, direction, presses)
+
+            const nextState = readFloatState()
+            if (!nextState) {
+                gaveUp = true
+                break
+            }
+            const deltaTicks = nextState.ticks - beforeTicks
+
+            if (deltaTicks === 0) {
+                fruitlessStreak += 1
+                if (fruitlessStreak >= 4) {
+                    console.warn(
+                        `[M8SDK] Float value stopped reacting at ${formatFloatFromTicks(nextState.ticks, tickHundredths)}`
+                        + ` (target ${formatFloatFromTicks(targetTicks, tickHundredths)} may be out of range)`,
+                    )
+                    gaveUp = true
+                }
+                continue
+            }
+            fruitlessStreak = 0
+
+            // Learn/refresh the measured magnitude and polarity for the channel that
+            // was used, in the focus mode it was used from.
+            const pressedStats = statsByFocus[focusAtPress][channelAtPress]
+            pressedStats.mag = Math.max(1, Math.round(Math.abs(deltaTicks) / presses))
+
+            // If the pressed arrows moved away from the target despite our assumed
+            // mapping, flip that channel's arrow expectation for next rounds.
+            if (Math.sign(deltaTicks) !== Math.sign(diffTicks)) {
+                debugLog(`[M8SDK] Float ${channelAtPress} arrows move oppositely in '${focusAtPress}' focus, inverting mapping`)
+                pressedStats.bias *= -1
+                valueTwoStepsAgo = null
+            }
+        }
+
+        // If the exact target was never reached, walk back to the closest observed
+        // value so the parameter is never left worse off than necessary. Skipped
+        // after a foreign-field drift — recovery presses would edit the wrong value.
+        if (!reachedTarget && !driftedToForeignField) {
+            const snapStartedAt = Date.now()
+            while (Date.now() - snapStartedAt < 1800) {
+                const snapState = readFloatState()
+                if (!snapState || snapState.ticks === bestTicks) break
+
+                const gap = bestTicks - snapState.ticks
+                const snapDistance = Math.abs(gap)
+
+                // Same digit-group routing as the main loop for efficient recovery.
+                if (focus !== 'full' && !sideControlDisabled && (snapDistance >= UNIT_IN_TICKS) !== (focus === 'int')) {
+                    const hoppedBack = await ensureFloatCursorSide(snapDistance >= UNIT_IN_TICKS ? 'int' : 'dec')
+                    if (!hoppedBack) sideControlDisabled = true
+                }
+
+                const snapStats = statsByFocus[focus]
+                let snapChannel: FloatChannel
+                let snapPresses = 1
+                if (snapStats.upDown.mag !== null && snapStats.upDown.mag > 0 && snapDistance >= snapStats.upDown.mag) {
+                    snapChannel = 'upDown'
+                    snapPresses = Math.min(Math.max(1, Math.floor(snapDistance / snapStats.upDown.mag)), 16)
+                } else if (snapStats.leftRight.mag !== null && snapStats.leftRight.mag > 0) {
+                    snapChannel = 'leftRight'
+                    snapPresses = Math.min(Math.max(1, Math.floor(snapDistance / snapStats.leftRight.mag)), 16)
+                } else {
+                    snapChannel = 'leftRight'
+                }
+
+                const beforeSnapTicks = snapState.ticks
+                await applyBurst(snapChannel, gap > 0 ? 1 : -1, snapPresses)
+                const afterSnap = readFloatState()
+                if (!afterSnap || afterSnap.ticks === beforeSnapTicks) break
+            }
+        }
+
+        // Exit edit mode and verify the final value against the parsed line.
+        // After a foreign-field drift, pressing edit could open edit mode on the
+        // wrong field, so skip it and just report failure.
+        if (!driftedToForeignField) {
+            await pressAndRelease(M8KeyMask.Edit)
+        }
+
+        const finalToken = readFloatState()
+        const success = !!finalToken && finalToken.ticks === targetTicks
+        debugLog(
+            `[M8SDK] Float setting ${success ? 'succeeded' : 'failed'}: "${finalToken?.raw ?? 'N/A'}"`
+            + ` (${finalToken ? formatFloatFromTicks(finalToken.ticks, tickHundredths) : 'N/A'})`,
+        )
+        return success
+    }, [pressAndRelease, store, waitForTextUnderCursorChange, waitForCurrentLineChange, debugLog])
 
     // Implementation of setNote using edit+up/down for octave and edit+left/right for semitone
     // If the exact note is unreachable (for example due to scale), this stops on the closest note found.
@@ -1395,6 +1937,14 @@ export const useM8SdkHost = (bus: ConnectedBus | undefined, config: M8SdkConfig 
                         }
                         debugLog('[M8SDK] Executing setValueToInt:', targetInt)
                         return setValueToIntImpl(targetInt)
+                    },
+                    setValueFloat: async (targetFloat: number): Promise<boolean> => {
+                        if (!busRef.current) {
+                            console.warn('[M8SDK] setValueFloat: no bus connection')
+                            return false
+                        }
+                        debugLog('[M8SDK] Executing setValueFloat:', targetFloat)
+                        return setValueFloatImpl(targetFloat)
                     },
                     setNote: async (noteString: string): Promise<boolean> => {
                         if (!busRef.current) {
