@@ -48,6 +48,9 @@ export interface M8HostMethods {
     // Value manipulation
     setValueToHex(targetHex: number): Promise<boolean>
     setValueToInt(targetInt: number): Promise<boolean>
+    /** Set a float parameter parsed from the current line (e.g. "TUNE 440.00 G",
+     * "GAIN 05.25 -19.75 -15.00"). Handles group-focused and whole-float cursors. */
+    setValueFloat(targetFloat: number): Promise<boolean>
     setNote(noteString: string): Promise<boolean>
     setValueToString(targetString: string, exact?: boolean, searchInCurrentLine?: boolean): Promise<boolean>
     browseFile(targetText: string, exact?: boolean): Promise<boolean>
