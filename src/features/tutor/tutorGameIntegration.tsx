@@ -19,17 +19,17 @@ const tutorPanelClass = css`
 export const TutorGameDisplay: FC<{ bus?: ConnectedBus }> = ({ bus }) => {
   const { settings } = useSettingsContext()
   const { iframeRef, isReady: sdkReady } = useM8SdkHost(bus, { debug: false })
-  const [iframeSrc, setIframeSrc] = useState(settings.tutorGameHost)
+  const [iframeSrc, setIframeSrc] = useState(settings.sdkTestHost)
 
   useEffect(() => {
     if (!sdkReady) {
-      setIframeSrc(settings.tutorGameHost)
+      setIframeSrc(settings.sdkTestHost)
     }
-  }, [sdkReady, settings.tutorGameHost])
+  }, [sdkReady, settings.sdkTestHost])
 
   return (
     <div className={tutorPanelClass}>
-      <iframe ref={iframeRef} src={iframeSrc} title="M8 Tutor Game" />
+      <iframe ref={iframeRef} src={iframeSrc} title="M8 SDK Test" />
     </div>
   )
 }
