@@ -108,7 +108,9 @@ The default app list includes:
 | App | Purpose |
 | --- | --- |
 | M8 Shortcuts | Context-aware shortcut reference |
-| M8 Tutor Game | Local training and practice app |
+| M8 SDK Test | Local SDK test page (`sdk-test.html`) |
+| M8 Groove Extractor | Groove extraction tool |
+| M8 Scale Divinator | Scale exploration tool |
 
 Open **Configure** to add, remove, rename, reorder by active selection, or edit external app URLs. Apps can optionally use the legacy URL fallback format before the SDK connection is ready.
 
