@@ -2,8 +2,8 @@ import { css } from '@linaria/core'
 import { useAtom } from 'jotai'
 import { useEffect, useRef, useState } from 'react'
 import { useSettingsContext } from '../settings/settings'
-import { vjActiveKeyAtom } from '../state/viewStore'
 import { loadSavedShaders, type SavedBackgroundShader } from './shaderLibrary'
+import { vjActiveKeyAtom } from './vjState'
 
 // Numpad layout: row-major, [key, col, row] — matches physical numpad
 const NUMPAD_KEYS = [

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSetAtom } from 'jotai'
 import { getM8InputStream, getM8OutputCaptureStream, M8_AUDIO_CAPTURE_CONSTRAINTS } from '../connection/audio'
 import { fixWebmDuration } from './fixWebmDuration'
-import { recordingStateAtom } from '../state/viewStore'
+import { recordingStateAtom } from './recordingState'
 
 export type RecordingMode = 'canvas' | 'display'
 

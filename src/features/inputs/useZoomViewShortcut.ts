@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
-import { shouldIgnoreAppKeyboardEvent } from '../inputs/inputGate'
-import { useSettingsContext } from './settings'
+import { useSettingsContext } from '../settings/settings'
+import { shouldIgnoreAppKeyboardEvent } from './inputGate'
 
 /** Toggles the "Zoom View" (fullM8View) setting with the key set in the keyboard settings. */
 export const useZoomViewShortcut = () => {

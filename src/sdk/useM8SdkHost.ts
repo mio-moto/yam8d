@@ -6,6 +6,7 @@ import { ParentHandshake, WindowMessenger, DebugMessenger } from 'post-me'
 import type { Connection, LocalHandle } from 'post-me'
 import type { ConnectedBus } from '../features/connection/connection'
 import { useViewNavigator } from '../features/macros/useViewNavigator'
+import { macroStatusAtom } from '../features/macros/macroStatus'
 import { useViewNavigation } from '../features/macros/useViewNavigation'
 import {
     viewNameAtom,
@@ -15,7 +16,6 @@ import {
     selectionModeAtom,
     textUnderCursorAtom,
     currentLineAtom,
-    macroStatusAtom,
 } from '../features/state/viewStore'
 import { createFileBrowserSearch } from './host/fileBrowserSearch'
 import { createFloatEditor } from './host/floatEditor'

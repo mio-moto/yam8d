@@ -2,7 +2,7 @@ import { getDefaultStore } from 'jotai'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ConnectedBus } from '../connection/connection'
 import type { KeyCommand } from '../connection/protocol'
-import { macroStatusAtom } from '../state/viewStore'
+import { macroStatusAtom } from './macroStatus'
 
 export const useMacroRunner = (connection?: ConnectedBus) => {
     const store = getDefaultStore()

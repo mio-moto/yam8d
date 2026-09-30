@@ -3,11 +3,11 @@ import { useEffect, useRef, useState } from 'react'
 import { useAtomValue } from 'jotai'
 import { Button } from '../../components/Button'
 import { Modal } from '../../components/Modal'
-import { useSettingsContext } from './settings'
+import { useSettingsContext } from '../settings/settings'
 import { KeyboardSettings } from './KeyboardSettings'
 import { Manual } from '../manual/Manual'
 import { ExternalAppsSettings } from '../externalApps/ExternalAppsSettings'
-import { recordingStateAtom } from '../state/viewStore'
+import { recordingStateAtom } from '../recording/recordingState'
 import './menu.css'
 
 export const Menu: FC = () => {

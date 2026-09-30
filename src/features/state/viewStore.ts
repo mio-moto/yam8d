@@ -52,9 +52,6 @@ export const currentLineAtom = atom<string | null>(null)
 export const titleColorAtom = atom<RGB | null>(null)
 export const backgroundColorAtom = atom<RGB | null>(null)
 
-// Macro execution status
-export const macroStatusAtom = atom<{ running: boolean; currentStep?: number; sequenceLength?: number }>({ running: false })
-
 // Device/system info
 export const deviceModelAtom = atom<string | null>(null)
 export const fontModeAtom = atom<number | null>(null)
@@ -65,20 +62,9 @@ export const cellMetricsAtom = atom<{ cellW: number; cellH: number; offX: number
 // Complete system info including rectOffset
 export const systemInfoAtom = atom<SystemInfos | null>(null)
 
-// VJ Mode: which numpad key is currently active ('0'-'9', or null)
-export const vjActiveKeyAtom = atom<string | null>(null)
-
-// Recording state: shared between RecordingControls, useCanvasRecorder, and Menu
-// so the menu icon and record button can be hidden during full-tab recording.
-export const recordingStateAtom = atom<{ mode: 'canvas' | 'display' | null; isRecording: boolean }>({
-    mode: null,
-    isRecording: false,
-})
-
 export const useViewName = () => useAtom(viewNameAtom)
 export const useViewTitle = () => useAtom(viewTitleAtom)
 export const useCursor = () => useAtom(cursorPosAtom)
 export const useCursorRect = () => useAtom(cursorRectAtom)
 export const useBackgroundColor = () => useAtom(backgroundColorAtom)
-export const useMacroStatus = () => useAtom(macroStatusAtom)
 export const useSystemInfo = () => useAtom(systemInfoAtom)
