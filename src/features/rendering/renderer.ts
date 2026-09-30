@@ -210,7 +210,7 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
   // Processed atlas layout (set by processFont, used by renderText)
   let processedAtlasW = 0
   let processedAtlasH = 0
-  let processedGlyphStride = 0
+  const processedGlyphStride = 0
   let processedGlyphPad = 0
   let processedGlyphW = 0
   let processedGlyphH = 0

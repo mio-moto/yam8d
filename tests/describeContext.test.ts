@@ -49,6 +49,13 @@ function stateAt(f: Fixture, y: number, x: number): M8State {
   }
 }
 
+/** getSemanticContext for states that are known to have a view. */
+function semanticContext(state: Parameters<typeof getSemanticContext>[0], screen?: Parameters<typeof getSemanticContext>[1]) {
+  const context = getSemanticContext(state, screen)
+  if (!context) throw new Error(`no semantic context for view ${state.viewName}`)
+  return context
+}
+
 /**
  * describeContext() for every cursor position of the fixture, with the screen and
  * without it. Consecutive columns that read the same are collapsed into one entry.
@@ -60,8 +67,8 @@ function sweep(f: Fixture): string[] {
     let previous = ''
     for (let x = 0; x < 40; x += 1) {
       const state = stateAt(f, y, x)
-      const withScreen = describeContext(getSemanticContext(state, screen)!)
-      const withoutScreen = describeContext(getSemanticContext(state)!)
+      const withScreen = describeContext(semanticContext(state, screen))
+      const withoutScreen = describeContext(semanticContext(state))
       const entry = withoutScreen === withScreen ? withScreen : `${withScreen}\n        no screen: ${withoutScreen}`
       if (entry !== previous) out.push(`${y.toString().padStart(2)}:${x.toString().padStart(2)} ${entry}`)
       previous = entry
@@ -333,7 +340,7 @@ for (const [name, fixture] of Object.entries(FIXTURES)) {
   })
 }
 
-const contextAt = (f: Fixture, y: number, x: number, withScreen = true) => getSemanticContext(stateAt(f, y, x), withScreen ? screenOf(f) : null)!
+const contextAt = (f: Fixture, y: number, x: number, withScreen = true) => semanticContext(stateAt(f, y, x), withScreen ? screenOf(f) : null)
 const kindsAt = (f: Fixture, y: number, x: number) => describeContextParts(contextAt(f, y, x)).map((p) => p.kind)
 
 test('describeContextParts: non-empty parts, no separator inside, same text as describeContext', () => {
@@ -404,7 +411,7 @@ test('describeContext: no cursor line, unknown view', () => {
   const blank = { ...stateAt(SONG, 2, 3), currentLine: null }
   const unknown = { ...stateAt(SONG, 2, 3), viewName: 'nowhere' }
   expect([
-    describeContext(getSemanticContext(blank)!),
-    describeContext(getSemanticContext(unknown)!),
+    describeContext(semanticContext(blank)),
+    describeContext(semanticContext(unknown)),
   ]).toMatchSnapshot()
 })

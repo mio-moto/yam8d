@@ -191,7 +191,7 @@ export function describeFxValue(cmd: string, value: number, ctx: FxValueContext 
       if (value === 0) return 'table advances on each instrument trigger'
       if (value <= 0xfb) return `table advances every ${ticks(value)}`
       return (
-        { 0xfc: 'octave map: playing octave picks the table row', 0xfd: 'velocity map', 0xfe: 'note map', 0xff: 'table advances at 200 Hz' } as Record<
+        { 252: 'octave map: playing octave picks the table row', 253: 'velocity map', 254: 'note map', 255: 'table advances at 200 Hz' } as Record<
           number,
           string
         >
@@ -409,7 +409,11 @@ export function analyzeRelativeFx(
       }
       if (applied == null) continue
 
-      const st = (states[src.cmd] ??= { cmd: src.cmd, total: 0, count: 0, resetStep, resetBy, viaRep: false })
+      let st = states[src.cmd]
+      if (!st) {
+        st = { cmd: src.cmd, total: 0, count: 0, resetStep, resetBy, viaRep: false }
+        states[src.cmd] = st
+      }
       st.total += signed8(applied)
       st.count += 1
       st.viaRep ||= viaRep
