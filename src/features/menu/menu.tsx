@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useAtomValue } from 'jotai'
 import { Button } from '../../components/Button'
 import { Modal } from '../../components/Modal'
+import { setAppInputBlocked } from '../inputs/inputGate'
 import { useSettingsContext } from '../settings/settings'
 import { KeyboardSettings } from './KeyboardSettings'
 import { Manual } from '../manual/Manual'
@@ -31,12 +32,10 @@ export const Menu: FC = () => {
         }
     }, [hideMenu])
 
-    // Mark menu open on document body for global hooks to detect
+    // Suspend the app's keyboard shortcuts while the menu is open
     useEffect(() => {
-        document.body.dataset.m8MenuOpen = opened ? 'true' : 'false'
-        return () => {
-            delete document.body.dataset.m8MenuOpen
-        }
+        setAppInputBlocked('menu', opened)
+        return () => setAppInputBlocked('menu', false)
     }, [opened])
 
     // Close menu when clicking anywhere outside the menu or the toggle hitbox
