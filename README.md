@@ -37,37 +37,37 @@ Required browser APIs vary by feature:
 Install dependencies:
 
 ```bash
-npm install
+bun install
 ```
 
 Run the app:
 
 ```bash
-npm run dev
+bun run dev
 ```
 
 Build the app:
 
 ```bash
-npm run build
+bun run build
 ```
 
 Lint:
 
 ```bash
-npm run lint
+bun run lint
 ```
 
 Build the iframe SDK package:
 
 ```bash
-npm run build:sdk
+bun run build:sdk
 ```
 
 Pack the SDK package:
 
 ```bash
-npm run pack:sdk
+bun run pack:sdk
 ```
 
 ## SDK

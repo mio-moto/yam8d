@@ -6,22 +6,8 @@ import { shouldIgnoreAppKeyboardEvent } from '../inputs/inputGate'
 import { useSettingsContext } from '../settings/settings'
 import { vjActiveKeyAtom } from '../state/viewStore'
 import type { ScreenLayout } from './renderer'
+import { findSavedShaderById, WEBCAM_VIDEO_SOURCE } from './shaderLibrary'
 import type { DrawCommand, WorkerInMessage, WorkerOutMessage } from './renderer.worker'
-
-const VJ_NUMPAD_STORAGE_KEY = 'M8savedBackgroundShaders'
-const WEBCAM_VIDEO_SOURCE = 'webcam://default'
-type VJSavedShader = { id: string; source: string; compositeM8Screen: boolean; name: string; videoUrl?: string; updatedAt: number }
-
-const loadVJShaderById = (id: string): VJSavedShader | null => {
-    try {
-        const raw = localStorage.getItem(VJ_NUMPAD_STORAGE_KEY)
-        if (!raw) return null
-        const list = JSON.parse(raw) as VJSavedShader[]
-        return list.find((s) => s.id === id) ?? null
-    } catch {
-        return null
-    }
-}
 
 const makeScreenLayout = ({ model, fontMode }: SystemCommand): ScreenLayout => {
     if (model === 'M8 Model:02') {
@@ -483,7 +469,7 @@ export const M8Screen = forwardRef<HTMLCanvasElement, { bus?: ConnectedBus | nul
         // Precompile every assigned shader so switching is instant
         for (const shaderId of Object.values(settings.vjNumpadAssignments)) {
             if (!shaderId) continue
-            const shader = loadVJShaderById(shaderId)
+            const shader = findSavedShaderById(shaderId)
             if (shader) {
                 worker.postMessage({ type: 'precompileVJShader', id: shaderId, source: shader.source } satisfies WorkerInMessage)
             }
@@ -496,7 +482,7 @@ export const M8Screen = forwardRef<HTMLCanvasElement, { bus?: ConnectedBus | nul
             if (!/^[0-9]$/.test(key)) return
             const shaderId = settings.vjNumpadAssignments[key]
             if (!shaderId) return
-            const shader = loadVJShaderById(shaderId)
+            const shader = findSavedShaderById(shaderId)
             if (!shader) return
             worker.postMessage({ type: 'activateVJShader', id: shaderId, compositeM8Screen: shader.compositeM8Screen } satisfies WorkerInMessage)
             // Keep video source in sync with the active VJ preset.
