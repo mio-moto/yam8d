@@ -1,12 +1,11 @@
 import { css } from '@linaria/core'
 import './App.css'
-import { type FC, lazy, Suspense, useCallback, useState } from 'react'
+import { type FC, lazy, Suspense } from 'react'
 import { style } from './app/style/style'
-import type { ConnectedBus } from './features/connection/connection'
-import { device } from './features/connection/device'
 import { useM8Input } from './features/inputs/useM8input'
 import { useZoomViewShortcut } from './features/inputs/useZoomViewShortcut'
 import { M8Player } from './features/M8Player'
+import { useDeviceConnection } from './features/useDeviceConnection'
 import { useMacroInput } from './features/macros/useMacroInput'
 import { Menu } from './features/menu/menu'
 import { useSettingsContext } from './features/settings/settings'
@@ -46,41 +45,7 @@ const playerRowClass = css`
 export const App: FC = () => {
   const { settings } = useSettingsContext()
 
-  const [connectedBus, setConnectedBus] = useState<ConnectedBus>()
-
-  const tryConnect = useCallback(() => {
-    const res = device()
-
-      ; (async () => {
-        if (!res.connection.browserSupport) {
-          console.error('No usb / serial support detected.')
-          return
-        }
-
-        // Retry loop — the M8 Headless is slower to enumerate and may not be
-        // immediately ready when the user clicks Connect.
-        const maxAttempts = 3
-        let bus: Awaited<ReturnType<typeof res.connection.connect>> | undefined
-        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-          try {
-            bus = await res.connection.connect()
-            break
-          } catch (err) {
-            console.warn(`Connection attempt ${attempt}/${maxAttempts} failed:`, err)
-            if (attempt < maxAttempts) {
-              await new Promise<void>((resolve) => setTimeout(resolve, 1500))
-            } else {
-              console.error('Could not connect to M8 after all attempts:', err)
-              return
-            }
-          }
-        }
-        if (!bus) return
-
-        setConnectedBus(bus)
-        await res.audio.connect()
-      })()
-  }, [])
+  const { bus: connectedBus, connect: tryConnect } = useDeviceConnection()
 
   useM8Input(connectedBus)
   useMacroInput(connectedBus)

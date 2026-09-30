@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useAtomValue } from 'jotai'
 import { Button } from '../../components/Button'
 import { Modal } from '../../components/Modal'
+import { useDialogModal } from '../../components/useDialogModal'
 import { setAppInputBlocked } from '../inputs/inputGate'
 import { useSettingsContext } from '../settings/settings'
 import { KeyboardSettings } from './KeyboardSettings'
@@ -19,9 +20,9 @@ export const Menu: FC = () => {
     const [manualOpen, setManualOpen] = useState(false)
     const menuRef = useRef<HTMLDivElement | null>(null)
     const hitboxRef = useRef<HTMLDivElement | null>(null)
-    const externalAppsModalRef = useRef<HTMLDialogElement | null>(null)
-    const keyboardModalRef = useRef<HTMLDialogElement | null>(null)
-    const manualModalRef = useRef<HTMLDialogElement | null>(null)
+    const externalAppsModalRef = useDialogModal(externalAppsSettingsOpen, () => setExternalAppsSettingsOpen(false))
+    const keyboardModalRef = useDialogModal(keyboardSettingsOpen, () => setKeyboardSettingsOpen(false))
+    const manualModalRef = useDialogModal(manualOpen, () => setManualOpen(false))
     const recordingState = useAtomValue(recordingStateAtom)
     const hideMenu = recordingState.isRecording && recordingState.mode === 'display'
 
@@ -58,89 +59,6 @@ export const Menu: FC = () => {
             document.removeEventListener('pointerdown', onPointerDown, true)
         }
     }, [opened])
-
-    // Handle external apps settings modal
-    useEffect(() => {
-        const modal = externalAppsModalRef.current
-        if (!modal) return
-
-        const handleClose = () => setExternalAppsSettingsOpen(false)
-        const handleClick = (e: MouseEvent) => {
-            if (e.target === modal) {
-                setExternalAppsSettingsOpen(false)
-            }
-        }
-
-        modal.addEventListener('close', handleClose)
-        modal.addEventListener('click', handleClick as EventListener)
-
-        if (externalAppsSettingsOpen) {
-            modal.showModal()
-        } else {
-            modal.close()
-        }
-
-        return () => {
-            modal.removeEventListener('close', handleClose)
-            modal.removeEventListener('click', handleClick as EventListener)
-        }
-    }, [externalAppsSettingsOpen])
-
-    // Handle keyboard settings modal
-    useEffect(() => {
-        const modal = keyboardModalRef.current
-        if (!modal) return
-
-        const handleClose = () => setKeyboardSettingsOpen(false)
-        const handleClick = (e: MouseEvent) => {
-            // Close when clicking on backdrop
-            if (e.target === modal) {
-                setKeyboardSettingsOpen(false)
-            }
-        }
-
-        modal.addEventListener('close', handleClose)
-        modal.addEventListener('click', handleClick as EventListener)
-
-        if (keyboardSettingsOpen) {
-            modal.showModal()
-        } else {
-            modal.close()
-        }
-
-        return () => {
-            modal.removeEventListener('close', handleClose)
-            modal.removeEventListener('click', handleClick as EventListener)
-        }
-    }, [keyboardSettingsOpen])
-
-    // Handle manual modal
-    useEffect(() => {
-        const modal = manualModalRef.current
-        if (!modal) return
-
-        const handleClose = () => setManualOpen(false)
-        const handleClick = (e: MouseEvent) => {
-            // Close when clicking on backdrop
-            if (e.target === modal) {
-                setManualOpen(false)
-            }
-        }
-
-        modal.addEventListener('close', handleClose)
-        modal.addEventListener('click', handleClick as EventListener)
-
-        if (manualOpen) {
-            modal.showModal()
-        } else {
-            modal.close()
-        }
-
-        return () => {
-            modal.removeEventListener('close', handleClose)
-            modal.removeEventListener('click', handleClick as EventListener)
-        }
-    }, [manualOpen])
 
     return (
         <>
