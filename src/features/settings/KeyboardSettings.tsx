@@ -1,7 +1,7 @@
 import { css, cx } from '@linaria/core'
 import { type FC, useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '../../components/Button'
-import { useSettingsContext } from './settings'
+import { DEFAULT_ZOOM_VIEW_KEY, useSettingsContext } from './settings'
 import { defaultInputMap } from '../inputs/defaultInputMap'
 import { defaultMacroInputMap, macroDigitKeys, macroFunctionKeys, type MacroInputMap } from '../macros/defaultMacroInputMap'
 import { loadViewList } from '../macros/m8GraphLoader'
@@ -452,6 +452,8 @@ export const KeyboardSettings: FC = () => {
     const [localInputMap, setLocalInputMap] = useState<InputMapValue>(() => ({ ...settings.inputMap }))
     const [localKeyMap, setLocalKeyMap] = useState<KeyMapValue>(() => ({ ...settings.keyMap }))
     const [localMacroInputMap, setLocalMacroInputMap] = useState<MacroInputMap>(() => ({ ...settings.macroInputMap }))
+    const [localZoomViewKey, setLocalZoomViewKey] = useState<string>(() => settings.zoomViewKey ?? DEFAULT_ZOOM_VIEW_KEY)
+    const [selectedZoomKey, setSelectedZoomKey] = useState(false)
     const [hasChanges, setHasChanges] = useState(false)
     const [pressedKey, setPressedKey] = useState<string | null>(null)
     const [selectedVKNote, setSelectedVKNote] = useState<number | null>(null)
@@ -459,6 +461,7 @@ export const KeyboardSettings: FC = () => {
     const [selectedMacroKey, setSelectedMacroKey] = useState<string | null>(null)
     const [hoveredKey, setHoveredKey] = useState<string | null>(null)
     const [hoveredButton, setHoveredButton] = useState<HoveredM8Button>(null)
+    const [hoveredZoomKey, setHoveredZoomKey] = useState(false)
     const [hoveredVKNote, setHoveredVKNote] = useState<number | null>(null)
     const [hoveredVKControl, setHoveredVKControl] = useState<VKControlValue | null>(null)
     const [availableViews, setAvailableViews] = useState<string[]>(() => Array.from(new Set(Object.values(defaultMacroInputMap))))
@@ -498,8 +501,9 @@ export const KeyboardSettings: FC = () => {
             setLocalInputMap({ ...settings.inputMap })
             setLocalKeyMap({ ...settings.keyMap })
             setLocalMacroInputMap({ ...settings.macroInputMap })
+            setLocalZoomViewKey(settings.zoomViewKey ?? DEFAULT_ZOOM_VIEW_KEY)
         }
-    }, [settings.inputMap, settings.keyMap, settings.macroInputMap, hasChanges])
+    }, [settings.inputMap, settings.keyMap, settings.macroInputMap, settings.zoomViewKey, hasChanges])
 
     useEffect(() => {
         let cancelled = false
@@ -520,6 +524,13 @@ export const KeyboardSettings: FC = () => {
             const keyCode = e.code
             if (e.repeat) return
             if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return
+
+            if (selectedZoomKey) {
+                setLocalZoomViewKey(keyCode)
+                setHasChanges(true)
+                setSelectedZoomKey(false)
+                return
+            }
 
             if (selectedMacroKey !== null) {
                 const mappedView = localMacroInputMap[selectedMacroKey]
@@ -581,7 +592,7 @@ export const KeyboardSettings: FC = () => {
             window.removeEventListener('keydown', handleKeyDown)
             window.removeEventListener('keyup', handleKeyUp)
         }
-    }, [selectedButton, selectedVKNote, selectedVKControl, selectedMacroKey, localInputMap, localKeyMap, localMacroInputMap])
+    }, [selectedButton, selectedVKNote, selectedVKControl, selectedMacroKey, selectedZoomKey, localInputMap, localKeyMap, localMacroInputMap])
 
     // Apply CSS classes to the PC keyboard SVG keys
     useEffect(() => {
@@ -600,13 +611,14 @@ export const KeyboardSettings: FC = () => {
             const buttonInfo = buttonName ? M8_BUTTONS.find((b) => b.name === buttonName) : null
             const vkValue = vkReverseMap.get(keyCode)
             const macroValue = localMacroInputMap[keyCode]
+            const isZoomKey = localZoomViewKey !== '' && keyCode === localZoomViewKey
             const linkedByHoveredButton = hoveredButton !== null && buttonInfo?.name === hoveredButton
             const linkedByHoveredVKNote = hoveredVKNote !== null && vkValue === hoveredVKNote
             const linkedByHoveredVKControl = hoveredVKControl !== null && vkValue === hoveredVKControl
 
             el.classList.remove(
                 'opt', 'edit', 'shift', 'play', 'up', 'down', 'left', 'right',
-                'has-mapping', 'pressed', 'note-mapped', 'oct-mapped', 'vel-mapped', 'macro-mapped', 'hover-linked',
+                'has-mapping', 'pressed', 'note-mapped', 'oct-mapped', 'vel-mapped', 'macro-mapped', 'shortcut-mapped', 'hover-linked',
             )
 
             if (buttonInfo) {
@@ -615,6 +627,8 @@ export const KeyboardSettings: FC = () => {
                 el.classList.add(getVKCssClass(vkValue), 'has-mapping')
             } else if (macroValue !== undefined) {
                 el.classList.add('macro-mapped', 'has-mapping')
+            } else if (isZoomKey) {
+                el.classList.add('shortcut-mapped', 'has-mapping')
             }
 
             if (pressedKey === keyCode) {
@@ -623,6 +637,7 @@ export const KeyboardSettings: FC = () => {
 
             if (
                 hoveredKey === keyCode ||
+                (hoveredZoomKey && isZoomKey) ||
                 linkedByHoveredButton ||
                 linkedByHoveredVKNote ||
                 linkedByHoveredVKControl
@@ -635,6 +650,20 @@ export const KeyboardSettings: FC = () => {
             const handleClick = (e: Event) => {
                 e.preventDefault()
                 e.stopPropagation()
+
+                if (selectedZoomKey) {
+                    setLocalZoomViewKey(keyCode)
+                    setHasChanges(true)
+                    setSelectedZoomKey(false)
+                    return
+                }
+
+                // Unassign the zoom shortcut if nothing is selected
+                if (!selectedButton && !selectedVKNote && !selectedVKControl && !selectedMacroKey && isZoomKey && vkValue === undefined && !buttonInfo && macroValue === undefined) {
+                    setLocalZoomViewKey('')
+                    setHasChanges(true)
+                    return
+                }
 
                 if (selectedMacroKey !== null) {
                     const mappedView = localMacroInputMap[selectedMacroKey]
@@ -729,6 +758,9 @@ export const KeyboardSettings: FC = () => {
         selectedVKNote,
         selectedVKControl,
         selectedMacroKey,
+        selectedZoomKey,
+        localZoomViewKey,
+        hoveredZoomKey,
         localInputMap,
         localKeyMap,
         localMacroInputMap,
@@ -748,6 +780,7 @@ export const KeyboardSettings: FC = () => {
         setSelectedVKNote(null)
         setSelectedVKControl(null)
         setSelectedMacroKey(null)
+        setSelectedZoomKey(false)
         setSelectedButton((prev) => (prev === btn.name ? null : btn.name))
     }, [])
 
@@ -770,6 +803,7 @@ export const KeyboardSettings: FC = () => {
         setSelectedButton(null)
         setSelectedVKControl(null)
         setSelectedMacroKey(null)
+        setSelectedZoomKey(false)
         setSelectedVKNote((prev) => (prev === noteIndex ? null : noteIndex))
     }, [])
 
@@ -778,6 +812,7 @@ export const KeyboardSettings: FC = () => {
         setSelectedButton(null)
         setSelectedVKNote(null)
         setSelectedMacroKey(null)
+        setSelectedZoomKey(false)
         setSelectedVKControl((prev) => (prev === ctrl ? null : ctrl))
     }, [])
 
@@ -785,7 +820,16 @@ export const KeyboardSettings: FC = () => {
         setSelectedButton(null)
         setSelectedVKNote(null)
         setSelectedVKControl(null)
+        setSelectedZoomKey(false)
         setSelectedMacroKey((prev) => (prev === keyCode ? null : keyCode))
+    }
+
+    const handleZoomKeySelect = () => {
+        setSelectedButton(null)
+        setSelectedVKNote(null)
+        setSelectedVKControl(null)
+        setSelectedMacroKey(null)
+        setSelectedZoomKey((prev) => !prev)
     }
 
     const handleMacroViewChange = (keyCode: string, viewName: string) => {
@@ -816,6 +860,7 @@ export const KeyboardSettings: FC = () => {
         updateSettingValue('inputMap', localInputMap as typeof defaultInputMap)
         updateSettingValue('keyMap', { ...localKeyMap } as typeof defaultKeyMap)
         updateSettingValue('macroInputMap', { ...localMacroInputMap })
+        updateSettingValue('zoomViewKey', localZoomViewKey)
         setHasChanges(false)
     }
 
@@ -823,6 +868,8 @@ export const KeyboardSettings: FC = () => {
         setLocalInputMap({ ...defaultInputMap })
         setLocalKeyMap({ ...defaultKeyMap })
         setLocalMacroInputMap({ ...defaultMacroInputMap })
+        setLocalZoomViewKey(DEFAULT_ZOOM_VIEW_KEY)
+        setSelectedZoomKey(false)
         setHasChanges(true)
     }
 
@@ -832,6 +879,9 @@ export const KeyboardSettings: FC = () => {
 
     // Instruction text based on active selection
     const instruction = (() => {
+        if (selectedZoomKey) {
+            return 'Press a key or click the keyboard to assign it to "Toggle Zoom View"'
+        }
         if (selectedButton) {
             return `Press a key or click the keyboard to assign it to M8 "${selectedButton}"`
         }
@@ -952,6 +1002,27 @@ export const KeyboardSettings: FC = () => {
                                     </div>
                                 )
                             })}
+                        </div>
+                    </div>
+
+                    <div className={macroSectionClass}>
+                        <div className={vkHeaderClass}>
+                            <span>Shortcuts</span>
+                        </div>
+                        <div
+                            className={cx(macroRowClass, selectedZoomKey && 'selected', hoveredZoomKey && 'hover-linked')}
+                            onMouseEnter={() => setHoveredZoomKey(true)}
+                            onMouseLeave={() => setHoveredZoomKey(false)}
+                        >
+                            <Button
+                                className={macroKeyButtonClass}
+                                selected={selectedZoomKey}
+                                onClick={handleZoomKeySelect}
+                                title="Map the Toggle Zoom View shortcut key"
+                            >
+                                {localZoomViewKey ? formatKey(localZoomViewKey) : '—'}
+                            </Button>
+                            <span>Toggle Zoom View</span>
                         </div>
                     </div>
 

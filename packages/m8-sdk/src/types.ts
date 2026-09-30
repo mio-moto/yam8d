@@ -40,6 +40,13 @@ export interface M8State {
   macroSequenceLength?: number
 }
 
+export interface M8Screen {
+  width: number
+  height: number
+  /** One string per screen row; columns preserved, trailing spaces trimmed. */
+  lines: string[]
+}
+
 export type M8KeyName = 'left' | 'right' | 'up' | 'down' | 'shift' | 'play' | 'opt' | 'edit'
 
 export interface M8HostMethods {
@@ -55,6 +62,7 @@ export interface M8HostMethods {
   sendKeyDown(keys: M8KeyName[]): Promise<void>
   sendKeyUp(): Promise<void>
   getState(): Promise<M8State>
+  getScreen(): Promise<M8Screen>
 }
 
 export interface M8ClientMethods {

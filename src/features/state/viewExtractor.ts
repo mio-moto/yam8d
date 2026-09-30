@@ -526,6 +526,16 @@ class AssemblyCursorExtractor {
     }
 }
 
+// Set while a view extractor is registered; lets the SDK host read the whole screen.
+let activeScreenReader: ((height: number) => string[]) | null = null
+
+export const SCREEN_ROWS = 24
+
+/** Whole M8 screen as text rows (empty array when no extractor is registered). */
+export function getScreenLines(): string[] {
+    return activeScreenReader ? activeScreenReader(SCREEN_ROWS) : []
+}
+
 export function registerViewExtractor(bus?: ConnectedBus | null) {
     if (!bus) return () => { }
     const CursorAssembly = new AssemblyCursorExtractor()
@@ -767,6 +777,26 @@ export function registerViewExtractor(bus?: ConnectedBus | null) {
             return line.trim() || null
         }
 
+        /**
+         * Whole screen as text, one string per row. Unlike getCurrentLine, columns are
+         * preserved (missing cells become spaces) so x offsets stay meaningful.
+         */
+        getScreenLines(height: number): string[] {
+            const lines: string[] = []
+            for (let gy = 0; gy < height; gy += 1) {
+                const row = this.grid.get(gy)
+                if (!row || row.size === 0) {
+                    lines.push('')
+                    continue
+                }
+                let maxX = 0
+                for (const x of row.keys()) if (x > maxX) maxX = x
+                const chars: string[] = []
+                for (let x = 0; x <= maxX; x += 1) chars.push(row.get(x)?.ch ?? ' ')
+                lines.push(chars.join('').trimEnd())
+            }
+            return lines
+        }
 
 
         reset() {
@@ -775,6 +805,7 @@ export function registerViewExtractor(bus?: ConnectedBus | null) {
     }
 
     const charGridTracker = new CharacterGridTracker()
+    activeScreenReader = (height) => charGridTracker.getScreenLines(height)
 
     // Temporary debug: set window.__debugRects = true in the console for 1 second of rect logging
     let debugRectEndTime = 0
@@ -862,5 +893,6 @@ export function registerViewExtractor(bus?: ConnectedBus | null) {
         bus.protocol.eventBus.off('systemInfo', systemInfoHandler)
         extractor.reset()
         charGridTracker.reset()
+        activeScreenReader = null
     }
 }

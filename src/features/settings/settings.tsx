@@ -6,12 +6,15 @@ import DefaultCustomBackgroundShaderSource from '../rendering/shader/default_spe
 
 const SETTINGS = 'M8settings'
 const EXTERNAL_APPS_DEFAULTS_VERSION_KEY = 'M8settings.externalAppsDefaultsVersion'
-const EXTERNAL_APPS_DEFAULTS_VERSION = '1'
+const EXTERNAL_APPS_DEFAULTS_VERSION = '2'
 export const DEFAULT_CUSTOM_BACKGROUND_SHADER_NAME = 'Spectrum Depth Demo'
 export const DEFAULT_CUSTOM_BACKGROUND_SHADER = DefaultCustomBackgroundShaderSource
 
+export const DEFAULT_ZOOM_VIEW_KEY = 'KeyV'
+
 export const DEFAULT_SHORTCUTS_URL = 'https://m8-shortcuts-65mb.vercel.app/' //'https://miomoto.de/m8-shortcuts/'
 export const DEFAULT_SDK_TEST_URL = 'sdk-test.html'
+export const DEFAULT_CONT8XT_URL = 'cont8xt.html'
 export const DEFAULT_GROOVE_EXTRACTOR_URL = 'https://groove.matterwarlox.com/'
 export const DEFAULT_SCALE_DIVINATOR_URL = 'https://scale.matterwarlox.com/'
 
@@ -62,6 +65,12 @@ const defaultExternalApps = (shortcutsHost: string, sdkTestHost: string): Extern
         id: 'm8-sdk-test',
         name: 'M8 SDK Test',
         url: sdkTestHost,
+        useUrlFallback: false,
+    },
+    {
+        id: 'm8-cont8xt',
+        name: 'Cont8xt Notes',
+        url: DEFAULT_CONT8XT_URL,
         useUrlFallback: false,
     },
     {
@@ -166,6 +175,8 @@ export type Settings = {
     inputMap: typeof defaultInputMap
     keyMap: typeof defaultKeyMap
     macroInputMap: MacroInputMap
+    /** KeyboardEvent.code of the shortcut toggling fullM8View ('' = unassigned) */
+    zoomViewKey: string
 }
 
 export type SettingsContextValue = {
@@ -200,6 +211,7 @@ const defaultSettings: Settings = {
     inputMap: defaultInputMap,
     keyMap: defaultKeyMap,
     macroInputMap: defaultMacroInputMap,
+    zoomViewKey: DEFAULT_ZOOM_VIEW_KEY,
 }
 
 const loadInitialSettings = (): Settings => {

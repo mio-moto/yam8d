@@ -1,0 +1,1379 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`describeContext: phrase 1`] = `
+[
+  " 2: 0 Phrase View",
+  " 2: 1 Note (N): Note C-4 — Phrase View row 00",
+  " 2: 6 Velocity (V): 7Fh (127 / 127 max) — Phrase View row 00",
+  " 2: 9 Instrument (I): 00 — Phrase View row 00",
+  " 2:12 FX1 Command: VOL — (Volume (relative)) — value 05: +5 — relative: stays until a note with an instrument number (I) or a RET resets it — Phrase View row 00",
+  " 2:15 FX1 Value: 05h (dec 5) — for VOL (Volume (relative)) — +5 — relative: stays until a note with an instrument number (I) or a RET resets it — Phrase View row 00",
+  " 2:18 FX2 Command: ARP — (Arpeggio: plays 3 notes rapidly. X=first interval semitones, Y=second interval semitones) — value 37: +3 and +7 semitones: C-4 D#4 G-4 — Phrase View row 00",
+  " 2:21 FX2 Value: 37h (dec 55) — for ARP (Arpeggio: plays 3 notes rapidly. X=first interval semitones, Y=second interval semitones) — +3 and +7 semitones: C-4 D#4 G-4 — Phrase View row 00",
+  " 2:24 FX3 Command: (empty) — Phrase View row 00",
+  " 2:27 FX3 Value: (empty) — Phrase View row 00",
+  " 2:30 Phrase View",
+  " 3: 0 Phrase View",
+  " 3: 1 Note (N): (empty) — Phrase View row 01",
+  " 3: 6 Velocity (V): (empty) — Phrase View row 01",
+  " 3: 9 Instrument (I): (empty) — Phrase View row 01",
+  
+" 3:12 FX1 Command: REP — repeats VOL from 05 (step 0), +02 per step → 07 on this step — relative: VOL has moved by +0C over 2 steps since the instrument number on step 0, including REP repeats; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 01
+        no screen: FX1 Command: REP — (Repeat: repeats and increments the last FX command by XX each step. Active until a new command or REP00 stops it; it does not need to appear on every row. In a table: loops the last row XX times. A double-caret '^^' appears next to an FX lane while a REP from a previous phrase is active) — Phrase View row 01"
+,
+  
+" 3:15 FX1 Value: 02h (dec 2) — for REP — repeats VOL from 05 (step 0), +02 per step → 07 on this step — relative: VOL has moved by +0C over 2 steps since the instrument number on step 0, including REP repeats; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 01
+        no screen: FX1 Value: 02h (dec 2) — for REP (Repeat: repeats and increments the last FX command by XX each step. Active until a new command or REP00 stops it; it does not need to appear on every row. In a table: loops the last row XX times. A double-caret '^^' appears next to an FX lane while a REP from a previous phrase is active) — Phrase View row 01"
+,
+  " 3:18 FX2 Command: KIL — (Kill: stops the playing instrument after XX ticks) — value 03: stops the note after 3 ticks — Phrase View row 01",
+  " 3:21 FX2 Value: 03h (dec 3) — for KIL (Kill: stops the playing instrument after XX ticks) — stops the note after 3 ticks — Phrase View row 01",
+  " 3:24 FX3 Command: (empty) — Phrase View row 01",
+  " 3:27 FX3 Value: (empty) — Phrase View row 01",
+  " 3:30 Phrase View",
+  " 4: 0 Phrase View",
+  " 4: 1 Note (N): (empty) — Phrase View row 02",
+  " 4: 6 Velocity (V): (empty) — Phrase View row 02",
+  " 4: 9 Instrument (I): (empty) — Phrase View row 02",
+  
+" 4:12 FX1 Command: (empty) — REP still active: VOL reaches 09 on this step (+02 per step since step 1) — relative: VOL has moved by +15 over 3 steps since the instrument number on step 0, including REP repeats; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 02
+        no screen: FX1 Command: (empty) — Phrase View row 02"
+,
+  
+" 4:15 FX1 Value: (empty) — REP still active: VOL reaches 09 on this step (+02 per step since step 1) — relative: VOL has moved by +15 over 3 steps since the instrument number on step 0, including REP repeats; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 02
+        no screen: FX1 Value: (empty) — Phrase View row 02"
+,
+  " 4:18 FX2 Command: CUT — (Filter cutoff (relative)) — value 85 (-123): −123 — relative: stays until a note with an instrument number (I) or a RET resets it — Phrase View row 02",
+  " 4:21 FX2 Value: 85h (dec 133) — for CUT (Filter cutoff (relative)) — −123 — relative: stays until a note with an instrument number (I) or a RET resets it — Phrase View row 02",
+  " 4:24 FX3 Command: (empty) — Phrase View row 02",
+  " 4:27 FX3 Value: (empty) — Phrase View row 02",
+  " 4:30 Phrase View",
+  " 5: 0 Phrase View",
+  " 5: 1 Note (N): (empty) — Phrase View row 03",
+  " 5: 6 Velocity (V): (empty) — Phrase View row 03",
+  " 5: 9 Instrument (I): (empty) — Phrase View row 03",
+  
+" 5:12 FX1 Command: RTO — sets the value the running REP stops at (0A) — Phrase View row 03
+        no screen: FX1 Command: RTO — (Repeat To: use after REP to hold at the given value (the min/max REP stops at). In a table, used alone: loops until the relative value is reached) — Phrase View row 03"
+,
+  
+" 5:15 FX1 Value: 0Ah (dec 10) — for RTO — sets the value the running REP stops at (0A) — Phrase View row 03
+        no screen: FX1 Value: 0Ah (dec 10) — for RTO (Repeat To: use after REP to hold at the given value (the min/max REP stops at). In a table, used alone: loops until the relative value is reached) — Phrase View row 03"
+,
+  " 5:18 FX2 Command: (empty) — Phrase View row 03",
+  " 5:21 FX2 Value: (empty) — Phrase View row 03",
+  " 5:24 FX3 Command: TPO — (Tempo: sets song BPM to XX. In a table the tempo is relative) — value 78: 120 BPM — Phrase View row 03",
+  " 5:27 FX3 Value: 78h (dec 120) — for TPO (Tempo: sets song BPM to XX. In a table the tempo is relative) — 120 BPM — Phrase View row 03",
+  " 5:30 Phrase View",
+  " 6: 0 Phrase View",
+  " 6: 1 Note (N): (empty) — Phrase View row 04",
+  " 6: 6 Velocity (V): (empty) — Phrase View row 04",
+  " 6: 9 Instrument (I): (empty) — Phrase View row 04",
+  
+" 6:12 FX1 Command: (empty) — REP still active: VOL reaches 0A on this step (+02 per step since step 1), held at the RTO limit 0A — relative: VOL has moved by +1F over 4 steps since the instrument number on step 0, including REP repeats; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 04
+        no screen: FX1 Command: (empty) — Phrase View row 04"
+,
+  
+" 6:15 FX1 Value: (empty) — REP still active: VOL reaches 0A on this step (+02 per step since step 1), held at the RTO limit 0A — relative: VOL has moved by +1F over 4 steps since the instrument number on step 0, including REP repeats; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 04
+        no screen: FX1 Value: (empty) — Phrase View row 04"
+,
+  
+" 6:18 FX2 Command: CUT — (Filter cutoff (relative)) — value 83 (-125): −125 — relative: CUT has moved by −F8 over 2 steps since the instrument number on step 0; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 04
+        no screen: FX2 Command: CUT — (Filter cutoff (relative)) — value 83 (-125): −125 — relative: stays until a note with an instrument number (I) or a RET resets it — Phrase View row 04"
+,
+  
+" 6:21 FX2 Value: 83h (dec 131) — for CUT (Filter cutoff (relative)) — −125 — relative: CUT has moved by −F8 over 2 steps since the instrument number on step 0; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 04
+        no screen: FX2 Value: 83h (dec 131) — for CUT (Filter cutoff (relative)) — −125 — relative: stays until a note with an instrument number (I) or a RET resets it — Phrase View row 04"
+,
+  " 6:24 FX3 Command: (empty) — Phrase View row 04",
+  " 6:27 FX3 Value: (empty) — Phrase View row 04",
+  " 6:30 Phrase View",
+  " 7: 0 Phrase View",
+  " 7: 1 Note (N): Note D-4 — Phrase View row 05",
+  " 7: 6 Velocity (V): 60h (96 / 127 max) — Phrase View row 05",
+  
+" 7: 9 Instrument (I): 01 — triggers the instrument again: resets the relative changes still in force (VOL +1F, CUT −F8) — Phrase View row 05
+        no screen: Instrument (I): 01 — Phrase View row 05"
+,
+  
+" 7:12 FX1 Command: (empty) — REP still active: VOL reaches 0A on this step (+02 per step since step 1), held at the RTO limit 0A — relative: stays until a note with an instrument number (I) or a RET resets it — Phrase View row 05
+        no screen: FX1 Command: (empty) — Phrase View row 05"
+,
+  
+" 7:15 FX1 Value: (empty) — REP still active: VOL reaches 0A on this step (+02 per step since step 1), held at the RTO limit 0A — relative: stays until a note with an instrument number (I) or a RET resets it — Phrase View row 05
+        no screen: FX1 Value: (empty) — Phrase View row 05"
+,
+  " 7:18 FX2 Command: (empty) — Phrase View row 05",
+  " 7:21 FX2 Value: (empty) — Phrase View row 05",
+  " 7:24 FX3 Command: (empty) — Phrase View row 05",
+  " 7:27 FX3 Value: (empty) — Phrase View row 05",
+  " 7:30 Phrase View",
+  " 8: 0 Phrase View",
+  " 8: 1 Note (N): (empty) — Phrase View row 06",
+  " 8: 6 Velocity (V): (empty) — Phrase View row 06",
+  " 8: 9 Instrument (I): (empty) — Phrase View row 06",
+  
+" 8:12 FX1 Command: (empty) — REP still active: VOL reaches 0A on this step (+02 per step since step 1), held at the RTO limit 0A — relative: stays until a note with an instrument number (I) or a RET resets it — Phrase View row 06
+        no screen: FX1 Command: (empty) — Phrase View row 06"
+,
+  
+" 8:15 FX1 Value: (empty) — REP still active: VOL reaches 0A on this step (+02 per step since step 1), held at the RTO limit 0A — relative: stays until a note with an instrument number (I) or a RET resets it — Phrase View row 06
+        no screen: FX1 Value: (empty) — Phrase View row 06"
+,
+  
+" 8:18 FX2 Command: RET — (Retrig: retriggers current row. Y≠0: retrig every Y ticks with X volume ramp. Y=0: single retrig after X ticks) — value 32: retrigs every 2 ticks, volume falls on each retrig (ramp 3) — triggers the instrument again: resets the relative changes still in force (VOL +0A) — Phrase View row 06
+        no screen: FX2 Command: RET — (Retrig: retriggers current row. Y≠0: retrig every Y ticks with X volume ramp. Y=0: single retrig after X ticks) — value 32: retrigs every 2 ticks, volume falls on each retrig (ramp 3) — Phrase View row 06"
+,
+  
+" 8:21 FX2 Value: 32h (dec 50) — for RET (Retrig: retriggers current row. Y≠0: retrig every Y ticks with X volume ramp. Y=0: single retrig after X ticks) — retrigs every 2 ticks, volume falls on each retrig (ramp 3) — triggers the instrument again: resets the relative changes still in force (VOL +0A) — Phrase View row 06
+        no screen: FX2 Value: 32h (dec 50) — for RET (Retrig: retriggers current row. Y≠0: retrig every Y ticks with X volume ramp. Y=0: single retrig after X ticks) — retrigs every 2 ticks, volume falls on each retrig (ramp 3) — Phrase View row 06"
+,
+  " 8:24 FX3 Command: PIT — (Pitch in semitones (relative)) — value 0C: +12 semitones — relative: stays until a note with an instrument number (I) or a RET resets it — Phrase View row 06",
+  " 8:27 FX3 Value: 0Ch (dec 12) — for PIT (Pitch in semitones (relative)) — +12 semitones — relative: stays until a note with an instrument number (I) or a RET resets it — Phrase View row 06",
+  " 8:30 Phrase View",
+  " 9: 0 Phrase View",
+  " 9: 1 Note (N): (empty) — Phrase View row 07",
+  " 9: 6 Velocity (V): (empty) — Phrase View row 07",
+  " 9: 9 Instrument (I): (empty) — Phrase View row 07",
+  
+" 9:12 FX1 Command: REP — REP00 stops the repeat of VOL — Phrase View row 07
+        no screen: FX1 Command: REP — (Repeat: repeats and increments the last FX command by XX each step. Active until a new command or REP00 stops it; it does not need to appear on every row. In a table: loops the last row XX times. A double-caret '^^' appears next to an FX lane while a REP from a previous phrase is active) — Phrase View row 07"
+,
+  
+" 9:15 FX1 Value: 00h (dec 0) — for REP — REP00 stops the repeat of VOL — Phrase View row 07
+        no screen: FX1 Value: 00h (dec 0) — for REP (Repeat: repeats and increments the last FX command by XX each step. Active until a new command or REP00 stops it; it does not need to appear on every row. In a table: loops the last row XX times. A double-caret '^^' appears next to an FX lane while a REP from a previous phrase is active) — Phrase View row 07"
+,
+  
+" 9:18 FX2 Command: PIT — (Pitch in semitones (relative)) — value F4 (-12): −12 semitones — relative: PIT has had no net effect over 2 steps since the RET on step 6; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 07
+        no screen: FX2 Command: PIT — (Pitch in semitones (relative)) — value F4 (-12): −12 semitones — relative: stays until a note with an instrument number (I) or a RET resets it — Phrase View row 07"
+,
+  
+" 9:21 FX2 Value: F4h (dec 244) — for PIT (Pitch in semitones (relative)) — −12 semitones — relative: PIT has had no net effect over 2 steps since the RET on step 6; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 07
+        no screen: FX2 Value: F4h (dec 244) — for PIT (Pitch in semitones (relative)) — −12 semitones — relative: stays until a note with an instrument number (I) or a RET resets it — Phrase View row 07"
+,
+  " 9:24 FX3 Command: (empty) — Phrase View row 07",
+  " 9:27 FX3 Value: (empty) — Phrase View row 07",
+  " 9:30 Phrase View",
+  "10: 0 Phrase View",
+  "10: 1 Note (N): Note E-4 — Phrase View row 08",
+  "10: 6 Velocity (V): (empty) — Phrase View row 08",
+  "10: 9 Instrument (I): (empty) — Phrase View row 08",
+  
+"10:12 FX1 Command: PIT — (Pitch in semitones (relative)) — value 0C: +12 semitones — relative: PIT has moved by +0C over 3 steps since the RET on step 6; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 08
+        no screen: FX1 Command: PIT — (Pitch in semitones (relative)) — value 0C: +12 semitones — relative: stays until a note with an instrument number (I) or a RET resets it — Phrase View row 08"
+,
+  
+"10:15 FX1 Value: 0Ch (dec 12) — for pit (Pitch in semitones (relative)) — +12 semitones — relative: PIT has moved by +0C over 3 steps since the RET on step 6; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 08
+        no screen: FX1 Value: 0Ch (dec 12) — for pit (Pitch in semitones (relative)) — +12 semitones — relative: stays until a note with an instrument number (I) or a RET resets it — Phrase View row 08"
+,
+  "10:18 FX2 Command: (empty) — Phrase View row 08",
+  "10:21 FX2 Value: (empty) — Phrase View row 08",
+  "10:24 FX3 Command: HOP — (Hop: in phrase jumps to row Y of next phrase; HOPFF stops track. In table loops to row Y X times) — value 04: jumps to row 4 of the next phrase — Phrase View row 08",
+  "10:27 FX3 Value: 04h (dec 4) — for HOP (Hop: in phrase jumps to row Y of next phrase; HOPFF stops track. In table loops to row Y X times) — jumps to row 4 of the next phrase — Phrase View row 08",
+  "10:30 Phrase View",
+  "11: 0 Phrase View",
+  "11: 1 Note (N): (empty) — Phrase View row 09",
+  "11: 6 Velocity (V): (empty) — Phrase View row 09",
+  "11: 9 Instrument (I): (empty) — Phrase View row 09",
+  
+"11:12 FX1 Command: REP — repeats PIT from 0C (step 8), +01 per step → 0D on this step — relative: PIT has moved by +19 over 4 steps since the RET on step 6, including REP repeats; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 09
+        no screen: FX1 Command: REP — (Repeat: repeats and increments the last FX command by XX each step. Active until a new command or REP00 stops it; it does not need to appear on every row. In a table: loops the last row XX times. A double-caret '^^' appears next to an FX lane while a REP from a previous phrase is active) — Phrase View row 09"
+,
+  
+"11:15 FX1 Value: 01h (dec 1) — for REP — repeats PIT from 0C (step 8), +01 per step → 0D on this step — relative: PIT has moved by +19 over 4 steps since the RET on step 6, including REP repeats; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 09
+        no screen: FX1 Value: 01h (dec 1) — for REP (Repeat: repeats and increments the last FX command by XX each step. Active until a new command or REP00 stops it; it does not need to appear on every row. In a table: loops the last row XX times. A double-caret '^^' appears next to an FX lane while a REP from a previous phrase is active) — Phrase View row 09"
+,
+  "11:18 FX2 Command: (empty) — Phrase View row 09",
+  "11:21 FX2 Value: (empty) — Phrase View row 09",
+  "11:24 FX3 Command: (empty) — Phrase View row 09",
+  "11:27 FX3 Value: (empty) — Phrase View row 09",
+  "11:30 Phrase View",
+  "12: 0 Phrase View",
+  "12: 1 Note (N): (empty) — Phrase View row 0A",
+  "12: 6 Velocity (V): (empty) — Phrase View row 0A",
+  "12: 9 Instrument (I): (empty) — Phrase View row 0A",
+  
+"12:12 FX1 Command: (empty) — REP still active: PIT reaches 0E on this step (+01 per step since step 9) — relative: PIT has moved by +27 over 5 steps since the RET on step 6, including REP repeats; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 0A
+        no screen: FX1 Command: (empty) — Phrase View row 0A"
+,
+  
+"12:15 FX1 Value: (empty) — REP still active: PIT reaches 0E on this step (+01 per step since step 9) — relative: PIT has moved by +27 over 5 steps since the RET on step 6, including REP repeats; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 0A
+        no screen: FX1 Value: (empty) — Phrase View row 0A"
+,
+  "12:18 FX2 Command: DEL — (Delay: in phrase delays entire row by XX ticks; in table delays table playhead) — value 02: delays this row by 2 ticks — Phrase View row 0A",
+  "12:21 FX2 Value: 02h (dec 2) — for DEL (Delay: in phrase delays entire row by XX ticks; in table delays table playhead) — delays this row by 2 ticks — Phrase View row 0A",
+  "12:24 FX3 Command: (empty) — Phrase View row 0A",
+  "12:27 FX3 Value: (empty) — Phrase View row 0A",
+  "12:30 Phrase View",
+  "13: 0 Phrase View",
+  "13: 1 Note (N): Note Off — Phrase View row 0B",
+  "13: 6 Velocity (V): (empty) — Phrase View row 0B",
+  "13: 9 Instrument (I): (empty) — Phrase View row 0B",
+  
+"13:12 FX1 Command: TBL — (Table: assigns table number XX to the current instrument) — value 03: instrument uses table 03 — replaces the running REP (TBL is no longer repeated) — Phrase View row 0B
+        no screen: FX1 Command: TBL — (Table: assigns table number XX to the current instrument) — value 03: instrument uses table 03 — Phrase View row 0B"
+,
+  
+"13:15 FX1 Value: 03h (dec 3) — for TBL (Table: assigns table number XX to the current instrument) — instrument uses table 03 — replaces the running REP (TBL is no longer repeated) — Phrase View row 0B
+        no screen: FX1 Value: 03h (dec 3) — for TBL (Table: assigns table number XX to the current instrument) — instrument uses table 03 — Phrase View row 0B"
+,
+  "13:18 FX2 Command: (empty) — Phrase View row 0B",
+  "13:21 FX2 Value: (empty) — Phrase View row 0B",
+  "13:24 FX3 Command: (empty) — Phrase View row 0B",
+  "13:27 FX3 Value: (empty) — Phrase View row 0B",
+  "13:30 Phrase View",
+  "14: 0 Phrase View",
+  "14: 1 Note (N): (empty) — Phrase View row 0C",
+  "14: 6 Velocity (V): (empty) — Phrase View row 0C",
+  "14: 9 Instrument (I): (empty) — Phrase View row 0C",
+  "14:12 FX1 Command: (empty) — Phrase View row 0C",
+  "14:15 FX1 Value: (empty) — Phrase View row 0C",
+  
+"14:18 FX2 Command: REP — repeats DEL from 02 (step A), +04 per step → 06 on this step — Phrase View row 0C
+        no screen: FX2 Command: REP — (Repeat: repeats and increments the last FX command by XX each step. Active until a new command or REP00 stops it; it does not need to appear on every row. In a table: loops the last row XX times. A double-caret '^^' appears next to an FX lane while a REP from a previous phrase is active) — Phrase View row 0C"
+,
+  
+"14:21 FX2 Value: 04h (dec 4) — for REP — repeats DEL from 02 (step A), +04 per step → 06 on this step — Phrase View row 0C
+        no screen: FX2 Value: 04h (dec 4) — for REP (Repeat: repeats and increments the last FX command by XX each step. Active until a new command or REP00 stops it; it does not need to appear on every row. In a table: loops the last row XX times. A double-caret '^^' appears next to an FX lane while a REP from a previous phrase is active) — Phrase View row 0C"
+,
+  "14:24 FX3 Command: (empty) — Phrase View row 0C",
+  "14:27 FX3 Value: (empty) — Phrase View row 0C",
+  "14:30 Phrase View",
+  "15: 0 Phrase View",
+  "15: 1 Note (N): (empty) — Phrase View row 0D",
+  "15: 6 Velocity (V): (empty) — Phrase View row 0D",
+  "15: 9 Instrument (I): (empty) — Phrase View row 0D",
+  
+"15:12 FX1 Command: REP — repeats TBL from 03 (step B), +03 per step → 06 on this step — Phrase View row 0D
+        no screen: FX1 Command: REP — (Repeat: repeats and increments the last FX command by XX each step. Active until a new command or REP00 stops it; it does not need to appear on every row. In a table: loops the last row XX times. A double-caret '^^' appears next to an FX lane while a REP from a previous phrase is active) — Phrase View row 0D"
+,
+  
+"15:15 FX1 Value: 03h (dec 3) — for REP — repeats TBL from 03 (step B), +03 per step → 06 on this step — Phrase View row 0D
+        no screen: FX1 Value: 03h (dec 3) — for REP (Repeat: repeats and increments the last FX command by XX each step. Active until a new command or REP00 stops it; it does not need to appear on every row. In a table: loops the last row XX times. A double-caret '^^' appears next to an FX lane while a REP from a previous phrase is active) — Phrase View row 0D"
+,
+  
+"15:18 FX2 Command: (empty) — REP still active: DEL reaches 0A on this step (+04 per step since step C) — Phrase View row 0D
+        no screen: FX2 Command: (empty) — Phrase View row 0D"
+,
+  
+"15:21 FX2 Value: (empty) — REP still active: DEL reaches 0A on this step (+04 per step since step C) — Phrase View row 0D
+        no screen: FX2 Value: (empty) — Phrase View row 0D"
+,
+  "15:24 FX3 Command: (empty) — Phrase View row 0D",
+  "15:27 FX3 Value: (empty) — Phrase View row 0D",
+  "15:30 Phrase View",
+  "16: 0 Phrase View",
+  "16: 1 Note (N): (empty) — Phrase View row 0E",
+  "16: 6 Velocity (V): (empty) — Phrase View row 0E",
+  "16: 9 Instrument (I): (empty) — Phrase View row 0E",
+  
+"16:12 FX1 Command: (empty) — REP still active: TBL reaches 09 on this step (+03 per step since step D) — Phrase View row 0E
+        no screen: FX1 Command: (empty) — Phrase View row 0E"
+,
+  
+"16:15 FX1 Value: (empty) — REP still active: TBL reaches 09 on this step (+03 per step since step D) — Phrase View row 0E
+        no screen: FX1 Value: (empty) — Phrase View row 0E"
+,
+  
+"16:18 FX2 Command: (empty) — REP still active: DEL reaches 0E on this step (+04 per step since step C) — Phrase View row 0E
+        no screen: FX2 Command: (empty) — Phrase View row 0E"
+,
+  
+"16:21 FX2 Value: (empty) — REP still active: DEL reaches 0E on this step (+04 per step since step C) — Phrase View row 0E
+        no screen: FX2 Value: (empty) — Phrase View row 0E"
+,
+  "16:24 FX3 Command: CHA — (Chance: X=probability left of command (0=never, F=always), Y=probability right. In a table: probability for everything to the left of CHA from 00 (never) to FF (always)) — value 8F: 8/15 chance for what is left of it, 15/15 for what is right (0 never, F always) — Phrase View row 0E",
+  "16:27 FX3 Value: 8Fh (dec 143) — for CHA (Chance: X=probability left of command (0=never, F=always), Y=probability right. In a table: probability for everything to the left of CHA from 00 (never) to FF (always)) — 8/15 chance for what is left of it, 15/15 for what is right (0 never, F always) — Phrase View row 0E",
+  "16:30 Phrase View",
+  "17: 0 Phrase View",
+  "17: 1 Note (N): (empty) — Phrase View row 0F",
+  "17: 6 Velocity (V): (empty) — Phrase View row 0F",
+  "17: 9 Instrument (I): (empty) — Phrase View row 0F",
+  
+"17:12 FX1 Command: (empty) — REP still active: TBL reaches 0C on this step (+03 per step since step D) — Phrase View row 0F
+        no screen: FX1 Command: (empty) — Phrase View row 0F"
+,
+  
+"17:15 FX1 Value: (empty) — REP still active: TBL reaches 0C on this step (+03 per step since step D) — Phrase View row 0F
+        no screen: FX1 Value: (empty) — Phrase View row 0F"
+,
+  
+"17:18 FX2 Command: (empty) — REP still active: DEL reaches 12 on this step (+04 per step since step C) — Phrase View row 0F
+        no screen: FX2 Command: (empty) — Phrase View row 0F"
+,
+  
+"17:21 FX2 Value: (empty) — REP still active: DEL reaches 12 on this step (+04 per step since step C) — Phrase View row 0F
+        no screen: FX2 Value: (empty) — Phrase View row 0F"
+,
+  
+"17:24 FX3 Command: REP — repeats CHA from 8F (step E), +01 per step → 90 on this step — Phrase View row 0F
+        no screen: FX3 Command: REP — (Repeat: repeats and increments the last FX command by XX each step. Active until a new command or REP00 stops it; it does not need to appear on every row. In a table: loops the last row XX times. A double-caret '^^' appears next to an FX lane while a REP from a previous phrase is active) — Phrase View row 0F"
+,
+  
+"17:27 FX3 Value: 01h (dec 1) — for REP — repeats CHA from 8F (step E), +01 per step → 90 on this step — Phrase View row 0F
+        no screen: FX3 Value: 01h (dec 1) — for REP (Repeat: repeats and increments the last FX command by XX each step. Active until a new command or REP00 stops it; it does not need to appear on every row. In a table: loops the last row XX times. A double-caret '^^' appears next to an FX lane while a REP from a previous phrase is active) — Phrase View row 0F"
+,
+  "17:30 Phrase View",
+]
+`;
+
+exports[`describeContext: phraseCarried 1`] = `
+[
+  " 2: 0 Phrase View",
+  " 2: 1 Note (N): Note C-4 — Phrase View row 00",
+  " 2: 6 Velocity (V): (empty) — Phrase View row 00",
+  " 2: 9 Instrument (I): (empty) — Phrase View row 00",
+  " 2:12 FX1 Command: (empty) — Phrase View row 00",
+  " 2:15 FX1 Value: (empty) — Phrase View row 00",
+  
+" 2:18 FX2 Command: (empty) — REP from a previous phrase is still active in this lane (^^) — Phrase View row 00
+        no screen: FX2 Command: (empty) — Phrase View row 00"
+,
+  
+" 2:21 FX2 Value: (empty) — REP from a previous phrase is still active in this lane (^^) — Phrase View row 00
+        no screen: FX2 Value: (empty) — Phrase View row 00"
+,
+  " 2:24 FX3 Command: (empty) — Phrase View row 00",
+  " 2:27 FX3 Value: (empty) — Phrase View row 00",
+  " 2:30 Phrase View",
+  " 3: 0 Phrase View",
+  " 3: 1 Note (N): (empty) — Phrase View row 01",
+  " 3: 6 Velocity (V): (empty) — Phrase View row 01",
+  " 3: 9 Instrument (I): (empty) — Phrase View row 01",
+  " 3:12 FX1 Command: (empty) — Phrase View row 01",
+  " 3:15 FX1 Value: (empty) — Phrase View row 01",
+  
+" 3:18 FX2 Command: (empty) — REP from a previous phrase is still active in this lane (^^) — Phrase View row 01
+        no screen: FX2 Command: (empty) — Phrase View row 01"
+,
+  
+" 3:21 FX2 Value: (empty) — REP from a previous phrase is still active in this lane (^^) — Phrase View row 01
+        no screen: FX2 Value: (empty) — Phrase View row 01"
+,
+  " 3:24 FX3 Command: (empty) — Phrase View row 01",
+  " 3:27 FX3 Value: (empty) — Phrase View row 01",
+  " 3:30 Phrase View",
+  " 4: 0 Phrase View",
+  " 4: 1 Note (N): (empty) — Phrase View row 02",
+  " 4: 6 Velocity (V): (empty) — Phrase View row 02",
+  " 4: 9 Instrument (I): (empty) — Phrase View row 02",
+  " 4:12 FX1 Command: (empty) — Phrase View row 02",
+  " 4:15 FX1 Value: (empty) — Phrase View row 02",
+  
+" 4:18 FX2 Command: REP — REP +03 per step continues the repeat from the previous phrase — Phrase View row 02
+        no screen: FX2 Command: REP — (Repeat: repeats and increments the last FX command by XX each step. Active until a new command or REP00 stops it; it does not need to appear on every row. In a table: loops the last row XX times. A double-caret '^^' appears next to an FX lane while a REP from a previous phrase is active) — Phrase View row 02"
+,
+  
+" 4:21 FX2 Value: 03h (dec 3) — for REP — REP +03 per step continues the repeat from the previous phrase — Phrase View row 02
+        no screen: FX2 Value: 03h (dec 3) — for REP (Repeat: repeats and increments the last FX command by XX each step. Active until a new command or REP00 stops it; it does not need to appear on every row. In a table: loops the last row XX times. A double-caret '^^' appears next to an FX lane while a REP from a previous phrase is active) — Phrase View row 02"
+,
+  " 4:24 FX3 Command: (empty) — Phrase View row 02",
+  " 4:27 FX3 Value: (empty) — Phrase View row 02",
+  " 4:30 Phrase View",
+  " 5: 0 Phrase View",
+  " 5: 1 Note (N): (empty) — Phrase View row 03",
+  " 5: 6 Velocity (V): (empty) — Phrase View row 03",
+  " 5: 9 Instrument (I): (empty) — Phrase View row 03",
+  " 5:12 FX1 Command: (empty) — Phrase View row 03",
+  " 5:15 FX1 Value: (empty) — Phrase View row 03",
+  
+" 5:18 FX2 Command: VOL — (Volume (relative)) — value 04: +4 — replaces the running REP (VOL is no longer repeated) — relative: stays until a note with an instrument number (I) or a RET resets it — Phrase View row 03
+        no screen: FX2 Command: VOL — (Volume (relative)) — value 04: +4 — relative: stays until a note with an instrument number (I) or a RET resets it — Phrase View row 03"
+,
+  
+" 5:21 FX2 Value: 04h (dec 4) — for VOL (Volume (relative)) — +4 — replaces the running REP (VOL is no longer repeated) — relative: stays until a note with an instrument number (I) or a RET resets it — Phrase View row 03
+        no screen: FX2 Value: 04h (dec 4) — for VOL (Volume (relative)) — +4 — relative: stays until a note with an instrument number (I) or a RET resets it — Phrase View row 03"
+,
+  " 5:24 FX3 Command: (empty) — Phrase View row 03",
+  " 5:27 FX3 Value: (empty) — Phrase View row 03",
+  " 5:30 Phrase View",
+  " 6: 0 Phrase View",
+  " 6: 1 Note (N): (empty) — Phrase View row 04",
+  " 6: 6 Velocity (V): (empty) — Phrase View row 04",
+  " 6: 9 Instrument (I): (empty) — Phrase View row 04",
+  " 6:12 FX1 Command: (empty) — Phrase View row 04",
+  " 6:15 FX1 Value: (empty) — Phrase View row 04",
+  
+" 6:18 FX2 Command: REP — repeats VOL from 04 (step 3), +01 per step → 05 on this step — relative: VOL has moved by +09 over 2 steps since the start of this phrase (earlier state unknown), including REP repeats; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 04
+        no screen: FX2 Command: REP — (Repeat: repeats and increments the last FX command by XX each step. Active until a new command or REP00 stops it; it does not need to appear on every row. In a table: loops the last row XX times. A double-caret '^^' appears next to an FX lane while a REP from a previous phrase is active) — Phrase View row 04"
+,
+  
+" 6:21 FX2 Value: 01h (dec 1) — for REP — repeats VOL from 04 (step 3), +01 per step → 05 on this step — relative: VOL has moved by +09 over 2 steps since the start of this phrase (earlier state unknown), including REP repeats; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 04
+        no screen: FX2 Value: 01h (dec 1) — for REP (Repeat: repeats and increments the last FX command by XX each step. Active until a new command or REP00 stops it; it does not need to appear on every row. In a table: loops the last row XX times. A double-caret '^^' appears next to an FX lane while a REP from a previous phrase is active) — Phrase View row 04"
+,
+  " 6:24 FX3 Command: (empty) — Phrase View row 04",
+  " 6:27 FX3 Value: (empty) — Phrase View row 04",
+  " 6:30 Phrase View",
+  " 7: 0 Phrase View",
+  " 7: 1 Note (N): (empty) — Phrase View row 05",
+  " 7: 6 Velocity (V): (empty) — Phrase View row 05",
+  " 7: 9 Instrument (I): (empty) — Phrase View row 05",
+  " 7:12 FX1 Command: (empty) — Phrase View row 05",
+  " 7:15 FX1 Value: (empty) — Phrase View row 05",
+  
+" 7:18 FX2 Command: (empty) — REP still active: VOL reaches 06 on this step (+01 per step since step 4) — relative: VOL has moved by +0F over 3 steps since the start of this phrase (earlier state unknown), including REP repeats; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 05
+        no screen: FX2 Command: (empty) — Phrase View row 05"
+,
+  
+" 7:21 FX2 Value: (empty) — REP still active: VOL reaches 06 on this step (+01 per step since step 4) — relative: VOL has moved by +0F over 3 steps since the start of this phrase (earlier state unknown), including REP repeats; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 05
+        no screen: FX2 Value: (empty) — Phrase View row 05"
+,
+  " 7:24 FX3 Command: (empty) — Phrase View row 05",
+  " 7:27 FX3 Value: (empty) — Phrase View row 05",
+  " 7:30 Phrase View",
+  " 8: 0 Phrase View",
+  " 8: 1 Note (N): (empty) — Phrase View row 06",
+  " 8: 6 Velocity (V): (empty) — Phrase View row 06",
+  
+" 8: 9 Instrument (I): 02 — triggers the instrument again: resets the relative changes still in force (VOL +0F) — Phrase View row 06
+        no screen: Instrument (I): 02 — Phrase View row 06"
+,
+  
+" 8:12 FX1 Command: VOL — (Volume (relative)) — value 10: +16 — relative: VOL has moved by +17 over 2 steps since the instrument number on step 6, including REP repeats; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 06
+        no screen: FX1 Command: VOL — (Volume (relative)) — value 10: +16 — relative: stays until a note with an instrument number (I) or a RET resets it — Phrase View row 06"
+,
+  
+" 8:15 FX1 Value: 10h (dec 16) — for VOL (Volume (relative)) — +16 — relative: VOL has moved by +17 over 2 steps since the instrument number on step 6, including REP repeats; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 06
+        no screen: FX1 Value: 10h (dec 16) — for VOL (Volume (relative)) — +16 — relative: stays until a note with an instrument number (I) or a RET resets it — Phrase View row 06"
+,
+  
+" 8:18 FX2 Command: (empty) — REP still active: VOL reaches 07 on this step (+01 per step since step 4) — relative: VOL has moved by +17 over 2 steps since the instrument number on step 6, including REP repeats; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 06
+        no screen: FX2 Command: (empty) — Phrase View row 06"
+,
+  
+" 8:21 FX2 Value: (empty) — REP still active: VOL reaches 07 on this step (+01 per step since step 4) — relative: VOL has moved by +17 over 2 steps since the instrument number on step 6, including REP repeats; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 06
+        no screen: FX2 Value: (empty) — Phrase View row 06"
+,
+  " 8:24 FX3 Command: (empty) — Phrase View row 06",
+  " 8:27 FX3 Value: (empty) — Phrase View row 06",
+  " 8:30 Phrase View",
+  " 9: 0 Phrase View",
+  " 9: 1 Note (N): (empty) — Phrase View row 07",
+  " 9: 6 Velocity (V): (empty) — Phrase View row 07",
+  " 9: 9 Instrument (I): (empty) — Phrase View row 07",
+  " 9:12 FX1 Command: (empty) — Phrase View row 07",
+  " 9:15 FX1 Value: (empty) — Phrase View row 07",
+  
+" 9:18 FX2 Command: (empty) — REP still active: VOL reaches 08 on this step (+01 per step since step 4) — relative: VOL has moved by +1F over 3 steps since the instrument number on step 6, including REP repeats; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 07
+        no screen: FX2 Command: (empty) — Phrase View row 07"
+,
+  
+" 9:21 FX2 Value: (empty) — REP still active: VOL reaches 08 on this step (+01 per step since step 4) — relative: VOL has moved by +1F over 3 steps since the instrument number on step 6, including REP repeats; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 07
+        no screen: FX2 Value: (empty) — Phrase View row 07"
+,
+  " 9:24 FX3 Command: (empty) — Phrase View row 07",
+  " 9:27 FX3 Value: (empty) — Phrase View row 07",
+  " 9:30 Phrase View",
+  "10: 0 Phrase View",
+  "10: 1 Note (N): (empty) — Phrase View row 08",
+  "10: 6 Velocity (V): (empty) — Phrase View row 08",
+  "10: 9 Instrument (I): (empty) — Phrase View row 08",
+  "10:12 FX1 Command: (empty) — Phrase View row 08",
+  "10:15 FX1 Value: (empty) — Phrase View row 08",
+  
+"10:18 FX2 Command: (empty) — REP still active: VOL reaches 09 on this step (+01 per step since step 4) — relative: VOL has moved by +28 over 4 steps since the instrument number on step 6, including REP repeats; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 08
+        no screen: FX2 Command: (empty) — Phrase View row 08"
+,
+  
+"10:21 FX2 Value: (empty) — REP still active: VOL reaches 09 on this step (+01 per step since step 4) — relative: VOL has moved by +28 over 4 steps since the instrument number on step 6, including REP repeats; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 08
+        no screen: FX2 Value: (empty) — Phrase View row 08"
+,
+  "10:24 FX3 Command: (empty) — Phrase View row 08",
+  "10:27 FX3 Value: (empty) — Phrase View row 08",
+  "10:30 Phrase View",
+  "11: 0 Phrase View",
+  "11: 1 Note (N): (empty) — Phrase View row 09",
+  "11: 6 Velocity (V): (empty) — Phrase View row 09",
+  "11: 9 Instrument (I): (empty) — Phrase View row 09",
+  "11:12 FX1 Command: (empty) — Phrase View row 09",
+  "11:15 FX1 Value: (empty) — Phrase View row 09",
+  
+"11:18 FX2 Command: (empty) — REP still active: VOL reaches 0A on this step (+01 per step since step 4) — relative: VOL has moved by +32 over 5 steps since the instrument number on step 6, including REP repeats; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 09
+        no screen: FX2 Command: (empty) — Phrase View row 09"
+,
+  
+"11:21 FX2 Value: (empty) — REP still active: VOL reaches 0A on this step (+01 per step since step 4) — relative: VOL has moved by +32 over 5 steps since the instrument number on step 6, including REP repeats; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 09
+        no screen: FX2 Value: (empty) — Phrase View row 09"
+,
+  "11:24 FX3 Command: (empty) — Phrase View row 09",
+  "11:27 FX3 Value: (empty) — Phrase View row 09",
+  "11:30 Phrase View",
+  "12: 0 Phrase View",
+  "12: 1 Note (N): (empty) — Phrase View row 0A",
+  "12: 6 Velocity (V): (empty) — Phrase View row 0A",
+  "12: 9 Instrument (I): (empty) — Phrase View row 0A",
+  "12:12 FX1 Command: (empty) — Phrase View row 0A",
+  "12:15 FX1 Value: (empty) — Phrase View row 0A",
+  
+"12:18 FX2 Command: (empty) — REP still active: VOL reaches 0B on this step (+01 per step since step 4) — relative: VOL has moved by +3D over 6 steps since the instrument number on step 6, including REP repeats; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 0A
+        no screen: FX2 Command: (empty) — Phrase View row 0A"
+,
+  
+"12:21 FX2 Value: (empty) — REP still active: VOL reaches 0B on this step (+01 per step since step 4) — relative: VOL has moved by +3D over 6 steps since the instrument number on step 6, including REP repeats; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 0A
+        no screen: FX2 Value: (empty) — Phrase View row 0A"
+,
+  "12:24 FX3 Command: (empty) — Phrase View row 0A",
+  "12:27 FX3 Value: (empty) — Phrase View row 0A",
+  "12:30 Phrase View",
+  "13: 0 Phrase View",
+  "13: 1 Note (N): (empty) — Phrase View row 0B",
+  "13: 6 Velocity (V): (empty) — Phrase View row 0B",
+  "13: 9 Instrument (I): (empty) — Phrase View row 0B",
+  "13:12 FX1 Command: (empty) — Phrase View row 0B",
+  "13:15 FX1 Value: (empty) — Phrase View row 0B",
+  
+"13:18 FX2 Command: (empty) — REP still active: VOL reaches 0C on this step (+01 per step since step 4) — relative: VOL has moved by +49 over 7 steps since the instrument number on step 6, including REP repeats; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 0B
+        no screen: FX2 Command: (empty) — Phrase View row 0B"
+,
+  
+"13:21 FX2 Value: (empty) — REP still active: VOL reaches 0C on this step (+01 per step since step 4) — relative: VOL has moved by +49 over 7 steps since the instrument number on step 6, including REP repeats; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 0B
+        no screen: FX2 Value: (empty) — Phrase View row 0B"
+,
+  "13:24 FX3 Command: (empty) — Phrase View row 0B",
+  "13:27 FX3 Value: (empty) — Phrase View row 0B",
+  "13:30 Phrase View",
+  "14: 0 Phrase View",
+  "14: 1 Note (N): (empty) — Phrase View row 0C",
+  "14: 6 Velocity (V): (empty) — Phrase View row 0C",
+  "14: 9 Instrument (I): (empty) — Phrase View row 0C",
+  "14:12 FX1 Command: (empty) — Phrase View row 0C",
+  "14:15 FX1 Value: (empty) — Phrase View row 0C",
+  
+"14:18 FX2 Command: (empty) — REP still active: VOL reaches 0D on this step (+01 per step since step 4) — relative: VOL has moved by +56 over 8 steps since the instrument number on step 6, including REP repeats; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 0C
+        no screen: FX2 Command: (empty) — Phrase View row 0C"
+,
+  
+"14:21 FX2 Value: (empty) — REP still active: VOL reaches 0D on this step (+01 per step since step 4) — relative: VOL has moved by +56 over 8 steps since the instrument number on step 6, including REP repeats; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 0C
+        no screen: FX2 Value: (empty) — Phrase View row 0C"
+,
+  "14:24 FX3 Command: (empty) — Phrase View row 0C",
+  "14:27 FX3 Value: (empty) — Phrase View row 0C",
+  "14:30 Phrase View",
+  "15: 0 Phrase View",
+  "15: 1 Note (N): (empty) — Phrase View row 0D",
+  "15: 6 Velocity (V): (empty) — Phrase View row 0D",
+  "15: 9 Instrument (I): (empty) — Phrase View row 0D",
+  "15:12 FX1 Command: (empty) — Phrase View row 0D",
+  "15:15 FX1 Value: (empty) — Phrase View row 0D",
+  
+"15:18 FX2 Command: (empty) — REP still active: VOL reaches 0E on this step (+01 per step since step 4) — relative: VOL has moved by +64 over 9 steps since the instrument number on step 6, including REP repeats; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 0D
+        no screen: FX2 Command: (empty) — Phrase View row 0D"
+,
+  
+"15:21 FX2 Value: (empty) — REP still active: VOL reaches 0E on this step (+01 per step since step 4) — relative: VOL has moved by +64 over 9 steps since the instrument number on step 6, including REP repeats; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 0D
+        no screen: FX2 Value: (empty) — Phrase View row 0D"
+,
+  "15:24 FX3 Command: (empty) — Phrase View row 0D",
+  "15:27 FX3 Value: (empty) — Phrase View row 0D",
+  "15:30 Phrase View",
+  "16: 0 Phrase View",
+  "16: 1 Note (N): (empty) — Phrase View row 0E",
+  "16: 6 Velocity (V): (empty) — Phrase View row 0E",
+  "16: 9 Instrument (I): (empty) — Phrase View row 0E",
+  "16:12 FX1 Command: (empty) — Phrase View row 0E",
+  "16:15 FX1 Value: (empty) — Phrase View row 0E",
+  
+"16:18 FX2 Command: (empty) — REP still active: VOL reaches 0F on this step (+01 per step since step 4) — relative: VOL has moved by +73 over 10 steps since the instrument number on step 6, including REP repeats; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 0E
+        no screen: FX2 Command: (empty) — Phrase View row 0E"
+,
+  
+"16:21 FX2 Value: (empty) — REP still active: VOL reaches 0F on this step (+01 per step since step 4) — relative: VOL has moved by +73 over 10 steps since the instrument number on step 6, including REP repeats; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 0E
+        no screen: FX2 Value: (empty) — Phrase View row 0E"
+,
+  "16:24 FX3 Command: (empty) — Phrase View row 0E",
+  "16:27 FX3 Value: (empty) — Phrase View row 0E",
+  "16:30 Phrase View",
+  "17: 0 Phrase View",
+  "17: 1 Note (N): (empty) — Phrase View row 0F",
+  "17: 6 Velocity (V): (empty) — Phrase View row 0F",
+  "17: 9 Instrument (I): (empty) — Phrase View row 0F",
+  "17:12 FX1 Command: (empty) — Phrase View row 0F",
+  "17:15 FX1 Value: (empty) — Phrase View row 0F",
+  
+"17:18 FX2 Command: (empty) — REP still active: VOL reaches 10 on this step (+01 per step since step 4) — relative: VOL has moved by +83 over 11 steps since the instrument number on step 6, including REP repeats; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 0F
+        no screen: FX2 Command: (empty) — Phrase View row 0F"
+,
+  
+"17:21 FX2 Value: (empty) — REP still active: VOL reaches 10 on this step (+01 per step since step 4) — relative: VOL has moved by +83 over 11 steps since the instrument number on step 6, including REP repeats; stays until a note with an instrument number (I) or a RET resets it — Phrase View row 0F
+        no screen: FX2 Value: (empty) — Phrase View row 0F"
+,
+  "17:24 FX3 Command: (empty) — Phrase View row 0F",
+  "17:27 FX3 Value: (empty) — Phrase View row 0F",
+  "17:30 Phrase View",
+]
+`;
+
+exports[`describeContext: table 1`] = `
+[
+  " 2: 0 Table View",
+  " 2: 1 Transpose (N): +12 st — Table View row 00",
+  " 2: 5 Volume (V): 40 — Table View row 00",
+  " 2: 8 FX1 Command: TIC — (Table Tick: sets the table tick rate. 00 = increment row on each instrument trigger; 01-FB = ticks per row; FC = Octave Map (playing octave maps to table row); FD = Velocity Map; FE = Note Map (pair with HOP00 on row 0C to limit to 12 notes/octave); FF = increment at 200 Hz. In a table each FX column can run independently; a TIC on the last table row affects all rows) — value 04: table advances every 4 ticks — Table View row 00",
+  " 2:11 FX1 Value: 04h (dec 4) — for TIC (Table Tick: sets the table tick rate. 00 = increment row on each instrument trigger; 01-FB = ticks per row; FC = Octave Map (playing octave maps to table row); FD = Velocity Map; FE = Note Map (pair with HOP00 on row 0C to limit to 12 notes/octave); FF = increment at 200 Hz. In a table each FX column can run independently; a TIC on the last table row affects all rows) — table advances every 4 ticks — Table View row 00",
+  " 2:14 FX2 Command: CHA — (Chance: X=probability left of command (0=never, F=always), Y=probability right. In a table: probability for everything to the left of CHA from 00 (never) to FF (always)) — value 80: everything left of it plays with probability 128/255 (00 never, FF always) — Table View row 00",
+  " 2:17 FX2 Value: 80h (dec 128) — for CHA (Chance: X=probability left of command (0=never, F=always), Y=probability right. In a table: probability for everything to the left of CHA from 00 (never) to FF (always)) — everything left of it plays with probability 128/255 (00 never, FF always) — Table View row 00",
+  " 2:20 FX3 Command: (empty) — Table View row 00",
+  " 2:23 FX3 Value: (empty) — Table View row 00",
+  " 2:26 Table View",
+  " 3: 0 Table View",
+  " 3: 1 Transpose (N): -12 st — Table View row 01",
+  " 3: 5 Volume (V): (empty) — Table View row 01",
+  " 3: 8 FX1 Command: HOP — (Hop: in phrase jumps to row Y of next phrase; HOPFF stops track. In table loops to row Y X times) — value 23: jumps to row 3, 2 times — Table View row 01",
+  " 3:11 FX1 Value: 23h (dec 35) — for HOP (Hop: in phrase jumps to row Y of next phrase; HOPFF stops track. In table loops to row Y X times) — jumps to row 3, 2 times — Table View row 01",
+  " 3:14 FX2 Command: (empty) — Table View row 01",
+  " 3:17 FX2 Value: (empty) — Table View row 01",
+  " 3:20 FX3 Command: (empty) — Table View row 01",
+  " 3:23 FX3 Value: (empty) — Table View row 01",
+  " 3:26 Table View",
+  " 4: 0 Table View",
+  " 4: 1 Transpose (N): ±0 st — Table View row 02",
+  " 4: 5 Volume (V): (empty) — Table View row 02",
+  " 4: 8 FX1 Command: PIT — (Pitch in semitones (relative)) — value 81 (-127): −127 semitones — relative: stays until a note with an instrument number (I) or a RET resets it — Table View row 02",
+  " 4:11 FX1 Value: 81h (dec 129) — for PIT (Pitch in semitones (relative)) — −127 semitones — relative: stays until a note with an instrument number (I) or a RET resets it — Table View row 02",
+  " 4:14 FX2 Command: REP — (Repeat: repeats and increments the last FX command by XX each step. Active until a new command or REP00 stops it; it does not need to appear on every row. In a table: loops the last row XX times. A double-caret '^^' appears next to an FX lane while a REP from a previous phrase is active) — Table View row 02",
+  " 4:17 FX2 Value: 02h (dec 2) — for REP (Repeat: repeats and increments the last FX command by XX each step. Active until a new command or REP00 stops it; it does not need to appear on every row. In a table: loops the last row XX times. A double-caret '^^' appears next to an FX lane while a REP from a previous phrase is active) — Table View row 02",
+  " 4:20 FX3 Command: (empty) — Table View row 02",
+  " 4:23 FX3 Value: (empty) — Table View row 02",
+  " 4:26 Table View",
+  " 5: 0 Table View",
+  " 5: 1 Transpose (N): ±0 st — Table View row 03",
+  " 5: 5 Volume (V): (empty) — Table View row 03",
+  " 5: 8 FX1 Command: (empty) — Table View row 03",
+  " 5:11 FX1 Value: (empty) — Table View row 03",
+  " 5:14 FX2 Command: (empty) — Table View row 03",
+  " 5:17 FX2 Value: (empty) — Table View row 03",
+  " 5:20 FX3 Command: (empty) — Table View row 03",
+  " 5:23 FX3 Value: (empty) — Table View row 03",
+  " 5:26 Table View",
+]
+`;
+
+exports[`describeContext: song 1`] = `
+[
+  " 2: 0 Song View",
+  " 2: 2 Track 1: 00 — Track 1 — Song View row 00",
+  " 2: 6 Track 2: 01 — Track 2 — Song View row 00",
+  " 2: 9 Track 3: (empty) — Track 3 — Song View row 00",
+  " 2:12 Track 4: (empty) — Track 4 — Song View row 00",
+  " 2:15 Track 5: (empty) — Track 5 — Song View row 00",
+  " 2:18 Track 6: (empty) — Track 6 — Song View row 00",
+  " 2:21 Track 7: (empty) — Track 7 — Song View row 00",
+  " 2:24 Track 8: (empty) — Track 8 — Song View row 00",
+  " 2:27 Song View",
+  " 3: 0 Song View",
+  " 3: 2 Track 1: 02 — Track 1 — Song View row 01",
+  " 3: 6 Track 2: (empty) — Track 2 — Song View row 01",
+  " 3: 9 Track 3: 0A — Track 3 — Song View row 01",
+  " 3:12 Track 4: (empty) — Track 4 — Song View row 01",
+  " 3:15 Track 5: (empty) — Track 5 — Song View row 01",
+  " 3:18 Track 6: (empty) — Track 6 — Song View row 01",
+  " 3:21 Track 7: (empty) — Track 7 — Song View row 01",
+  " 3:24 Track 8: FF — Track 8 — Song View row 01",
+  " 3:27 Song View",
+]
+`;
+
+exports[`describeContext: chain 1`] = `
+[
+  " 2: 0 Chain View",
+  " 2: 1 Phrase (PH): 00 — Chain View row 00",
+  " 2: 5 Transpose (TSP): ±0 st — Chain View row 00",
+  " 2: 8 Chain View",
+  " 3: 0 Chain View",
+  " 3: 1 Phrase (PH): 01 — Chain View row 01",
+  " 3: 5 Transpose (TSP): +12 st — Chain View row 01",
+  " 3: 8 Chain View",
+  " 4: 0 Chain View",
+  " 4: 1 Phrase (PH): 1F — Chain View row 02",
+  " 4: 5 Transpose (TSP): -12 st — Chain View row 02",
+  " 4: 8 Chain View",
+  " 5: 0 Chain View",
+  " 5: 1 Phrase (PH): (empty) — Chain View row 03",
+  " 5: 5 Transpose (TSP): ±0 st — Chain View row 03",
+  " 5: 8 Chain View",
+]
+`;
+
+exports[`describeContext: groove 1`] = `
+[
+  " 2: 0 Groove View",
+  " 2: 1 Ticks (TIC): 06h (6 ticks) — Groove View row 00",
+  " 2: 5 PPQ: 24 — Groove View row 00",
+  " 2: 9 Swing: 50% — Groove View row 00",
+  " 2:16 Groove View",
+  " 3: 0 Groove View",
+  " 3: 1 Ticks (TIC): 00 (skip step) — Groove View row 01",
+  " 3: 5 PPQ: 00 — Groove View row 01",
+  " 3: 9 Swing: (empty) — Groove View row 01",
+  " 3:16 Groove View",
+  " 4: 0 Groove View",
+  " 4: 1 Ticks (TIC): (empty) — Groove View row 02",
+  " 4: 5 PPQ: (empty) — Groove View row 02",
+  " 4: 9 Swing: (empty) — Groove View row 02",
+  " 4:16 Groove View",
+]
+`;
+
+exports[`describeContext: instrumentPool 1`] = `
+[
+  " 2: 0 Instrument Pool",
+  " 2: 2 Instrument Name: BASS — Instrument Pool row 00",
+  " 2:16 Dry (DRY): C0 — Instrument Pool row 00",
+  " 2:19 ModFX (MX): 00 — Instrument Pool row 00",
+  " 2:22 Delay (DE): 10 — Instrument Pool row 00",
+  " 2:25 Reverb (RV): 20 — Instrument Pool row 00",
+  " 2:28 EQ Slot (EQ): 01 — Instrument Pool row 00",
+  " 2:31 Instrument Pool",
+  " 3: 0 Instrument Pool",
+  " 3: 2 Instrument Name: (empty) — Instrument Pool row 01",
+  " 3:16 Dry (DRY): (empty) — Instrument Pool row 01",
+  " 3:19 ModFX (MX): (empty) — Instrument Pool row 01",
+  " 3:22 Delay (DE): (empty) — Instrument Pool row 01",
+  " 3:25 Reverb (RV): (empty) — Instrument Pool row 01",
+  " 3:28 EQ Slot (EQ): (empty) — Instrument Pool row 01",
+  " 3:31 Instrument Pool",
+]
+`;
+
+exports[`describeContext: scale 1`] = `
+[
+  
+" 2: 0 Note Interval: C — C — the first row (the scale root) — is in the scale — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row C
+        no screen: Note Interval: C — C — the first row (the scale root) — is in the scale — Scale View 00 row C"
+,
+  
+" 2: 3 Enabled (EN): ON — C — the first row (the scale root) — is in the scale — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row C
+        no screen: Enabled (EN): ON — C — the first row (the scale root) — is in the scale — Scale View 00 row C"
+,
+  
+" 2: 6 Offset (OFFSET): 00.00 — C is not detuned — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row C
+        no screen: Offset (OFFSET): 00.00 — C is not detuned — Scale View 00 row C"
+,
+  " 2:13 Scale View 00 — C- ON 00.00",
+  
+" 3: 0 Note Interval: C# — C# — a minor 2nd (+1 semitones above C) — is not in the scale — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row C#
+        no screen: Note Interval: C# — C# — a minor 2nd (+1 semitones above C) — is not in the scale — Scale View 00 row C#"
+,
+  
+" 3: 3 Enabled (EN): OFF — C# — a minor 2nd (+1 semitones above C) — is not in the scale — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row C#
+        no screen: Enabled (EN): OFF — C# — a minor 2nd (+1 semitones above C) — is not in the scale — Scale View 00 row C#"
+,
+  
+" 3: 6 Offset (OFFSET): 00.00 — C# is not detuned — (note is OFF) — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row C#
+        no screen: Offset (OFFSET): 00.00 — C# is not detuned — (note is OFF) — Scale View 00 row C#"
+,
+  " 3:13 Scale View 00 — C# OFF00.00",
+  
+" 4: 0 Note Interval: D — D — a major 2nd (+2 semitones above C) — is in the scale — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row D
+        no screen: Note Interval: D — D — a major 2nd (+2 semitones above C) — is in the scale — Scale View 00 row D"
+,
+  
+" 4: 3 Enabled (EN): ON — D — a major 2nd (+2 semitones above C) — is in the scale — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row D
+        no screen: Enabled (EN): ON — D — a major 2nd (+2 semitones above C) — is in the scale — Scale View 00 row D"
+,
+  
+" 4: 6 Offset (OFFSET): 00.00 — D is not detuned — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row D
+        no screen: Offset (OFFSET): 00.00 — D is not detuned — Scale View 00 row D"
+,
+  " 4:13 Scale View 00 — D- ON 00.00",
+  
+" 5: 0 Note Interval: D# — D# — a minor 3rd (+3 semitones above C) — is not in the scale — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row D#
+        no screen: Note Interval: D# — D# — a minor 3rd (+3 semitones above C) — is not in the scale — Scale View 00 row D#"
+,
+  
+" 5: 3 Enabled (EN): OFF — D# — a minor 3rd (+3 semitones above C) — is not in the scale — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row D#
+        no screen: Enabled (EN): OFF — D# — a minor 3rd (+3 semitones above C) — is not in the scale — Scale View 00 row D#"
+,
+  
+" 5: 6 Offset (OFFSET): 00.00 — D# is not detuned — (note is OFF) — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row D#
+        no screen: Offset (OFFSET): 00.00 — D# is not detuned — (note is OFF) — Scale View 00 row D#"
+,
+  " 5:13 Scale View 00 — D# OFF00.00",
+  
+" 6: 0 Note Interval: E — E — a major 3rd (+4 semitones above C) — is in the scale — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row E
+        no screen: Note Interval: E — E — a major 3rd (+4 semitones above C) — is in the scale — Scale View 00 row E"
+,
+  
+" 6: 3 Enabled (EN): ON — E — a major 3rd (+4 semitones above C) — is in the scale — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row E
+        no screen: Enabled (EN): ON — E — a major 3rd (+4 semitones above C) — is in the scale — Scale View 00 row E"
+,
+  
+" 6: 6 Offset (OFFSET): -00.50 — E is detuned by −0.50 st — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row E
+        no screen: Offset (OFFSET): -00.50 — E is detuned by −0.50 st — Scale View 00 row E"
+,
+  " 6:13 Scale View 00 — E- ON -00.50",
+  
+" 7: 0 Note Interval: F — F — a perfect 4th (+5 semitones above C) — is in the scale — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row F
+        no screen: Note Interval: F — F — a perfect 4th (+5 semitones above C) — is in the scale — Scale View 00 row F"
+,
+  
+" 7: 3 Enabled (EN): ON — F — a perfect 4th (+5 semitones above C) — is in the scale — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row F
+        no screen: Enabled (EN): ON — F — a perfect 4th (+5 semitones above C) — is in the scale — Scale View 00 row F"
+,
+  
+" 7: 6 Offset (OFFSET): 00.00 — F is not detuned — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row F
+        no screen: Offset (OFFSET): 00.00 — F is not detuned — Scale View 00 row F"
+,
+  " 7:13 Scale View 00 — F- ON 00.00",
+  
+" 8: 0 Note Interval: F# — F# — a tritone (+6 semitones above C) — is not in the scale — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row F#
+        no screen: Note Interval: F# — F# — a tritone (+6 semitones above C) — is not in the scale — Scale View 00 row F#"
+,
+  
+" 8: 3 Enabled (EN): OFF — F# — a tritone (+6 semitones above C) — is not in the scale — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row F#
+        no screen: Enabled (EN): OFF — F# — a tritone (+6 semitones above C) — is not in the scale — Scale View 00 row F#"
+,
+  
+" 8: 6 Offset (OFFSET): 00.00 — F# is not detuned — (note is OFF) — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row F#
+        no screen: Offset (OFFSET): 00.00 — F# is not detuned — (note is OFF) — Scale View 00 row F#"
+,
+  " 8:13 Scale View 00 — F# OFF00.00",
+  
+" 9: 0 Note Interval: G — G — a perfect 5th (+7 semitones above C) — is in the scale — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row G
+        no screen: Note Interval: G — G — a perfect 5th (+7 semitones above C) — is in the scale — Scale View 00 row G"
+,
+  
+" 9: 3 Enabled (EN): ON — G — a perfect 5th (+7 semitones above C) — is in the scale — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row G
+        no screen: Enabled (EN): ON — G — a perfect 5th (+7 semitones above C) — is in the scale — Scale View 00 row G"
+,
+  
+" 9: 6 Offset (OFFSET): 00.00 — G is not detuned — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row G
+        no screen: Offset (OFFSET): 00.00 — G is not detuned — Scale View 00 row G"
+,
+  " 9:13 Scale View 00 — G- ON 00.00",
+  
+"10: 0 Note Interval: G# — G# — a minor 6th (+8 semitones above C) — is not in the scale — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row G#
+        no screen: Note Interval: G# — G# — a minor 6th (+8 semitones above C) — is not in the scale — Scale View 00 row G#"
+,
+  
+"10: 3 Enabled (EN): OFF — G# — a minor 6th (+8 semitones above C) — is not in the scale — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row G#
+        no screen: Enabled (EN): OFF — G# — a minor 6th (+8 semitones above C) — is not in the scale — Scale View 00 row G#"
+,
+  
+"10: 6 Offset (OFFSET): +01.00 — G# is detuned by +1.00 st — (note is OFF) — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row G#
+        no screen: Offset (OFFSET): +01.00 — G# is detuned by +1.00 st — (note is OFF) — Scale View 00 row G#"
+,
+  "10:13 Scale View 00 — G# OFF+01.00",
+  
+"11: 0 Note Interval: A — A — a major 6th (+9 semitones above C) — is in the scale — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row A
+        no screen: Note Interval: A — A — a major 6th (+9 semitones above C) — is in the scale — Scale View 00 row A"
+,
+  
+"11: 3 Enabled (EN): ON — A — a major 6th (+9 semitones above C) — is in the scale — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row A
+        no screen: Enabled (EN): ON — A — a major 6th (+9 semitones above C) — is in the scale — Scale View 00 row A"
+,
+  
+"11: 6 Offset (OFFSET): 00.00 — A is not detuned — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row A
+        no screen: Offset (OFFSET): 00.00 — A is not detuned — Scale View 00 row A"
+,
+  "11:13 Scale View 00 — A- ON 00.00",
+  
+"12: 0 Note Interval: A# — A# — a minor 7th (+10 semitones above C) — is not yet set in the scale — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row A#
+        no screen: Note Interval: A# — A# — a minor 7th (+10 semitones above C) — is not yet set in the scale — Scale View 00 row A#"
+,
+  
+"12: 3 Enabled (EN): -- — A# — a minor 7th (+10 semitones above C) — is not yet set in the scale — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row A#
+        no screen: Enabled (EN): -- — A# — a minor 7th (+10 semitones above C) — is not yet set in the scale — Scale View 00 row A#"
+,
+  
+"12: 6 Offset (OFFSET): 00.00 — A# is not detuned — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row A#
+        no screen: Offset (OFFSET): 00.00 — A# is not detuned — Scale View 00 row A#"
+,
+  "12:13 Scale View 00 — A# -- 00.00",
+  
+"13: 0 Note Interval: B — B — a major 7th (+11 semitones above C) — is in the scale — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row B
+        no screen: Note Interval: B — B — a major 7th (+11 semitones above C) — is in the scale — Scale View 00 row B"
+,
+  
+"13: 3 Enabled (EN): ON — B — a major 7th (+11 semitones above C) — is in the scale — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row B
+        no screen: Enabled (EN): ON — B — a major 7th (+11 semitones above C) — is in the scale — Scale View 00 row B"
+,
+  
+"13: 6 Offset (OFFSET): 00.00 — B is not detuned — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row B
+        no screen: Offset (OFFSET): 00.00 — B is not detuned — Scale View 00 row B"
+,
+  "13:13 Scale View 00 — B- ON 00.00",
+  "15: 0 Scale View 00 — KEY   C",
+  "15: 5 Key (KEY): C — Global key: the root note of the default scale (can be overridden per track with SCA / SCG). — Scale View 00",
+  "15: 9 Scale View 00 — KEY   C",
+  "16: 0 Scale View 00 — TUNE  440.00",
+  "16: 5 Tuning (TUNE): 440.00 Hz — Reference pitch of A4 in Hz (440.00 is standard). — Scale View 00",
+  "16:13 Scale View 00 — TUNE  440.00",
+  "17: 0 Scale View 00 — NAME  MAJOR",
+  "17: 5 Scale Name (NAME): "MAJOR" — Name of this scale (up to 16 characters); 92 factory scales load from /Scales/Factory. — Scale View 00",
+  "17:23 Scale View 00 — NAME  MAJOR",
+  "18: 0 Scale View 00 — LOAD SAVE",
+  
+"18: 5 Load Scale (LOAD): LOAD — Load a scale from the SD card. — Scale View 00
+        no screen: Scale View 00 — LOAD SAVE"
+,
+  "18: 6 Load Scale (LOAD): LOAD — Load a scale from the SD card. — Scale View 00",
+  
+"18:10 Load Scale (LOAD): LOAD — Load a scale from the SD card. — Scale View 00
+        no screen: Scale View 00 — LOAD SAVE"
+,
+  "18:11 Save Scale (SAVE): SAVE — Save this scale to the SD card. — Scale View 00",
+  
+"18:15 Save Scale (SAVE): SAVE — Save this scale to the SD card. — Scale View 00
+        no screen: Scale View 00 — LOAD SAVE"
+,
+  "18:16 Scale View 00 — LOAD SAVE",
+]
+`;
+
+exports[`describeContext: project 1`] = `
+[
+  " 2: 0 Project View — TEMPO        120.00",
+  " 2:12 Tempo (TEMPO): 120.00 BPM — Song speed in beats per minute. [EDIT] pressed rhythmically sets the tempo by tapping. — Project View",
+  " 2:20 Project View — TEMPO        120.00",
+  " 3: 0 Project View — TRANSPOSE    00",
+  " 3:12 Project Transpose (TRANSPOSE): ±0 st — Transposes the whole song in semitones (same as the TSP command). Only affects instruments with TRANSP. enabled; applied when [EDIT] is released. — Project View",
+  " 3:16 Project View — TRANSPOSE    00",
+  " 4: 0 Project View — GROOVE       00DEFAULT",
+  " 4:12 Default Groove (GROOVE): 00 DEFAULT — Groove used when the song plays (number and name); applied when [EDIT] is released. See Groove View. — Project View",
+  " 4:28 Project View — GROOVE       00DEFAULT",
+  " 5: 0 Project View — SCALE        00CHROMATIC",
+  " 5:12 Default Scale (SCALE): 00 CHROMATIC — Scale (number, key and name) used when the song plays; applied when [EDIT] is released. See Scale View. — Project View",
+  " 5:30 Project View — SCALE        00CHROMATIC",
+  " 6: 0 Project View — LIVE QUANTIZ 00",
+  " 6:12 Live Quantize (LIVE QUANTIZE): 00 — How long a cued chain waits before starting when playing in live mode. — Project View",
+  " 6:28 Project View — LIVE QUANTIZ 00",
+  " 7: 0 Project View — MIDI         SETTINGS MAPPINGS",
+  " 7:12 MIDI Settings: SETTINGS — Open the MIDI Settings View. — Project View",
+  " 7:22 MIDI Mappings: MAPPINGS — Open the MIDI Mappings View. — Project View",
+  " 7:31 Project View — MIDI         SETTINGS MAPPINGS",
+  " 8: 0 Project View — NAME         MySong",
+  " 8:12 Song Name (NAME): "MySong" — Name of the current song, entered before saving. — Project View",
+  " 8:26 Project View — NAME         MySong",
+  " 9: 0 Project View — PROJECT      LOAD SAVE NEW",
+  " 9:12 Load Song: LOAD — Load a song from the SD card. — Project View",
+  " 9:18 Save Song: SAVE — Save the current song. — Project View",
+  " 9:23 New Song: NEW — Create a new song. — Project View",
+  " 9:27 Project View — PROJECT      LOAD SAVE NEW",
+  "10: 0 Project View — EXPORT/SHARE RENDER BUNDLE",
+  "10:12 Render: RENDER — Open the Render View to render audio. — Project View",
+  "10:20 Bundle: BUNDLE — Bundle the song with the instruments and samples it uses. — Project View",
+  "10:27 Project View — EXPORT/SHARE RENDER BUNDLE",
+]
+`;
+
+exports[`describeContext: systemSettings 1`] = `
+[
+  " 2: 0 System Settings View — BACKLIGHT      FF",
+  " 2:14 Backlight (BACKLIGHT): FFh (dec 255) — Backlight LED brightness of the display. — System Settings View",
+  " 2:18 System Settings View — BACKLIGHT      FF",
+  " 3: 0 System Settings View — NOTE PREVIEW   ON",
+  " 3:14 Note Preview (NOTE PREVIEW): ON — Plays the note when editing notes in the phrase view. — System Settings View",
+  " 3:19 System Settings View — NOTE PREVIEW   ON",
+  " 4: 0 System Settings View — KEY DELAY:REP  150:45",
+  " 4:14 Key Delay:Repeat (KEY DELAY:REP): 150:45 (delay 150 ms, repeat 45 ms) — Key repeat timing in milliseconds: delay before a held key starts repeating, then the time between repeats. — System Settings View",
+  " 4:23 System Settings View — KEY DELAY:REP  150:45",
+  " 5: 0 System Settings View — USB AUDIO MODE OFF",
+  " 5:14 USB Audio Mode (USB AUDIO MODE): OFF — USB output as stereo or multi-channel (multi-channel sends all 8 tracks and the effects individually, 12 stereo channels). — System Settings View",
+  " 5:30 System Settings View — USB AUDIO MODE OFF",
+]
+`;
+
+exports[`describeContext: effectSettings 1`] = `
+[
+  " 2: 0 Effect Settings View — MODFX  MOD TYPE      00CHORUS",
+  " 2:20 ModFX Type (MOD TYPE): 00 CHORUS — Stereo chorus. — ModFX effect: Chorus, Phaser or Flanger (also sets the phase position). — ModFX — Effect Settings View",
+  " 2:32 Effect Settings View — MODFX  MOD TYPE      00CHORUS",
+  " 3: 0 Effect Settings View — MOD DEPTH:FRQ 40:80",
+  
+" 3:20 ModFX Mod Depth:Frequency (MOD DEPTH:FRQ): 40:80 (mod depth 40, mod frequency 80) — Amount of modulation in the stereo signal (first value) and speed of the modulation (second value). — ModFX — Effect Settings View
+        no screen: Effect Settings View — MOD DEPTH:FRQ 40:80"
+,
+  
+" 3:21 ModFX Mod Depth:Frequency (MOD DEPTH:FRQ): 40:80 (mod depth 40, mod frequency 80) — Amount of modulation in the stereo signal (first value) and speed of the modulation (second value). — ModFX — Effect Settings View
+        no screen: ModFX Mod Depth:Frequency (MOD DEPTH:FRQ): 40:80 (mod depth 40, mod frequency 80) — Amount of modulation in the stereo signal (first value) and speed of the modulation (second value). — Effect Settings View"
+,
+  
+" 3:26 ModFX Mod Depth:Frequency (MOD DEPTH:FRQ): 40:80 (mod depth 40, mod frequency 80) — Amount of modulation in the stereo signal (first value) and speed of the modulation (second value). — ModFX — Effect Settings View
+        no screen: Effect Settings View — MOD DEPTH:FRQ 40:80"
+,
+  " 3:27 Effect Settings View — MOD DEPTH:FRQ 40:80",
+  " 4: 0 Effect Settings View — STEREO WIDTH  FF",
+  
+" 4:20 Stereo Width (STEREO WIDTH): FFh (dec 255) — Stereo width: 00 is mono, FF is stereo. — ModFX — Effect Settings View
+        no screen: Effect Settings View — STEREO WIDTH  FF"
+,
+  
+" 4:21 Stereo Width (STEREO WIDTH): FFh (dec 255) — Stereo width: 00 is mono, FF is stereo. — ModFX — Effect Settings View
+        no screen: Stereo Width (STEREO WIDTH): FFh (dec 255) — Stereo width: 00 is mono, FF is stereo. — Effect Settings View"
+,
+  
+" 4:23 Stereo Width (STEREO WIDTH): FFh (dec 255) — Stereo width: 00 is mono, FF is stereo. — ModFX — Effect Settings View
+        no screen: Effect Settings View — STEREO WIDTH  FF"
+,
+  " 4:24 Effect Settings View — STEREO WIDTH  FF",
+  " 5: 0 Effect Settings View",
+  " 6: 0 Effect Settings View — DELAY  INPUT EQ      01",
+  " 6:20 Input EQ (INPUT EQ): 01 — Open the EQ editor for this effect's input. — Delay — Effect Settings View",
+  " 6:24 Effect Settings View — DELAY  INPUT EQ      01",
+  " 7: 0 Effect Settings View — TIME L:R      30:30",
+  
+" 7:20 Delay Time L:R (TIME L:R): 30:30 (left time 30, right time 30) — Delay time for the left and right channels: first digit in beats, second digit in fractions of a beat (40 is 4 beats). — Delay — Effect Settings View
+        no screen: Effect Settings View — TIME L:R      30:30"
+,
+  
+" 7:21 Delay Time L:R (TIME L:R): 30:30 (left time 30, right time 30) — Delay time for the left and right channels: first digit in beats, second digit in fractions of a beat (40 is 4 beats). — Delay — Effect Settings View
+        no screen: Delay Time L:R (TIME L:R): 30:30 (left time 30, right time 30) — Delay time for the left and right channels: first digit in beats, second digit in fractions of a beat (40 is 4 beats). — Effect Settings View"
+,
+  
+" 7:26 Delay Time L:R (TIME L:R): 30:30 (left time 30, right time 30) — Delay time for the left and right channels: first digit in beats, second digit in fractions of a beat (40 is 4 beats). — Delay — Effect Settings View
+        no screen: Effect Settings View — TIME L:R      30:30"
+,
+  " 7:27 Effect Settings View — TIME L:R      30:30",
+  " 8: 0 Effect Settings View — STEREO WIDTH  C0",
+  
+" 8:20 Stereo Width (STEREO WIDTH): C0h (dec 192) — Stereo width: 00 is mono, FF is stereo. — Delay — Effect Settings View
+        no screen: Effect Settings View — STEREO WIDTH  C0"
+,
+  
+" 8:21 Stereo Width (STEREO WIDTH): C0h (dec 192) — Stereo width: 00 is mono, FF is stereo. — Delay — Effect Settings View
+        no screen: Stereo Width (STEREO WIDTH): C0h (dec 192) — Stereo width: 00 is mono, FF is stereo. — Effect Settings View"
+,
+  
+" 8:23 Stereo Width (STEREO WIDTH): C0h (dec 192) — Stereo width: 00 is mono, FF is stereo. — Delay — Effect Settings View
+        no screen: Effect Settings View — STEREO WIDTH  C0"
+,
+  " 8:24 Effect Settings View — STEREO WIDTH  C0",
+  " 9: 0 Effect Settings View",
+  "10: 0 Effect Settings View — REVERB ROOM SIZE     E0",
+  "10:20 Room Size (ROOM SIZE): E0h (dec 224) — Size of the reverb room. — Reverb — Effect Settings View",
+  "10:24 Effect Settings View — REVERB ROOM SIZE     E0",
+  "11: 0 Effect Settings View — DECAY:SHIMMER C0:00",
+  
+"11:20 Reverb Decay:Shimmer (DECAY:SHIMMER): C0:00 (decay C0, shimmer 00) — Reverb decay time (first value) and shimmer amount (second value). — Reverb — Effect Settings View
+        no screen: Effect Settings View — DECAY:SHIMMER C0:00"
+,
+  
+"11:21 Reverb Decay:Shimmer (DECAY:SHIMMER): C0:00 (decay C0, shimmer 00) — Reverb decay time (first value) and shimmer amount (second value). — Reverb — Effect Settings View
+        no screen: Reverb Decay:Shimmer (DECAY:SHIMMER): C0:00 (decay C0, shimmer 00) — Reverb decay time (first value) and shimmer amount (second value). — Effect Settings View"
+,
+  
+"11:26 Reverb Decay:Shimmer (DECAY:SHIMMER): C0:00 (decay C0, shimmer 00) — Reverb decay time (first value) and shimmer amount (second value). — Reverb — Effect Settings View
+        no screen: Effect Settings View — DECAY:SHIMMER C0:00"
+,
+  "11:27 Effect Settings View — DECAY:SHIMMER C0:00",
+]
+`;
+
+exports[`describeContext: mixer 1`] = `
+[
+  " 2: 0 Mixer View — OUTPUT VOL  E0",
+  " 2:11 Output Volume (OUTPUT VOL): E0h (dec 224) — Volume of the audio output (headphones / line out). — Mixer View",
+  " 2:15 Mixer View — OUTPUT VOL  E0",
+  " 3: 0 Track 1 Volume: E0 — Volume of track 1. Instrument volumes are applied on top; the track's send levels are set in the instruments. — Mixer View",
+  " 3: 3 Track 2 Volume: E0 — Volume of track 2. — Mixer View",
+  " 3: 6 Track 3 Volume: D0 — Volume of track 3. — Mixer View",
+  " 3: 9 Track 4 Volume: C0 — Volume of track 4. — Mixer View",
+  " 3:12 Track 5 Volume: E0 — Volume of track 5. — Mixer View",
+  " 3:15 Track 6 Volume: E0 — Volume of track 6. — Mixer View",
+  " 3:18 Track 7 Volume: E0 — Volume of track 7. — Mixer View",
+  " 3:21 Track 8 Volume: E0 — Volume of track 8. — Mixer View",
+  " 3:24 Mixer View — E0 E0 D0 C0 E0 E0 E0 E0    EQ",
+  " 4: 0 Mixer View — MX DE RE                   F0",
+  
+" 4:12 Mixer View — MX DE RE                   F0
+        no screen: Analog Input Reverb Send (INPUT RE): (empty) — How much of the analog input goes to the reverb effect. — Mixer View"
+,
+  " 4:14 Mixer View — MX DE RE                   F0",
+  
+" 4:18 Mixer View — MX DE RE                   F0
+        no screen: USB Input Reverb Send (USB RE): (empty) — How much of the USB input goes to the reverb effect. — Mixer View"
+,
+  " 4:20 Mixer View — MX DE RE                   F0",
+  " 4:26 Limiter (LIM): F0h (dec 240) — Main mix limiter amount; the limiter is engaged when the value is above 00. [EDIT] or [SHIFT]+[RIGHT] opens the Limiter Scope. — Mixer View",
+  " 4:30 Mixer View — MX DE RE                   F0",
+]
+`;
+
+exports[`describeContext: mixerEq 1`] = `
+[
+  " 2: 0 Mix EQ View — GAIN +01.50     -03.00     000.00",
+  " 2: 4 LOW Gain: +01.50 dB — Boost (positive) or cut (negative) applied by the LOW band, in decibels. — Mix EQ View",
+  " 2:12 Mix EQ View — GAIN +01.50     -03.00     000.00",
+  " 2:15 MID Gain: -03.00 dB — Boost (positive) or cut (negative) applied by the MID band, in decibels. — Mix EQ View",
+  " 2:23 Mix EQ View — GAIN +01.50     -03.00     000.00",
+  " 2:26 HIGH Gain: 000.00 dB — Boost (positive) or cut (negative) applied by the HIGH band, in decibels. — Mix EQ View",
+  " 2:34 Mix EQ View — GAIN +01.50     -03.00     000.00",
+  " 3: 0 Mix EQ View — FREQ  100        1000       8000",
+  " 3: 5 LOW Frequency: 100 Hz — Centre (or corner) frequency of the LOW band. — Mix EQ View",
+  " 3:12 Mix EQ View — FREQ  100        1000       8000",
+  " 3:16 MID Frequency: 1000 Hz — Centre (or corner) frequency of the MID band. — Mix EQ View",
+  " 3:23 Mix EQ View — FREQ  100        1000       8000",
+  " 3:27 HIGH Frequency: 8000 Hz — Centre (or corner) frequency of the HIGH band. — Mix EQ View",
+  " 3:34 Mix EQ View — FREQ  100        1000       8000",
+  " 4: 0 Mix EQ View — TYPE  LOWSHELF   BELL       HIGHSHELF",
+  " 4: 5 LOW Type: LOWSHELF — Boosts or cuts frequencies below the shelf frequency. — Filter shape of the LOW band. — Mix EQ View",
+  " 4:16 MID Type: BELL — Peaking filter: boosts or cuts around the centre frequency. — Filter shape of the MID band. — Mix EQ View",
+  " 4:27 HIGH Type: HIGHSHELF — Filter shape of the HIGH band. — Mix EQ View",
+  " 4:38 Mix EQ View — TYPE  LOWSHELF   BELL       HIGHSHELF",
+]
+`;
+
+exports[`describeContext: instrument 1`] = `
+[
+  " 2: 0 Instrument View 00 — TYPE    WAVSYNTH      LOAD SAVE",
+  " 2: 7 Instrument Type (TYPE): WAVSYNTH — Kind of instrument in this slot: Wavsynth, Macrosynth, Sampler, FM Synth, Hypersynth, External Instrument, MIDI Out (or NONE for an unused slot). Changing it changes the parameters below. — Wavsynth instrument — Instrument View 00",
+  
+" 2:21 Instrument Type (TYPE): WAVSYNTH — Kind of instrument in this slot: Wavsynth, Macrosynth, Sampler, FM Synth, Hypersynth, External Instrument, MIDI Out (or NONE for an unused slot). Changing it changes the parameters below. — Wavsynth instrument — Instrument View 00
+        no screen: TYPE: WAVSYNTH      LOAD — Wavsynth instrument — Instrument View 00"
+,
+  " 2:22 Load Preset (LOAD): LOAD — Load an instrument preset from the SD card. — Wavsynth instrument — Instrument View 00",
+  
+" 2:26 Load Preset (LOAD): LOAD — Load an instrument preset from the SD card. — Wavsynth instrument — Instrument View 00
+        no screen: TYPE: WAVSYNTH      LOAD — Wavsynth instrument — Instrument View 00"
+,
+  " 2:27 Save Preset (SAVE): SAVE — Save this instrument as a preset on the SD card. — Wavsynth instrument — Instrument View 00",
+  
+" 2:31 Save Preset (SAVE): SAVE — Save this instrument as a preset on the SD card. — Wavsynth instrument — Instrument View 00
+        no screen: H: LOAD SAV — Wavsynth instrument — Instrument View 00"
+,
+  
+" 2:32 Instrument View 00 — TYPE    WAVSYNTH      LOAD SAVE
+        no screen: H: LOAD SAV — Wavsynth instrument — Instrument View 00"
+,
+  " 2:33 Instrument View 00 — TYPE    WAVSYNTH      LOAD SAVE",
+  " 3: 0 Instrument View 00 — NAME    Lead",
+  
+" 3: 7 Instrument Name (NAME): "Lead" — Name of the instrument: helps keep the song organised when browsing, saving or bundling instruments. — Wavsynth instrument — Instrument View 00
+        no screen: Instrument Name (NAME): "Lead" — Name of the instrument: helps keep the song organised when browsing, saving or bundling instruments. — Instrument View 00"
+,
+  
+" 3:20 Instrument Name (NAME): "Lead" — Name of the instrument: helps keep the song organised when browsing, saving or bundling instruments. — Wavsynth instrument — Instrument View 00
+        no screen: NAME: LEAD — Instrument View 00"
+,
+  
+" 3:21 Instrument View 00 — NAME    Lead
+        no screen: NAME: LEAD — Instrument View 00"
+,
+  
+" 3:28 Instrument View 00 — NAME    Lead
+        no screen: LEA: D — Instrument View 00"
+,
+  " 3:33 Instrument View 00 — NAME    Lead",
+  " 4: 0 Instrument View 00 — TRANSP. ON   TBL. TIC01   EQ 00",
+  
+" 4: 7 Transpose Enabled (TRANSP.): ON — Enable or disable note transposition from scales, chain transpose columns and the project transpose for this instrument (turn off for percussive or effect instruments). — Wavsynth instrument — Instrument View 00
+        no screen: Transpose Enabled (TRANSP.): ON — Enable or disable note transposition from scales, chain transpose columns and the project transpose for this instrument (turn off for percussive or effect instruments). — Instrument View 00"
+,
+  
+" 4:11 Transpose Enabled (TRANSP.): ON — Enable or disable note transposition from scales, chain transpose columns and the project transpose for this instrument (turn off for percussive or effect instruments). — Wavsynth instrument — Instrument View 00
+        no screen: TRANSP.: ON   TBL. TIC01   E — Instrument View 00"
+,
+  
+" 4:12 Instrument View 00 — TRANSP. ON   TBL. TIC01   EQ 00
+        no screen: TRANSP.: ON   TBL. TIC01   E — Instrument View 00"
+,
+  
+" 4:20 Table Tick (TBL. TIC): 01h (dec 1) — Default speed at which this instrument's table advances: 01 is one tick per step, 02 two ticks per step. Can be overridden by the TIC command. — Wavsynth instrument — Instrument View 00
+        no screen: TRANSP.: ON   TBL. TIC01   E — Instrument View 00"
+,
+  
+" 4:21 Table Tick (TBL. TIC): 01h (dec 1) — Default speed at which this instrument's table advances: 01 is one tick per step, 02 two ticks per step. Can be overridden by the TIC command. — Wavsynth instrument — Instrument View 00
+        no screen: Table Tick (TBL. TIC): 01h (dec 1) — Default speed at which this instrument's table advances: 01 is one tick per step, 02 two ticks per step. Can be overridden by the TIC command. — Instrument View 00"
+,
+  
+" 4:23 Table Tick (TBL. TIC): 01h (dec 1) — Default speed at which this instrument's table advances: 01 is one tick per step, 02 two ticks per step. Can be overridden by the TIC command. — Wavsynth instrument — Instrument View 00
+        no screen: TRANSP.: ON   TBL. TIC01   E — Instrument View 00"
+,
+  
+" 4:24 Instrument View 00 — TRANSP. ON   TBL. TIC01   EQ 00
+        no screen: TRANSP.: ON   TBL. TIC01   E — Instrument View 00"
+,
+  
+" 4:28 EQ Slot (EQ): 00 — EQ bank assigned to this instrument (-- for none). [EDIT] or [SHIFT]+[RIGHT] opens the EQ editor. — Wavsynth instrument — Instrument View 00
+        no screen: TIC: 01   EQ 00 — Instrument View 00"
+,
+  
+" 4:29 EQ Slot (EQ): 00 — EQ bank assigned to this instrument (-- for none). [EDIT] or [SHIFT]+[RIGHT] opens the EQ editor. — Wavsynth instrument — Instrument View 00
+        no screen: EQ Slot (EQ): 00 — EQ bank assigned to this instrument (-- for none). [EDIT] or [SHIFT]+[RIGHT] opens the EQ editor. — Instrument View 00"
+,
+  
+" 4:31 EQ Slot (EQ): 00 — EQ bank assigned to this instrument (-- for none). [EDIT] or [SHIFT]+[RIGHT] opens the EQ editor. — Wavsynth instrument — Instrument View 00
+        no screen: TIC: 01   EQ 00 — Instrument View 00"
+,
+  
+" 4:32 Instrument View 00 — TRANSP. ON   TBL. TIC01   EQ 00
+        no screen: TIC: 01   EQ 00 — Instrument View 00"
+,
+  " 4:33 Instrument View 00 — TRANSP. ON   TBL. TIC01   EQ 00",
+  " 5: 0 Instrument View 00 — SHAPE   00PULSE12 AMP 20",
+  
+" 5: 7 Shape (SHAPE): 00 PULSE12 — Base waveform: PULSE 12% to 75%, SAW, TRIANGLE, SINE, NOISE PITCHED, NOISE, or WT wave tables. For PWM set PULSE 50% and adjust MIRROR (smoothness set by SIZE). — Wavsynth instrument — Instrument View 00
+        no screen: Shape (SHAPE): 00 PULSE12 — Base waveform: PULSE 12% to 75%, SAW, TRIANGLE, SINE, NOISE PITCHED, NOISE, or WT wave tables. For PWM set PULSE 50% and adjust MIRROR (smoothness set by SIZE). — Instrument View 00"
+,
+  
+" 5:17 Shape (SHAPE): 00 PULSE12 — Base waveform: PULSE 12% to 75%, SAW, TRIANGLE, SINE, NOISE PITCHED, NOISE, or WT wave tables. For PWM set PULSE 50% and adjust MIRROR (smoothness set by SIZE). — Wavsynth instrument — Instrument View 00
+        no screen: Shape (SHAPE): 00 PULSE12 AMP 20 — Base waveform: PULSE 12% to 75%, SAW, TRIANGLE, SINE, NOISE PITCHED, NOISE, or WT wave tables. For PWM set PULSE 50% and adjust MIRROR (smoothness set by SIZE). — Instrument View 00"
+,
+  
+" 5:18 Instrument View 00 — SHAPE   00PULSE12 AMP 20
+        no screen: Shape (SHAPE): 00 PULSE12 AMP 20 — Base waveform: PULSE 12% to 75%, SAW, TRIANGLE, SINE, NOISE PITCHED, NOISE, or WT wave tables. For PWM set PULSE 50% and adjust MIRROR (smoothness set by SIZE). — Instrument View 00"
+,
+  
+" 5:21 Amplification (AMP): 20h (dec 32) — Amplifies the signal; values above the maximum level are handled according to LIM. — Wavsynth instrument — Instrument View 00
+        no screen: Shape (SHAPE): 00 PULSE12 AMP 20 — Base waveform: PULSE 12% to 75%, SAW, TRIANGLE, SINE, NOISE PITCHED, NOISE, or WT wave tables. For PWM set PULSE 50% and adjust MIRROR (smoothness set by SIZE). — Instrument View 00"
+,
+  
+" 5:22 Amplification (AMP): 20h (dec 32) — Amplifies the signal; values above the maximum level are handled according to LIM. — Wavsynth instrument — Instrument View 00
+        no screen: Amplification (AMP): 20h (dec 32) — Amplifies the signal; values above the maximum level are handled according to LIM. — Instrument View 00"
+,
+  " 5:34 Instrument View 00 — SHAPE   00PULSE12 AMP 20",
+  " 6: 0 Instrument View 00 — SIZE    80        LIM 00CLIP",
+  
+" 6: 7 Size (SIZE): 80h (dec 128) — Horizontal size of the waveform (number of samples). — Wavsynth instrument — Instrument View 00
+        no screen: Size (SIZE): 80h (dec 128) — Horizontal size of the waveform (number of samples). — Instrument View 00"
+,
+  
+" 6:18 Instrument View 00 — SIZE    80        LIM 00CLIP
+        no screen: Size (SIZE): 80h (dec 128) — Horizontal size of the waveform (number of samples). — Instrument View 00"
+,
+  
+" 6:21 Limit Mode (LIM): 00 CLIP — Values above the maximum level are clipped. — Limit / clipping behaviour of the amplified signal. — Wavsynth instrument — Instrument View 00
+        no screen: Size (SIZE): 80h (dec 128) — Horizontal size of the waveform (number of samples). — Instrument View 00"
+,
+  
+" 6:22 Limit Mode (LIM): 00 CLIP — Values above the maximum level are clipped. — Limit / clipping behaviour of the amplified signal. — Wavsynth instrument — Instrument View 00
+        no screen: Limit Mode (LIM): 00 CLIP — Values above the maximum level are clipped. — Limit / clipping behaviour of the amplified signal. — Instrument View 00"
+,
+  " 6:34 Instrument View 00 — SIZE    80        LIM 00CLIP",
+  " 7: 0 Instrument View 00 — FILTER  01LOWPASS PAN 80",
+  
+" 7: 7 Filter Type (FILTER): 01 LOWPASS — Multi-mode filter type, plus 4 modes that apply the filter into the waveform: WAV LP, WAV HP, WAV BP, WAV BS. — Wavsynth instrument — Instrument View 00
+        no screen: Filter Type (FILTER): 01 LOWPASS — Multi-mode filter type: low-pass, high-pass, band-pass, band-stop, LP>HP (low-pass with RES controlling a 1-pole high-pass), ZDF low-pass, ZDF high-pass. — Instrument View 00"
+,
+  
+" 7:17 Filter Type (FILTER): 01 LOWPASS — Multi-mode filter type, plus 4 modes that apply the filter into the waveform: WAV LP, WAV HP, WAV BP, WAV BS. — Wavsynth instrument — Instrument View 00
+        no screen: Filter Type (FILTER): 01 LOWPASS PAN 80 — Multi-mode filter type: low-pass, high-pass, band-pass, band-stop, LP>HP (low-pass with RES controlling a 1-pole high-pass), ZDF low-pass, ZDF high-pass. — Instrument View 00"
+,
+  
+" 7:18 Instrument View 00 — FILTER  01LOWPASS PAN 80
+        no screen: Filter Type (FILTER): 01 LOWPASS PAN 80 — Multi-mode filter type: low-pass, high-pass, band-pass, band-stop, LP>HP (low-pass with RES controlling a 1-pole high-pass), ZDF low-pass, ZDF high-pass. — Instrument View 00"
+,
+  
+" 7:21 Pan (PAN): 80h (dec 128) — Stereo position of the instrument (80 is centre). — Wavsynth instrument — Instrument View 00
+        no screen: Filter Type (FILTER): 01 LOWPASS PAN 80 — Multi-mode filter type: low-pass, high-pass, band-pass, band-stop, LP>HP (low-pass with RES controlling a 1-pole high-pass), ZDF low-pass, ZDF high-pass. — Instrument View 00"
+,
+  
+" 7:22 Pan (PAN): 80h (dec 128) — Stereo position of the instrument (80 is centre). — Wavsynth instrument — Instrument View 00
+        no screen: Pan (PAN): 80h (dec 128) — Stereo position of the instrument (80 is centre). — Instrument View 00"
+,
+  " 7:34 Instrument View 00 — FILTER  01LOWPASS PAN 80",
+  " 8: 0 Instrument View 00 — CUTOFF  FF        DRY C0",
+  
+" 8: 7 Filter Cutoff (CUTOFF): FFh (dec 255) — Filter cutoff frequency. — Wavsynth instrument — Instrument View 00
+        no screen: Filter Cutoff (CUTOFF): FFh (dec 255) — Filter cutoff frequency. — Instrument View 00"
+,
+  
+" 8:17 Filter Cutoff (CUTOFF): FFh (dec 255) — Filter cutoff frequency. — Wavsynth instrument — Instrument View 00
+        no screen: CUTO: FF  FF        DRY C0 — Instrument View 00"
+,
+  
+" 8:18 Instrument View 00 — CUTOFF  FF        DRY C0
+        no screen: CUTO: FF  FF        DRY C0 — Instrument View 00"
+,
+  
+" 8:21 Dry Volume (DRY): C0h (dec 192) — Dry volume sent to the mixer channel. — Wavsynth instrument — Instrument View 00
+        no screen: CUTO: FF  FF        DRY C0 — Instrument View 00"
+,
+  
+" 8:22 Dry Volume (DRY): C0h (dec 192) — Dry volume sent to the mixer channel. — Wavsynth instrument — Instrument View 00
+        no screen: Dry Volume (DRY): C0h (dec 192) — Dry volume sent to the mixer channel. — Instrument View 00"
+,
+  " 8:34 Instrument View 00 — CUTOFF  FF        DRY C0",
+]
+`;
+
+exports[`describeContext: instrumentMods 1`] = `
+[
+  " 2: 0 Instrument Modulation View 00 — MOD1 AHD ENV    MOD2 LFO",
+  
+" 2: 4 Modulator Type: AHD ENV — Attack Hold Decay envelope based on tempo. — Type of this modulation slot: AHD envelope, ADSR envelope, DRUM envelope, LFO, TRIG envelope or TRACKING. Slots can modulate their neighbour (Mod 1 affects Mod 2, 2→3, 3→4, 4→1). — MOD1 — Instrument Modulation View 00
+        no screen: Modulator Type: AHD ENV — Attack Hold Decay envelope based on tempo. — Type of this modulation slot: AHD envelope, ADSR envelope, DRUM envelope, LFO, TRIG envelope or TRACKING. Slots can modulate their neighbour (Mod 1 affects Mod 2, 2→3, 3→4, 4→1). — Instrument Modulation View 00"
+,
+  " 2:16 Instrument Modulation View 00 — MOD1 AHD ENV    MOD2 LFO",
+  
+" 2:20 Modulator Type: LFO — Tempo-synced low frequency oscillator. — Type of this modulation slot: AHD envelope, ADSR envelope, DRUM envelope, LFO, TRIG envelope or TRACKING. Slots can modulate their neighbour (Mod 1 affects Mod 2, 2→3, 3→4, 4→1). — MOD2 — Instrument Modulation View 00
+        no screen: Modulator Type: LFO — Tempo-synced low frequency oscillator. — Type of this modulation slot: AHD envelope, ADSR envelope, DRUM envelope, LFO, TRIG envelope or TRACKING. Slots can modulate their neighbour (Mod 1 affects Mod 2, 2→3, 3→4, 4→1). — Instrument Modulation View 00"
+,
+  " 2:32 Instrument Modulation View 00 — MOD1 AHD ENV    MOD2 LFO",
+  " 3: 0 Instrument Modulation View 00 — DEST VOLUME     OSC  TRI",
+  
+" 3: 4 Destination (DEST): VOLUME — Instrument parameter this modulator controls. MOD AMT, MOD RATE or MOD BOTH modulate the neighbouring modulator's amount, rate or both. — MOD1 — Instrument Modulation View 00
+        no screen: Destination (DEST): VOLUME — Instrument parameter this modulator controls. MOD AMT, MOD RATE or MOD BOTH modulate the neighbouring modulator's amount, rate or both. — Instrument Modulation View 00"
+,
+  " 3:16 Instrument Modulation View 00 — DEST VOLUME     OSC  TRI",
+  
+" 3:20 LFO Shape (OSC): TRI — Triangle. — LFO shape: triangle, sine, ramp down/up, exponential down/up, square down/up, random, drunk. The 'T' variants run in ticks (much faster). — MOD2 — Instrument Modulation View 00
+        no screen: LFO Shape (OSC): TRI — Triangle. — LFO shape: triangle, sine, ramp down/up, exponential down/up, square down/up, random, drunk. The 'T' variants run in ticks (much faster). — Instrument Modulation View 00"
+,
+  " 3:32 Instrument Modulation View 00 — DEST VOLUME     OSC  TRI",
+  " 4: 0 Instrument Modulation View 00 — AMT  FF         DEST CUTOFF",
+  
+" 4: 4 Amount (AMT): FFh (dec 255) — How strongly the modulator is applied to the destination. — MOD1 — Instrument Modulation View 00
+        no screen: Amount (AMT): FFh (dec 255) — How strongly the modulator is applied to the destination. — Instrument Modulation View 00"
+,
+  " 4:16 Instrument Modulation View 00 — AMT  FF         DEST CUTOFF",
+  
+" 4:20 Destination (DEST): CUTOFF — Instrument parameter this modulator controls. MOD AMT, MOD RATE or MOD BOTH modulate the neighbouring modulator's amount, rate or both. — MOD2 — Instrument Modulation View 00
+        no screen: Destination (DEST): CUTOFF — Instrument parameter this modulator controls. MOD AMT, MOD RATE or MOD BOTH modulate the neighbouring modulator's amount, rate or both. — Instrument Modulation View 00"
+,
+  " 4:32 Instrument Modulation View 00 — AMT  FF         DEST CUTOFF",
+  " 5: 0 Instrument Modulation View 00 — MOD3 TRIG ENV   MOD4 TRACKING",
+  
+" 5: 4 Modulator Type: TRIG ENV — AHD envelope triggered by another playing track or instrument. — Type of this modulation slot: AHD envelope, ADSR envelope, DRUM envelope, LFO, TRIG envelope or TRACKING. Slots can modulate their neighbour (Mod 1 affects Mod 2, 2→3, 3→4, 4→1). — MOD3 — Instrument Modulation View 00
+        no screen: Modulator Type: TRIG ENV — AHD envelope triggered by another playing track or instrument. — Type of this modulation slot: AHD envelope, ADSR envelope, DRUM envelope, LFO, TRIG envelope or TRACKING. Slots can modulate their neighbour (Mod 1 affects Mod 2, 2→3, 3→4, 4→1). — Instrument Modulation View 00"
+,
+  " 5:16 Instrument Modulation View 00 — MOD3 TRIG ENV   MOD4 TRACKING",
+  
+" 5:20 Modulator Type: TRACKING — Modulates an instrument parameter from notes or velocities. — Type of this modulation slot: AHD envelope, ADSR envelope, DRUM envelope, LFO, TRIG envelope or TRACKING. Slots can modulate their neighbour (Mod 1 affects Mod 2, 2→3, 3→4, 4→1). — MOD4 — Instrument Modulation View 00
+        no screen: Modulator Type: TRACKING — Modulates an instrument parameter from notes or velocities. — Type of this modulation slot: AHD envelope, ADSR envelope, DRUM envelope, LFO, TRIG envelope or TRACKING. Slots can modulate their neighbour (Mod 1 affects Mod 2, 2→3, 3→4, 4→1). — Instrument Modulation View 00"
+,
+  " 5:32 Instrument Modulation View 00 — MOD3 TRIG ENV   MOD4 TRACKING",
+  " 6: 0 Instrument Modulation View 00 — DEST PITCH      SRC  NOTE",
+  
+" 6: 4 Destination (DEST): PITCH — Instrument parameter this modulator controls. MOD AMT, MOD RATE or MOD BOTH modulate the neighbouring modulator's amount, rate or both. — MOD3 — Instrument Modulation View 00
+        no screen: Destination (DEST): PITCH — Instrument parameter this modulator controls. MOD AMT, MOD RATE or MOD BOTH modulate the neighbouring modulator's amount, rate or both. — Instrument Modulation View 00"
+,
+  " 6:16 Instrument Modulation View 00 — DEST PITCH      SRC  NOTE",
+  
+" 6:20 Source (SRC): NOTE — Modulation source. Trig envelope: an instrument number (00-7F) or a whole track (80-87 = tracks 1-8). Tracking: NOTE, VELOCITY or VELOCITY TAKEOVER (velocity no longer affects instrument volume). — MOD4 — Instrument Modulation View 00
+        no screen: Source (SRC): NOTE — Modulation source. Trig envelope: an instrument number (00-7F) or a whole track (80-87 = tracks 1-8). Tracking: NOTE, VELOCITY or VELOCITY TAKEOVER (velocity no longer affects instrument volume). — Instrument Modulation View 00"
+,
+  " 6:32 Instrument Modulation View 00 — DEST PITCH      SRC  NOTE",
+]
+`;
+
+exports[`describeContext: fileBrowser 1`] = `
+[
+  " 2: 0 File Browser Entry: /.. — goes up to the parent directory — Load Instrument",
+  " 2: 4 Load Instrument — /..",
+  " 3: 0 File Browser Entry: /Bass — directory: [EDIT] opens it — Load Instrument",
+  " 3: 6 Load Instrument — /Bass",
+  " 4: 0 File Browser Entry: Lead.m8i — instrument preset: [EDIT] selects it — Load Instrument",
+  " 4: 9 Load Instrument — Lead.m8i",
+  " 5: 0 File Browser Entry: kick.wav — sample: [EDIT] selects it — Load Instrument",
+  " 5: 9 Load Instrument — kick.wav",
+  " 6: 0 File Browser Entry: song.m8s — M8 file: [EDIT] selects it — Load Instrument",
+  " 6: 9 Load Instrument — song.m8s",
+  " 7: 0 File Browser Entry: readme.txt — file: [EDIT] selects it — Load Instrument",
+  " 7:11 Load Instrument — readme.txt",
+]
+`;
+
+exports[`describeContext: createDirectory 1`] = `
+[
+  " 2: 0 Directory Name: "NEWDIR" — Name of the directory to create on the SD card. — Create Directory",
+  " 2:13 Create Directory — NEWDIR",
+]
+`;
+
+exports[`describeContext: no cursor line, unknown view 1`] = `
+[
+  "Song View",
+  "nowhere",
+]
+`;

@@ -19,12 +19,12 @@ npm install @yam8d/m8-sdk
 ## Architecture
 
 ```text
-┌─────────────────┐         post-me           ┌─────────────────┐
+┌┐         post-me           ┌┐
 │   yam8d Host    │  ═══════════════════════► │  iframe Client  │
 │                 │   WindowMessenger         │                 │
 │  useM8SdkHost   │ ◄═══════════════════════  │  M8Client       │
 │                 │   Methods + Events        │                 │
-└─────────────────┘                           └─────────────────┘
+└┘                           └┘
 ```
 
 ## Host-Side Usage (yam8d application)

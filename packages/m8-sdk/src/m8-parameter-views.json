@@ -1,0 +1,485 @@
+{
+  "version": "1.0",
+  "description": "Layouts of the non-grid ('parameter') views: which text at which column is an instrument type, name, parameter, option or action. Column positions were measured on the manual's screenshots (font mode 0, 40 columns) and cross-checked with the phrase view grid; descriptions come from the manual.",
+  "notes": {
+    "rows": "A row is recognised by 'match' conditions on the line text (x = column, text = exact text, regex = pattern on the value.width chars). The first matching row wins; its cells give the field columns.",
+    "zones": "Views whose labels change (instrument parameters depend on the instrument type, modulation slots on the modulation type) use two label/value zones instead: the label text is read at labelX and the value at x. The label is then looked up in the vocabulary.",
+    "formats": "hex = 2 hex digits; hexOption = 2 hex digits followed by the option name ('00CHORUS'); hexPair = 'XX:YY'; decimal / decimalPair = base-10 numbers ('120', '150:45'); float = decimal with a fraction ('-05.00'); text = free text or option name; auto = detect from the text.",
+    "unverified": "Positions are read off the manual's screenshots, not from a device capture. Instrument-type specific layouts other than the Wavsynth header/parameter grid (Sampler SAMPLE row, FM operators, Hypersynth chord, MIDI CC rows) are only reached through the generic label/value zones."
+  },
+  "views": {
+    "project": {
+      "rows": [
+        { "id": "tempo", "match": [{ "x": 0, "text": "TEMPO" }], "cells": [
+          { "x": 13, "width": 6, "key": "tempo", "type": "parameter", "format": "float", "unit": " BPM", "label": "Tempo (TEMPO)", "description": "Song speed in beats per minute. [EDIT] pressed rhythmically sets the tempo by tapping." }
+        ] },
+        { "id": "transpose", "match": [{ "x": 0, "text": "TRANSPOSE" }], "cells": [
+          { "x": 13, "width": 2, "key": "transpose", "type": "transpose", "format": "hex", "label": "Project Transpose (TRANSPOSE)", "description": "Transposes the whole song in semitones (same as the TSP command). Only affects instruments with TRANSP. enabled; applied when [EDIT] is released." }
+        ] },
+        { "id": "groove", "match": [{ "x": 0, "text": "GROOVE" }], "cells": [
+          { "x": 13, "width": 14, "key": "groove", "type": "option", "format": "hexOption", "label": "Default Groove (GROOVE)", "description": "Groove used when the song plays (number and name); applied when [EDIT] is released. See Groove View." }
+        ] },
+        { "id": "scale", "match": [{ "x": 0, "text": "SCALE" }], "cells": [
+          { "x": 13, "width": 16, "key": "scale", "type": "option", "format": "hexOption", "label": "Default Scale (SCALE)", "description": "Scale (number, key and name) used when the song plays; applied when [EDIT] is released. See Scale View." }
+        ] },
+        { "id": "liveQuantize", "match": [{ "x": 0, "text": "LIVE QUANTIZ" }], "cells": [
+          { "x": 13, "width": 14, "key": "liveQuantize", "type": "option", "format": "hexOption", "label": "Live Quantize (LIVE QUANTIZE)", "description": "How long a cued chain waits before starting when playing in live mode." }
+        ] },
+        { "id": "midi", "match": [{ "x": 0, "text": "MIDI" }, { "x": 13, "text": "SETTINGS" }], "cells": [
+          { "x": 13, "width": 8, "key": "midiSettings", "type": "action", "format": "text", "label": "MIDI Settings", "description": "Open the MIDI Settings View." },
+          { "x": 22, "width": 8, "key": "midiMappings", "type": "action", "format": "text", "label": "MIDI Mappings", "description": "Open the MIDI Mappings View." }
+        ] },
+        { "id": "name", "match": [{ "x": 0, "text": "NAME" }], "cells": [
+          { "x": 13, "width": 12, "key": "name", "type": "name", "format": "text", "label": "Song Name (NAME)", "description": "Name of the current song, entered before saving." }
+        ] },
+        { "id": "file", "match": [{ "x": 0, "text": "PROJECT" }, { "x": 13, "text": "LOAD" }], "cells": [
+          { "x": 13, "width": 4, "key": "load", "type": "action", "format": "text", "label": "Load Song", "description": "Load a song from the SD card." },
+          { "x": 18, "width": 4, "key": "save", "type": "action", "format": "text", "label": "Save Song", "description": "Save the current song." },
+          { "x": 23, "width": 3, "key": "new", "type": "action", "format": "text", "label": "New Song", "description": "Create a new song." }
+        ] },
+        { "id": "export", "match": [{ "x": 0, "text": "EXPORT/SHARE" }], "cells": [
+          { "x": 13, "width": 6, "key": "render", "type": "action", "format": "text", "label": "Render", "description": "Open the Render View to render audio." },
+          { "x": 20, "width": 6, "key": "bundle", "type": "action", "format": "text", "label": "Bundle", "description": "Bundle the song with the instruments and samples it uses." }
+        ] },
+        { "id": "clearUnused", "match": [{ "x": 0, "text": "CLEAR UNUSED" }], "cells": [
+          { "x": 13, "width": 7, "key": "clearPhrases", "type": "action", "format": "text", "label": "Clear Unused Phrases", "description": "Frees chains and phrases that are not used in the song." },
+          { "x": 21, "width": 8, "key": "clearInstTbl", "type": "action", "format": "text", "label": "Clear Unused Instruments/Tables", "description": "Frees instruments, EQs and tables that are not used in the song." }
+        ] },
+        { "id": "instPool", "match": [{ "x": 0, "text": "INST. POOL" }], "cells": [
+          { "x": 13, "width": 15, "key": "viewInstPool", "type": "action", "format": "text", "label": "View Instrument Pool", "description": "Go to the Instrument Pool View." }
+        ] },
+        { "id": "timeStats", "match": [{ "x": 0, "text": "TIME STATS" }], "cells": [
+          { "x": 13, "width": 15, "key": "viewTimeStats", "type": "action", "format": "text", "label": "View Time Stats", "description": "Open the Time Stats View (time spent on the song)." }
+        ] },
+        { "id": "system", "match": [{ "x": 0, "text": "SYSTEM" }, { "x": 13, "text": "SETTINGS" }], "cells": [
+          { "x": 13, "width": 8, "key": "systemSettings", "type": "action", "format": "text", "label": "System Settings", "description": "Go to the System Settings View." },
+          { "x": 22, "width": 9, "key": "usbDrive", "type": "action", "format": "text", "label": "USB Drive", "description": "Puts the M8 in USB drive mode so SD card files can be transferred to a computer." }
+        ] }
+      ]
+    },
+
+    "systemsettings": {
+      "rows": [
+        { "id": "backlight", "match": [{ "x": 0, "text": "BACKLIGHT" }], "cells": [
+          { "x": 15, "width": 2, "key": "backlight", "type": "parameter", "format": "hex", "label": "Backlight (BACKLIGHT)", "description": "Backlight LED brightness of the display." }
+        ] },
+        { "id": "fontOptions", "match": [{ "x": 0, "text": "FONT OPTIONS" }], "cells": [
+          { "x": 15, "width": 15, "key": "fontOptions", "type": "option", "format": "text", "label": "Font Options (FONT OPTIONS)", "description": "Font settings, including a large font mode for readability." }
+        ] },
+        { "id": "theme", "match": [{ "x": 0, "text": "THEME" }], "cells": [
+          { "x": 15, "width": 10, "key": "editTheme", "type": "action", "format": "text", "label": "Theme (EDIT THEME)", "description": "Open the Theme View." }
+        ] },
+        { "id": "notePreview", "match": [{ "x": 0, "text": "NOTE PREVIEW" }], "cells": [
+          { "x": 15, "width": 3, "key": "notePreview", "type": "onOff", "format": "text", "label": "Note Preview (NOTE PREVIEW)", "description": "Plays the note when editing notes in the phrase view." }
+        ] },
+        { "id": "recCountIn", "match": [{ "x": 0, "regex": "^REC\\.\\s?(COUNT IN|METRONOME)\\s*$", "width": 13 }], "cells": [
+          { "x": 15, "width": 6, "key": "recCountIn", "type": "option", "format": "hexOption", "label": "Recording Count-in (REC. COUNT IN)", "description": "Number of phrases/measures of metronome count-in before recording audio in the Sample Editor or Selection to Sample." }
+        ] },
+        { "id": "metronomeVol", "match": [{ "x": 0, "text": "METRONOME VOL" }], "cells": [
+          { "x": 15, "width": 2, "key": "metronomeVol", "type": "parameter", "format": "hex", "label": "Metronome Volume (METRONOME VOL)", "description": "Volume of the metronome sound (edit /System/Metronome.m8i to change the sound)." }
+        ] },
+        { "id": "songTemplate", "match": [{ "x": 0, "text": "SONG TEMPLATE" }], "cells": [
+          { "x": 15, "width": 4, "key": "songTemplateSave", "type": "action", "format": "text", "label": "Song Template (SAVE)", "description": "Use the currently opened song as the template for new songs." },
+          { "x": 20, "width": 5, "key": "songTemplateClear", "type": "action", "format": "text", "label": "Song Template (CLEAR)", "description": "Clear the song template." }
+        ] },
+        { "id": "usbAudioMode", "match": [{ "x": 0, "text": "USB AUDIO MODE" }], "cells": [
+          { "x": 15, "width": 14, "key": "usbAudioMode", "type": "option", "format": "text", "label": "USB Audio Mode (USB AUDIO MODE)", "description": "USB output as stereo or multi-channel (multi-channel sends all 8 tracks and the effects individually, 12 stereo channels).",
+            "options": { "STEREO OUT": "Stereo mix over USB." } }
+        ] },
+        { "id": "usbMainOut", "match": [{ "x": 0, "text": "USB MAIN OUT" }], "cells": [
+          { "x": 15, "width": 6, "key": "usbMainOut", "type": "option", "format": "text", "label": "USB Main Out (USB MAIN OUT)", "description": "Routing behaviour of USB audio (see the USB audio routing options)." }
+        ] },
+        { "id": "lineInGate", "match": [{ "x": 0, "text": "LINE-IN GATE" }], "cells": [
+          { "x": 15, "width": 6, "key": "lineInGate", "type": "option", "format": "text", "label": "Line-in Gate (LINE-IN GATE)", "description": "Noise gate threshold for the line input, adjustable from -70 dB to -10 dB (OFF disables it)." }
+        ] },
+        { "id": "splashScreen", "match": [{ "x": 0, "text": "SPLASH SCREEN" }], "cells": [
+          { "x": 15, "width": 3, "key": "splashScreen", "type": "onOff", "format": "text", "label": "Splash Screen (SPLASH SCREEN)", "description": "Show the M8 logo and play the start-up sound when turning on the device." }
+        ] },
+        { "id": "hpProtection", "match": [{ "x": 0, "text": "HP PROTECTION" }], "cells": [
+          { "x": 15, "width": 3, "key": "hpProtection", "type": "onOff", "format": "text", "label": "Headphone Protection (HP PROTECTION)", "description": "Limits the headphone output volume to F0 when a pack is unplugged and re-inserted." }
+        ] },
+        { "id": "keyDelayRep", "match": [{ "x": 0, "text": "KEY DELAY:REP" }], "cells": [
+          { "x": 15, "width": 7, "key": "keyDelayRep", "type": "parameter", "format": "decimalPair", "unit": " ms", "parts": ["delay", "repeat"], "label": "Key Delay:Repeat (KEY DELAY:REP)", "description": "Key repeat timing in milliseconds: delay before a held key starts repeating, then the time between repeats." }
+        ] },
+        { "id": "battCharging", "match": [{ "x": 0, "regex": "^BATT\\.\\s?(CHARGING|STATUS)\\s*$", "width": 14 }], "cells": [
+          { "x": 15, "width": 14, "key": "battCharging", "type": "option", "format": "text", "label": "Battery Charging (BATT. CHARGING / STATUS)", "description": "Whether the battery charges while the M8 is on and USB is connected (turn off to reduce power drawn from the host); also shows the current charging status." }
+        ] }
+      ]
+    },
+
+    "effectsettings": {
+      "sections": ["MODFX", "DELAY", "REVERB"],
+      "rows": [
+        { "id": "modfxType", "section": "MODFX", "match": [{ "x": 7, "text": "MOD TYPE" }], "cells": [
+          { "x": 21, "width": 10, "key": "modfxType", "type": "option", "format": "hexOption", "label": "ModFX Type (MOD TYPE)", "description": "ModFX effect: Chorus, Phaser or Flanger (also sets the phase position).",
+            "options": { "CHORUS": "Stereo chorus.", "PHASER": "Stereo phaser.", "FLANGER": "Stereo flanger." } }
+        ] },
+        { "id": "modfxInputEq", "section": "MODFX", "match": [{ "x": 7, "text": "INPUT EQ" }], "cells": [
+          { "x": 21, "width": 2, "key": "modfxInputEq", "type": "action", "format": "text", "label": "Input EQ (INPUT EQ)", "description": "Open the EQ editor for this effect's input." }
+        ] },
+        { "id": "modfxDepthFreq", "section": "MODFX", "match": [{ "x": 7, "text": "MOD DEPTH:FRQ" }], "cells": [
+          { "x": 21, "width": 5, "key": "modfxDepthFreq", "type": "parameter", "format": "hexPair", "parts": ["mod depth", "mod frequency"], "label": "ModFX Mod Depth:Frequency (MOD DEPTH:FRQ)", "description": "Amount of modulation in the stereo signal (first value) and speed of the modulation (second value)." }
+        ] },
+        { "id": "modfxWidth", "section": "MODFX", "match": [{ "x": 7, "text": "STEREO WIDTH" }], "cells": [
+          { "x": 21, "width": 2, "key": "modfxWidth", "type": "parameter", "format": "hex", "label": "Stereo Width (STEREO WIDTH)", "description": "Stereo width: 00 is mono, FF is stereo." }
+        ] },
+        { "id": "modfxReverbSend", "section": "MODFX", "match": [{ "x": 7, "text": "REVERB SEND" }], "cells": [
+          { "x": 21, "width": 2, "key": "modfxReverbSend", "type": "parameter", "format": "hex", "label": "Reverb Send (REVERB SEND)", "description": "Amount of this effect sent to the reverb." }
+        ] },
+
+        { "id": "delayInputEq", "section": "DELAY", "match": [{ "x": 7, "text": "INPUT EQ" }], "cells": [
+          { "x": 21, "width": 2, "key": "delayInputEq", "type": "action", "format": "text", "label": "Input EQ (INPUT EQ)", "description": "Open the EQ editor for this effect's input." }
+        ] },
+        { "id": "delayTime", "section": "DELAY", "match": [{ "x": 7, "text": "TIME L:R" }], "cells": [
+          { "x": 21, "width": 5, "key": "delayTime", "type": "parameter", "format": "hexPair", "parts": ["left time", "right time"], "label": "Delay Time L:R (TIME L:R)", "description": "Delay time for the left and right channels: first digit in beats, second digit in fractions of a beat (40 is 4 beats)." }
+        ] },
+        { "id": "delayFeedback", "section": "DELAY", "match": [{ "x": 7, "text": "FEEDBACK" }], "cells": [
+          { "x": 21, "width": 2, "key": "delayFeedback", "type": "parameter", "format": "hex", "label": "Feedback (FEEDBACK)", "description": "Amount of the delayed signal fed back into the delay." }
+        ] },
+        { "id": "delayWidth", "section": "DELAY", "match": [{ "x": 7, "text": "STEREO WIDTH" }], "cells": [
+          { "x": 21, "width": 2, "key": "delayWidth", "type": "parameter", "format": "hex", "label": "Stereo Width (STEREO WIDTH)", "description": "Stereo width: 00 is mono, FF is stereo." }
+        ] },
+        { "id": "delayReverbSend", "section": "DELAY", "match": [{ "x": 7, "text": "REVERB SEND" }], "cells": [
+          { "x": 21, "width": 2, "key": "delayReverbSend", "type": "parameter", "format": "hex", "label": "Reverb Send (REVERB SEND)", "description": "Amount of this effect sent to the reverb." }
+        ] },
+
+        { "id": "reverbInputEq", "section": "REVERB", "match": [{ "x": 7, "text": "INPUT EQ" }], "cells": [
+          { "x": 21, "width": 2, "key": "reverbInputEq", "type": "action", "format": "text", "label": "Input EQ (INPUT EQ)", "description": "Open the EQ editor for this effect's input." }
+        ] },
+        { "id": "reverbRoomSize", "section": "REVERB", "match": [{ "x": 7, "text": "ROOM SIZE" }], "cells": [
+          { "x": 21, "width": 2, "key": "reverbRoomSize", "type": "parameter", "format": "hex", "label": "Room Size (ROOM SIZE)", "description": "Size of the reverb room." }
+        ] },
+        { "id": "reverbDecayShimmer", "section": "REVERB", "match": [{ "x": 7, "text": "DECAY:SHIMMER" }], "cells": [
+          { "x": 21, "width": 5, "key": "reverbDecayShimmer", "type": "parameter", "format": "hexPair", "parts": ["decay", "shimmer"], "label": "Reverb Decay:Shimmer (DECAY:SHIMMER)", "description": "Reverb decay time (first value) and shimmer amount (second value)." }
+        ] },
+        { "id": "reverbDepthFreq", "section": "REVERB", "match": [{ "x": 7, "text": "MOD DEPTH:FRQ" }], "cells": [
+          { "x": 21, "width": 5, "key": "reverbDepthFreq", "type": "parameter", "format": "hexPair", "parts": ["mod depth", "mod frequency"], "label": "Reverb Mod Depth:Frequency (MOD DEPTH:FRQ)", "description": "Reverb modulation depth (first value) and frequency (second value)." }
+        ] },
+        { "id": "reverbWidth", "section": "REVERB", "match": [{ "x": 7, "text": "STEREO WIDTH" }], "cells": [
+          { "x": 21, "width": 2, "key": "reverbWidth", "type": "parameter", "format": "hex", "label": "Stereo Width (STEREO WIDTH)", "description": "Stereo width: 00 is mono, FF is stereo." }
+        ] }
+      ]
+    },
+
+    "mixer": {
+      "rows": [
+        { "id": "speaker", "match": [{ "x": 0, "text": "SPEAKER" }], "cells": [
+          { "x": 12, "width": 2, "key": "speakerVol", "type": "parameter", "format": "hex", "label": "Speaker Volume (SPEAKER VOL)", "description": "Volume of the built-in speaker." }
+        ] },
+        { "id": "outputVol", "match": [{ "x": 0, "text": "OUTPUT VOL" }], "cells": [
+          { "x": 12, "width": 2, "key": "outputVol", "type": "parameter", "format": "hex", "label": "Output Volume (OUTPUT VOL)", "description": "Volume of the audio output (headphones / line out)." }
+        ] },
+        { "id": "tracks", "match": [{ "x": 0, "regex": "^[0-9A-F]{2}$", "width": 2 }, { "x": 21, "regex": "^[0-9A-F]{2}$", "width": 2 }], "cells": [
+          { "x": 0,  "width": 2, "key": "track1", "type": "volume", "format": "hex", "label": "Track 1 Volume", "meta": { "trackIndex": 1 }, "description": "Volume of track 1. Instrument volumes are applied on top; the track's send levels are set in the instruments." },
+          { "x": 3,  "width": 2, "key": "track2", "type": "volume", "format": "hex", "label": "Track 2 Volume", "meta": { "trackIndex": 2 }, "description": "Volume of track 2." },
+          { "x": 6,  "width": 2, "key": "track3", "type": "volume", "format": "hex", "label": "Track 3 Volume", "meta": { "trackIndex": 3 }, "description": "Volume of track 3." },
+          { "x": 9,  "width": 2, "key": "track4", "type": "volume", "format": "hex", "label": "Track 4 Volume", "meta": { "trackIndex": 4 }, "description": "Volume of track 4." },
+          { "x": 12, "width": 2, "key": "track5", "type": "volume", "format": "hex", "label": "Track 5 Volume", "meta": { "trackIndex": 5 }, "description": "Volume of track 5." },
+          { "x": 15, "width": 2, "key": "track6", "type": "volume", "format": "hex", "label": "Track 6 Volume", "meta": { "trackIndex": 6 }, "description": "Volume of track 6." },
+          { "x": 18, "width": 2, "key": "track7", "type": "volume", "format": "hex", "label": "Track 7 Volume", "meta": { "trackIndex": 7 }, "description": "Volume of track 7." },
+          { "x": 21, "width": 2, "key": "track8", "type": "volume", "format": "hex", "label": "Track 8 Volume", "meta": { "trackIndex": 8 }, "description": "Volume of track 8." }
+        ] },
+        { "id": "eq", "match": [{ "x": 27, "text": "EQ" }], "cells": [
+          { "x": 27, "width": 2, "key": "mixEq", "type": "action", "format": "text", "label": "Main Mix EQ (EQ)", "description": "Open the main mix EQ editor ([EDIT] or [SHIFT]+[RIGHT])." }
+        ] },
+        { "id": "levels", "match": [{ "x": 0, "regex": "^[0-9A-F]{2}$", "width": 2 }, { "x": 3, "regex": "^[0-9A-F]{2}$", "width": 2 }, { "x": 6, "regex": "^[0-9A-F]{2}$", "width": 2 }, { "x": 12, "regex": "^[0-9A-F]{2}$", "width": 2 }], "cells": [
+          { "x": 0,  "width": 2, "key": "modfxVol", "type": "volume", "format": "hex", "label": "ModFX Volume (MX)", "description": "Output level of the ModFX send effect." },
+          { "x": 3,  "width": 2, "key": "delayVol", "type": "volume", "format": "hex", "label": "Delay Volume (DE)", "description": "Output level of the delay send effect." },
+          { "x": 6,  "width": 2, "key": "reverbVol", "type": "volume", "format": "hex", "label": "Reverb Volume (RE)", "description": "Output level of the reverb send effect." },
+          { "x": 12, "width": 2, "key": "inputVol", "type": "volume", "format": "hex", "label": "Analog Input Volume (INPUT)", "description": "Volume of the analog input for monitoring. In dual-mono mode this is the left channel." },
+          { "x": 15, "width": 2, "key": "inputVol2", "type": "volume", "format": "hex", "label": "Analog Input Volume, 2nd channel", "description": "Enables dual-mono input mode when set (right channel volume); clear with [EDIT]+[OPTION] to disable." },
+          { "x": 18, "width": 2, "key": "usbVol", "type": "volume", "format": "hex", "label": "USB Input Volume (USB)", "description": "Volume of anything the USB host computer sends to the M8." },
+          { "x": 27, "width": 2, "key": "mainVol", "type": "parameter", "format": "hex", "label": "Main Volume (MIX)", "description": "Main song volume, applied after the limiter, DJ filter and OTT. [EDIT] or [SHIFT]+[RIGHT] opens the Mix Scope." }
+        ] },
+        { "id": "limiter", "match": [{ "x": 0, "text": "MX" }, { "x": 3, "text": "DE" }, { "x": 6, "text": "RE" }], "cells": [
+          { "x": 27, "width": 2, "key": "limiter", "type": "parameter", "format": "hex", "label": "Limiter (LIM)", "description": "Main mix limiter amount; the limiter is engaged when the value is above 00. [EDIT] or [SHIFT]+[RIGHT] opens the Limiter Scope." }
+        ] },
+        { "id": "sendModfx", "match": [{ "x": 9, "text": "MX" }], "cells": [
+          { "x": 12, "width": 2, "key": "inputModfx", "type": "volume", "format": "hex", "label": "Analog Input ModFX Send (INPUT MX)", "description": "How much of the analog input goes to the ModFX effect." },
+          { "x": 18, "width": 2, "key": "usbModfx", "type": "volume", "format": "hex", "label": "USB Input ModFX Send (USB MX)", "description": "How much of the USB input goes to the ModFX effect." },
+          { "x": 27, "width": 2, "key": "djFilter", "type": "parameter", "format": "hex", "label": "DJ Filter (DJF)", "description": "DJ filter cutoff: 80 is off, below 80 low-pass (or band-stop), above 80 high-pass. Mode and options are in the Scope View." }
+        ] },
+        { "id": "sendDelay", "match": [{ "x": 9, "text": "DE" }], "cells": [
+          { "x": 12, "width": 2, "key": "inputDelay", "type": "volume", "format": "hex", "label": "Analog Input Delay Send (INPUT DE)", "description": "How much of the analog input goes to the delay effect." },
+          { "x": 18, "width": 2, "key": "usbDelay", "type": "volume", "format": "hex", "label": "USB Input Delay Send (USB DE)", "description": "How much of the USB input goes to the delay effect." },
+          { "x": 27, "width": 2, "key": "ott", "type": "parameter", "format": "hex", "label": "OTT (OTT)", "description": "Over The Top multi-band compression mixed in parallel: 00 to 80 mixes it in; from 80 and above the main mix is faded out." }
+        ] },
+        { "id": "sendReverb", "match": [{ "x": 9, "text": "RE" }], "cells": [
+          { "x": 12, "width": 2, "key": "inputReverb", "type": "volume", "format": "hex", "label": "Analog Input Reverb Send (INPUT RE)", "description": "How much of the analog input goes to the reverb effect." },
+          { "x": 18, "width": 2, "key": "usbReverb", "type": "volume", "format": "hex", "label": "USB Input Reverb Send (USB RE)", "description": "How much of the USB input goes to the reverb effect." }
+        ] }
+      ]
+    },
+
+    "mixeq": {
+      "rows": [
+        { "id": "gain", "match": [{ "x": 0, "text": "GAIN" }], "cells": [
+          { "x": 5,  "width": 6, "key": "lowGain",  "type": "parameter", "format": "float", "unit": " dB", "label": "LOW Gain", "description": "Boost (positive) or cut (negative) applied by the LOW band, in decibels." },
+          { "x": 16, "width": 6, "key": "midGain",  "type": "parameter", "format": "float", "unit": " dB", "label": "MID Gain", "description": "Boost (positive) or cut (negative) applied by the MID band, in decibels." },
+          { "x": 27, "width": 6, "key": "highGain", "type": "parameter", "format": "float", "unit": " dB", "label": "HIGH Gain", "description": "Boost (positive) or cut (negative) applied by the HIGH band, in decibels." }
+        ] },
+        { "id": "freq", "match": [{ "x": 0, "text": "FREQ" }], "cells": [
+          { "x": 6,  "width": 5, "key": "lowFreq",  "type": "parameter", "format": "decimal", "unit": " Hz", "label": "LOW Frequency", "description": "Centre (or corner) frequency of the LOW band." },
+          { "x": 17, "width": 5, "key": "midFreq",  "type": "parameter", "format": "decimal", "unit": " Hz", "label": "MID Frequency", "description": "Centre (or corner) frequency of the MID band." },
+          { "x": 28, "width": 5, "key": "highFreq", "type": "parameter", "format": "decimal", "unit": " Hz", "label": "HIGH Frequency", "description": "Centre (or corner) frequency of the HIGH band." }
+        ] },
+        { "id": "q", "match": [{ "x": 0, "text": "Q" }, { "x": 1, "regex": "^\\s?$", "width": 1 }], "cells": [
+          { "x": 6,  "width": 3, "key": "lowQ",  "type": "parameter", "format": "hex", "label": "LOW Q", "description": "Quality factor (bandwidth) of the LOW band: higher values narrow it." },
+          { "x": 17, "width": 3, "key": "midQ",  "type": "parameter", "format": "hex", "label": "MID Q", "description": "Quality factor (bandwidth) of the MID band: higher values narrow it." },
+          { "x": 28, "width": 3, "key": "highQ", "type": "parameter", "format": "hex", "label": "HIGH Q", "description": "Quality factor (bandwidth) of the HIGH band: higher values narrow it." }
+        ] },
+        { "id": "type", "match": [{ "x": 0, "text": "TYPE" }], "cells": [
+          { "x": 6,  "width": 9, "key": "lowType",  "type": "option", "format": "text", "label": "LOW Type", "description": "Filter shape of the LOW band.", "options": { "LOWCUT": "Removes frequencies below the cutoff.", "LOWSHELF": "Boosts or cuts frequencies below the shelf frequency.", "BELL": "Peaking filter: boosts or cuts around the centre frequency.", "BANDPASS": "Passes frequencies around the centre frequency, attenuating both sides.", "HI.SHELF": "Boosts or cuts frequencies above the shelf frequency.", "HI.CUT": "Attenuates or removes frequencies above the cutoff.", "ALLPASS": "Passes all frequencies at equal gain while shifting their phase." } },
+          { "x": 17, "width": 9, "key": "midType",  "type": "option", "format": "text", "label": "MID Type", "description": "Filter shape of the MID band.", "options": { "LOWCUT": "Removes frequencies below the cutoff.", "LOWSHELF": "Boosts or cuts frequencies below the shelf frequency.", "BELL": "Peaking filter: boosts or cuts around the centre frequency.", "BANDPASS": "Passes frequencies around the centre frequency, attenuating both sides.", "HI.SHELF": "Boosts or cuts frequencies above the shelf frequency.", "HI.CUT": "Attenuates or removes frequencies above the cutoff.", "ALLPASS": "Passes all frequencies at equal gain while shifting their phase." } },
+          { "x": 28, "width": 9, "key": "highType", "type": "option", "format": "text", "label": "HIGH Type", "description": "Filter shape of the HIGH band.", "options": { "LOWCUT": "Removes frequencies below the cutoff.", "LOWSHELF": "Boosts or cuts frequencies below the shelf frequency.", "BELL": "Peaking filter: boosts or cuts around the centre frequency.", "BANDPASS": "Passes frequencies around the centre frequency, attenuating both sides.", "HI.SHELF": "Boosts or cuts frequencies above the shelf frequency.", "HI.CUT": "Attenuates or removes frequencies above the cutoff.", "ALLPASS": "Passes all frequencies at equal gain while shifting their phase." } }
+        ] },
+        { "id": "mode", "match": [{ "x": 0, "text": "MODE" }], "cells": [
+          { "x": 6,  "width": 6, "key": "lowMode",  "type": "option", "format": "text", "label": "LOW Mode", "description": "How the LOW band is applied to the stereo signal.", "options": { "STEREO": "Processes left and right identically.", "MID": "Affects only the mid (centre) information.", "SIDE": "Affects only the side information (difference between left and right).", "LEFT": "Affects only the left channel.", "RIGHT": "Affects only the right channel." } },
+          { "x": 17, "width": 6, "key": "midMode",  "type": "option", "format": "text", "label": "MID Mode", "description": "How the MID band is applied to the stereo signal.", "options": { "STEREO": "Processes left and right identically.", "MID": "Affects only the mid (centre) information.", "SIDE": "Affects only the side information (difference between left and right).", "LEFT": "Affects only the left channel.", "RIGHT": "Affects only the right channel." } },
+          { "x": 28, "width": 6, "key": "highMode", "type": "option", "format": "text", "label": "HIGH Mode", "description": "How the HIGH band is applied to the stereo signal.", "options": { "STEREO": "Processes left and right identically.", "MID": "Affects only the mid (centre) information.", "SIDE": "Affects only the side information (difference between left and right).", "LEFT": "Affects only the left channel.", "RIGHT": "Affects only the right channel." } }
+        ] }
+      ]
+    },
+    "modfxeq": { "extends": "mixeq" },
+    "delayeq": { "extends": "mixeq" },
+    "reverbeq": { "extends": "mixeq" },
+
+    "mixscope": {
+      "rows": [
+        { "id": "limiterAtkRel", "match": [{ "x": 9, "text": "ATK" }, { "x": 16, "text": "REL" }, { "x": 23, "text": "LIM" }], "cells": [
+          { "x": 13, "width": 2, "key": "attack", "type": "parameter", "format": "hex", "label": "Limiter Attack (ATK)", "description": "Limiter attack time from 0 to 100 ms (see the on-screen help text for the conversion to milliseconds)." },
+          { "x": 20, "width": 2, "key": "release", "type": "parameter", "format": "hex", "label": "Limiter Release (REL)", "description": "Limiter release time from 4 to 1000 ms; 00 activates AUTO mode (100-900 ms depending on the compression amount)." },
+          { "x": 27, "width": 2, "key": "limiter", "type": "parameter", "format": "hex", "label": "Limiter (LIM)", "description": "Limiter amount." }
+        ] },
+        { "id": "zoomPeak", "match": [{ "x": 0, "text": "ZOOM" }], "cells": [
+          { "x": 5, "width": 5, "key": "zoom", "type": "parameter", "format": "text", "label": "Zoom (ZOOM)", "description": "Lower limit of the scope histogram, in decibels." },
+          { "x": 20, "width": 6, "key": "peak", "type": "parameter", "format": "float", "unit": " dB", "label": "Peak (PEAK)", "description": "Current peak level of the main mix in dB. Resets when MIX or LIM change; clear it with [OPT]+[EDIT]." }
+        ] },
+        { "id": "eq", "match": [{ "x": 27, "text": "EQ" }], "cells": [
+          { "x": 27, "width": 2, "key": "mixEq", "type": "action", "format": "text", "label": "Main Mix EQ (EQ)", "description": "Open the main mix EQ editor." }
+        ] },
+        { "id": "softClip", "match": [{ "x": 9, "text": "SOFT CLIP" }], "cells": [
+          { "x": 19, "width": 3, "key": "softClip", "type": "onOff", "format": "text", "label": "Soft Clip (SOFT CLIP)", "description": "Gentle saturation after the limiter to prevent harsh clipping; raise MIX to exaggerate it." },
+          { "x": 27, "width": 2, "key": "mainVol", "type": "parameter", "format": "hex", "label": "Main Volume (MIX)", "description": "Main mix / song volume, applied after the limiter stage." }
+        ] },
+        { "id": "mix", "match": [{ "x": 23, "text": "MIX" }], "cells": [
+          { "x": 27, "width": 2, "key": "mainVol", "type": "parameter", "format": "hex", "label": "Main Volume (MIX)", "description": "Main mix / song volume, applied after the limiter stage." }
+        ] },
+        { "id": "lim", "match": [{ "x": 23, "text": "LIM" }], "cells": [
+          { "x": 27, "width": 2, "key": "limiter", "type": "parameter", "format": "hex", "label": "Limiter (LIM)", "description": "Limiter amount." }
+        ] },
+        { "id": "djf", "match": [{ "x": 23, "text": "DJF" }], "cells": [
+          { "x": 27, "width": 2, "key": "djFilter", "type": "parameter", "format": "hex", "label": "DJ Filter (DJF)", "description": "DJ filter cutoff: 80 is off, 00-80 low-pass, 80-FF high-pass (mode set with TYPE)." }
+        ] },
+        { "id": "ott", "match": [{ "x": 23, "text": "OTT" }], "cells": [
+          { "x": 27, "width": 2, "key": "ott", "type": "parameter", "format": "hex", "label": "OTT (OTT)", "description": "OTT mix amount; from 80 and above the main mix volume is faded out." }
+        ] }
+      ],
+      "zones": [{ "id": "right", "labelX": 23, "labelWidth": 4, "x": 27, "width": 6 }],
+      "vocabulary": {
+        "ATK":   { "type": "parameter", "format": "hex", "label": "Limiter Attack (ATK)", "description": "Limiter attack time from 0 to 100 ms (see the on-screen help text for the conversion)." },
+        "REL":   { "type": "parameter", "format": "hex", "label": "Limiter Release (REL)", "description": "Limiter release time from 4 to 1000 ms; 00 activates AUTO mode (100-900 ms depending on the compression amount)." },
+        "TYPE":  { "type": "option", "format": "hexOption", "label": "DJ Filter Type (TYPE)", "description": "DJ filter type: low-pass/high-pass, low-pass/band-stop or band-stop/high-pass." },
+        "RES":   { "type": "parameter", "format": "hex", "label": "DJ Filter Resonance (RES)", "description": "Resonance of the DJ filter." },
+        "TIME":  { "type": "parameter", "format": "hex", "label": "OTT Time (TIME)", "description": "OTT compressor envelope time as a percentage from 10% to 1000%." },
+        "COLOR": { "type": "parameter", "format": "hex", "label": "OTT Color (COLOR)", "description": "OTT compressor bands and low/high gains: above 80 shifts toward treble, below 80 toward bass." }
+      }
+    },
+    "limiterscope": { "extends": "mixscope" },
+
+    "inst": {
+      "rows": [
+        { "id": "type", "match": [{ "x": 0, "text": "TYPE" }], "cells": [
+          { "x": 8,  "width": 13, "key": "instrumentType", "type": "instrumentType", "format": "text", "label": "Instrument Type (TYPE)", "description": "Kind of instrument in this slot: Wavsynth, Macrosynth, Sampler, FM Synth, Hypersynth, External Instrument, MIDI Out (or NONE for an unused slot). Changing it changes the parameters below." },
+          { "x": 22, "width": 4,  "key": "load", "type": "action", "format": "text", "label": "Load Preset (LOAD)", "description": "Load an instrument preset from the SD card." },
+          { "x": 27, "width": 4,  "key": "save", "type": "action", "format": "text", "label": "Save Preset (SAVE)", "description": "Save this instrument as a preset on the SD card." }
+        ] },
+        { "id": "name", "match": [{ "x": 0, "text": "NAME" }], "cells": [
+          { "x": 8, "width": 12, "key": "name", "type": "name", "format": "text", "label": "Instrument Name (NAME)", "description": "Name of the instrument: helps keep the song organised when browsing, saving or bundling instruments." }
+        ] },
+        { "id": "transp", "match": [{ "x": 0, "text": "TRANSP." }], "cells": [
+          { "x": 8,  "width": 3, "key": "transpose", "type": "onOff", "format": "text", "label": "Transpose Enabled (TRANSP.)", "description": "Enable or disable note transposition from scales, chain transpose columns and the project transpose for this instrument (turn off for percussive or effect instruments)." },
+          { "x": 21, "width": 2, "key": "tableTic", "type": "parameter", "format": "hex", "label": "Table Tick (TBL. TIC)", "description": "Default speed at which this instrument's table advances: 01 is one tick per step, 02 two ticks per step. Can be overridden by the TIC command." },
+          { "x": 29, "width": 2, "key": "eq", "type": "eqSlot", "format": "hex", "label": "EQ Slot (EQ)", "description": "EQ bank assigned to this instrument (-- for none). [EDIT] or [SHIFT]+[RIGHT] opens the EQ editor." }
+        ] }
+      ],
+      "zones": [
+        { "id": "left",  "labelX": 0,  "labelWidth": 8, "x": 8,  "width": 20 },
+        { "id": "right", "labelX": 18, "labelWidth": 4, "x": 22, "width": 11 }
+      ],
+      "vocabularyFrom": "instrumentTypes"
+    },
+
+    "instmods": {
+      "slotLabel": "MOD\\d",
+      "zones": [
+        { "id": "left",  "labelX": 0,  "labelWidth": 4, "x": 5,  "width": 10 },
+        { "id": "right", "labelX": 16, "labelWidth": 4, "x": 21, "width": 10 }
+      ],
+      "vocabulary": {
+        "MOD#": { "type": "option", "format": "hexOption", "label": "Modulator Type", "description": "Type of this modulation slot: AHD envelope, ADSR envelope, DRUM envelope, LFO, TRIG envelope or TRACKING. Slots can modulate their neighbour (Mod 1 affects Mod 2, 2→3, 3→4, 4→1).",
+          "options": { "AHD ENV": "Attack Hold Decay envelope based on tempo.", "ADSR ENV": "Traditional Attack Decay Sustain Release envelope.", "DRUM ENV": "Sharp peak and swelling hold envelope for percussive elements.", "LFO": "Tempo-synced low frequency oscillator.", "TRIG ENV": "AHD envelope triggered by another playing track or instrument.", "TRACKING": "Modulates an instrument parameter from notes or velocities.", "OFF": "Slot unused." } },
+        "DEST": { "type": "option", "format": "hexOption", "label": "Destination (DEST)", "description": "Instrument parameter this modulator controls. MOD AMT, MOD RATE or MOD BOTH modulate the neighbouring modulator's amount, rate or both." },
+        "SRC":  { "type": "parameter", "format": "hexOption", "label": "Source (SRC)", "description": "Modulation source. Trig envelope: an instrument number (00-7F) or a whole track (80-87 = tracks 1-8). Tracking: NOTE, VELOCITY or VELOCITY TAKEOVER (velocity no longer affects instrument volume)." },
+        "AMT":  { "type": "parameter", "format": "hex", "label": "Amount (AMT)", "description": "How strongly the modulator is applied to the destination." },
+        "ATK":  { "type": "parameter", "format": "hex", "label": "Attack (ATK)", "description": "Time to reach the amount (in ticks, relative to tempo)." },
+        "HOLD": { "type": "parameter", "format": "hex", "label": "Hold (HOLD)", "description": "Time to wait after the attack before decaying (in ticks)." },
+        "DEC":  { "type": "parameter", "format": "hex", "label": "Decay (DEC)", "description": "Time to fall back (AHD/Drum: to zero; ADSR: to the sustain level), in ticks." },
+        "SUS":  { "type": "parameter", "format": "hex", "label": "Sustain (SUS)", "description": "Level held while the note is playing (ADSR)." },
+        "REL":  { "type": "parameter", "format": "hex", "label": "Release (REL)", "description": "Time to fall back to zero after the note is released (ADSR); needs an OFF note or FX command." },
+        "PEAK": { "type": "parameter", "format": "hex", "label": "Peak (PEAK)", "description": "Shape of the initial transient (drum envelope); modifies the duck amount and peak time." },
+        "BODY": { "type": "parameter", "format": "hex", "label": "Body (BODY)", "description": "Time to hold the modulation before decaying (drum envelope)." },
+        "OSC":  { "type": "option", "format": "hexOption", "label": "LFO Shape (OSC)", "description": "LFO shape: triangle, sine, ramp down/up, exponential down/up, square down/up, random, drunk. The 'T' variants run in ticks (much faster).",
+          "options": { "TRI": "Triangle.", "SIN": "Sine.", "RAMP DN": "Ramp down.", "RAMP UP": "Ramp up.", "EXP DN": "Exponential down.", "EXP UP": "Exponential up.", "SQU DN": "Square down.", "SQU UP": "Square up.", "RANDOM": "Random values.", "DRUNK": "Random walk." } },
+        "TRIG": { "type": "option", "format": "hexOption", "label": "LFO Trigger (TRIG)", "description": "How the LFO reacts when the instrument triggers and when the shape ends.",
+          "options": { "FREE": "Loop the shape and don't reset on new notes.", "RETRIG": "Loop the shape and reset on each instrument trigger.", "HOLD": "Hold the last value of the shape.", "ONCE": "Play the shape once and reset to the start value." } },
+        "FREQ": { "type": "parameter", "format": "hex", "label": "LFO Frequency (FREQ)", "description": "Rate of the LFO in steps (16th notes), or in ticks for the 'T' shapes." },
+        "LVAL": { "type": "parameter", "format": "hex", "label": "Low Value (LVAL)", "description": "Lowest value of the source range scaled to the destination (tracking). Can be higher than HVAL to invert the range." },
+        "HVAL": { "type": "parameter", "format": "hex", "label": "High Value (HVAL)", "description": "Highest value of the source range scaled to the destination (tracking)." }
+      }
+    },
+
+    "scale": {
+      "notes": "Only the rows below the 12 interval rows; the intervals themselves are grid columns in m8-view-context.json.",
+      "rows": [
+        { "id": "key", "match": [{ "x": 0, "text": "KEY" }], "cells": [
+          { "x": 6, "width": 2, "key": "key", "type": "option", "format": "text", "label": "Key (KEY)", "description": "Global key: the root note of the default scale (can be overridden per track with SCA / SCG)." }
+        ] },
+        { "id": "tune", "match": [{ "x": 0, "text": "TUNE" }], "cells": [
+          { "x": 6, "width": 6, "key": "tune", "type": "parameter", "format": "float", "unit": " Hz", "label": "Tuning (TUNE)", "description": "Reference pitch of A4 in Hz (440.00 is standard)." }
+        ] },
+        { "id": "name", "match": [{ "x": 0, "text": "NAME" }], "cells": [
+          { "x": 6, "width": 16, "key": "name", "type": "name", "format": "text", "label": "Scale Name (NAME)", "description": "Name of this scale (up to 16 characters); 92 factory scales load from /Scales/Factory." }
+        ] },
+        { "id": "file", "match": [{ "x": 6, "text": "LOAD" }, { "x": 11, "text": "SAVE" }], "cells": [
+          { "x": 6, "width": 4, "key": "load", "type": "action", "format": "text", "label": "Load Scale (LOAD)", "description": "Load a scale from the SD card." },
+          { "x": 11, "width": 4, "key": "save", "type": "action", "format": "text", "label": "Save Scale (SAVE)", "description": "Save this scale to the SD card." }
+        ] }
+      ]
+    },
+
+    "loadinstrument": { "kind": "browser", "browserFor": "instrument preset" },
+    "selectsavedirectory": { "kind": "browser", "browserFor": "save location" },
+    "createdirectory": { "kind": "text", "fieldLabel": "Directory Name", "description": "Name of the directory to create on the SD card." }
+  },
+
+  "instrumentTypes": {
+    "common": {
+      "name": "Common",
+      "description": "Parameters shared by most instrument types.",
+      "params": {
+        "FILTER": { "type": "option", "format": "hexOption", "label": "Filter Type (FILTER)", "description": "Multi-mode filter type: low-pass, high-pass, band-pass, band-stop, LP>HP (low-pass with RES controlling a 1-pole high-pass), ZDF low-pass, ZDF high-pass." },
+        "CUTOFF": { "type": "parameter", "format": "hex", "label": "Filter Cutoff (CUTOFF)", "description": "Filter cutoff frequency." },
+        "RES": { "type": "parameter", "format": "hex", "label": "Filter Resonance (RES)", "description": "Filter resonance amount." },
+        "AMP": { "type": "parameter", "format": "hex", "label": "Amplification (AMP)", "description": "Amplifies the signal; values above the maximum level are handled according to LIM." },
+        "LIM": { "type": "option", "format": "hexOption", "label": "Limit Mode (LIM)", "description": "Limit / clipping behaviour of the amplified signal.",
+          "options": { "CLIP": "Values above the maximum level are clipped.", "SIN": "The waveform is fed through a sine function.", "FOLD": "Values above the maximum level are folded back into themselves.", "WRAP": "Values above the maximum level are wrapped vertically.", "POST": "Amplification applied with hard-clipping after the filter stage.", "POST:AD": "Post filter amplification with soft-clipping.", "POST:W1": "Post filter folding distortion.", "POST:W2": "Post filter folding distortion.", "POST:W3": "Post filter folding distortion." } },
+        "PAN": { "type": "parameter", "format": "hex", "label": "Pan (PAN)", "description": "Stereo position of the instrument (80 is centre)." },
+        "DRY": { "type": "parameter", "format": "hex", "label": "Dry Volume (DRY)", "description": "Dry volume sent to the mixer channel." },
+        "MFX": { "type": "parameter", "format": "hex", "label": "ModFX Send (MFX)", "description": "ModFX send effect volume." },
+        "DEL": { "type": "parameter", "format": "hex", "label": "Delay Send (DEL)", "description": "Delay send effect volume." },
+        "REV": { "type": "parameter", "format": "hex", "label": "Reverb Send (REV)", "description": "Reverb send effect volume." }
+      }
+    },
+    "wavsynth": {
+      "name": "Wavsynth",
+      "description": "Wave table synthesizer and noise generator: an 8-bit sample buffer generated in real time from one of 9 basic shapes (repeated, skewed, mirrored, filtered, overdriven) or one of 61 built-in wave tables of 64 waveforms each.",
+      "params": {
+        "SHAPE": { "type": "option", "format": "hexOption", "label": "Shape (SHAPE)", "description": "Base waveform: PULSE 12% to 75%, SAW, TRIANGLE, SINE, NOISE PITCHED, NOISE, or WT wave tables. For PWM set PULSE 50% and adjust MIRROR (smoothness set by SIZE)." },
+        "SIZE": { "type": "parameter", "format": "hex", "label": "Size (SIZE)", "description": "Horizontal size of the waveform (number of samples)." },
+        "MULT": { "type": "parameter", "format": "hex", "label": "Multiply (MULT)", "description": "Multiplies the waveform by adding repeats of the shape; can sound like hard sync." },
+        "WARP": { "type": "parameter", "format": "hex", "label": "Warp (WARP)", "description": "Pushes the shape to one side of the wave table." },
+        "SCAN": { "type": "parameter", "format": "hex", "label": "Scan / Mirror (SCAN)", "description": "Shapes 0-8: mirrors the waveform at the given position (0-200%). Wave tables: scans through the 64 waveforms." },
+        "FILTER": { "type": "option", "format": "hexOption", "label": "Filter Type (FILTER)", "description": "Multi-mode filter type, plus 4 modes that apply the filter into the waveform: WAV LP, WAV HP, WAV BP, WAV BS." }
+      }
+    },
+    "macrosynth": {
+      "name": "Macrosynth",
+      "description": "44 engines ('shapes') from basic analog to 2-op FM, physical modelling and percussion; TIMBRE and COLOR change meaning per shape.",
+      "params": {
+        "SHAPE": { "type": "option", "format": "hexOption", "label": "Shape (SHAPE)", "description": "One of the 44 Macrosynth engines (see the Macrosynth Models appendix)." },
+        "TIMBRE": { "type": "parameter", "format": "hex", "label": "Timbre (TIMBRE)", "description": "First parameter of the selected shape." },
+        "COLOR": { "type": "parameter", "format": "hex", "label": "Color (COLOR)", "description": "Second parameter of the selected shape." },
+        "DEGRADE": { "type": "parameter", "format": "hex", "label": "Degrade (DEGRADE)", "description": "Sample rate reduction effect." },
+        "REDUX": { "type": "parameter", "format": "hex", "label": "Redux (REDUX)", "description": "Bit rate reduction effect." }
+      }
+    },
+    "sampler": {
+      "name": "Sampler",
+      "description": "Sample player, editor and recorder for 1 or 2 channel PCM .wav files.",
+      "params": {
+        "SAMPLE": { "type": "name", "format": "text", "label": "Sample (SAMPLE)", "description": "The loaded sample; use LOAD to browse for one, REC. to record or EDIT to open the Sample Editor." },
+        "SLICE": { "type": "option", "format": "hexOption", "label": "Slice (SLICE)", "description": "Slices the sample into equal sections, mapped from the lowest octave (C-1); 01 FILE uses the markers stored in the file." },
+        "PLAY": { "type": "option", "format": "hexOption", "label": "Play Mode (PLAY)", "description": "Play direction and loop mode.",
+          "options": { "FWD": "Forward, no loop.", "REV": "Reverse, no loop.", "FWDLOOP": "Looping forward.", "REVLOOP": "Looping reverse.", "FWD PP": "Ping-pong looping, forward first.", "REV PP": "Ping-pong looping, reverse first.", "OSC": "Oscillator mode: ignores the start position and doesn't restart on retrigger.", "OSC REV": "Oscillator mode, reverse.", "OSC PP": "Oscillator mode, ping-pong.", "REPITCH": "Pitches the sample from the song tempo (adjust with STEPS/BPM)." } },
+        "START": { "type": "parameter", "format": "hex", "label": "Start (START)", "description": "Sample start position (ignored in OSC play modes)." },
+        "LOOP ST.": { "type": "parameter", "format": "hex", "label": "Loop Start (LOOP ST.)", "description": "Where the sample loops back to when it reaches the end in a looping play mode." },
+        "LEN": { "type": "parameter", "format": "hex", "label": "Length (LEN)", "description": "Sample length." },
+        "DETUNE": { "type": "parameter", "format": "hex", "label": "Detune (DETUNE)", "description": "Detune with 80 as the centre frequency: first digit steps semitones, second digit 1/16 semitone." },
+        "DEGRADE": { "type": "parameter", "format": "hex", "label": "Degrade (DEGRADE)", "description": "Sample rate reduction; any value above 00 disables sample interpolation." }
+      }
+    },
+    "fmsynth": {
+      "name": "FM Synth",
+      "description": "Four-operator, 12-algorithm FM synthesizer. Each operator has a base shape, ratio, level, feedback and two modulation slots.",
+      "params": {
+        "ALGO": { "type": "option", "format": "hexOption", "label": "Algorithm (ALGO)", "description": "One of 12 algorithms (oscillator routing); the last one is additive mode." },
+        "A": { "type": "option", "format": "hexOption", "label": "Operator A (A)", "description": "Operator letter with optional shape (SIN, SW2-SW6, SAW, SQU, PUL, IMP, TRI, NOISE, then wave tables)." },
+        "B": { "type": "option", "format": "hexOption", "label": "Operator B (B)", "description": "Operator letter with optional shape." },
+        "C": { "type": "option", "format": "hexOption", "label": "Operator C (C)", "description": "Operator letter with optional shape." },
+        "D": { "type": "option", "format": "hexOption", "label": "Operator D (D)", "description": "Operator letter with optional shape." },
+        "RATIO": { "type": "parameter", "format": "float", "label": "Ratio (RATIO)", "description": "Operator frequency ratio relative to the played note (2.00 is an octave up, 0.50 an octave down)." },
+        "LEV/FB": { "type": "parameter", "format": "hex", "label": "Level / Feedback (LEV/FB)", "description": "Operator volume and feedback." },
+        "MOD": { "type": "option", "format": "hexOption", "label": "Modulation Slot (MOD)", "description": "Assigns one of MOD1-MOD4 to control a destination on the operator." },
+        "LEV": { "type": "parameter", "format": "hex", "label": "Level Mod (LEV)", "description": "Controls the level from 00 to the currently set level." },
+        "RAT": { "type": "parameter", "format": "hex", "label": "Ratio Mod (RAT)", "description": "Adds 0.00 to +16.00 to the current ratio." },
+        "PIT": { "type": "parameter", "format": "hex", "label": "Pitch Mod (PIT)", "description": "Adds to the note pitch, in semitones, for the operator." },
+        "FBK": { "type": "parameter", "format": "hex", "label": "Feedback Mod (FBK)", "description": "Controls feedback from 00 to the currently set feedback." },
+        "MOD#": { "type": "parameter", "format": "hex", "label": "Modulation Source", "description": "Modulation source value freely assigned to operators through the MOD slots." }
+      }
+    },
+    "hypersynth": {
+      "name": "Hypersynth",
+      "description": "Six-note saw wave chord synthesizer with 16 chord banks of up to 6 intervals, detune (swarm), stereo width and a square sub-oscillator.",
+      "params": {
+        "SCALE": { "type": "option", "format": "hexOption", "label": "Scale (SCALE)", "description": "One of the song's scales, or 00 to use the song/track scale settings." },
+        "CHORD": { "type": "option", "format": "hexOption", "label": "Chord (CHORD)", "description": "Chord bank and its intervals (copy with [SHIFT]+[OPTION], paste with [SHIFT]+[EDIT])." },
+        "SHIFT": { "type": "parameter", "format": "hex", "label": "Shift (SHIFT)", "description": "Cross-fades volume between the first 3 intervals and the second 3." },
+        "SWARM": { "type": "parameter", "format": "hex", "label": "Swarm (SWARM)", "description": "Detunes the oscillators relative to their interval." },
+        "WIDTH": { "type": "parameter", "format": "hex", "label": "Stereo Width (WIDTH)", "description": "Stereo width of the oscillators, from mono 00 to full stereo FF." },
+        "SUBOSC": { "type": "parameter", "format": "hex", "label": "Sub Oscillator (SUBOSC)", "description": "Mixes in a sub-oscillator 2 octaves below the root (below 80) or 1 octave below (above 80)." }
+      }
+    },
+    "external": {
+      "name": "External Instrument",
+      "description": "Hybrid MIDI output and audio input device: notes and MIDI FX are sent to the chosen port and channel, audio returns through its filter and amp stage.",
+      "params": {
+        "INPUT": { "type": "option", "format": "hexOption", "label": "Audio Input (INPUT)", "description": "Audio input: line-in (stereo, left, right), USB (stereo, left, right), or line-in and USB." },
+        "PORT": { "type": "option", "format": "hexOption", "label": "MIDI Port (PORT)", "description": "MIDI output port: MIDI and USB, MIDI only, USB only, or Internal (track MIDI input / global MIDI CCs from the MIDI Settings View)." },
+        "CHANNEL": { "type": "parameter", "format": "hex", "label": "MIDI Channel (CHANNEL)", "description": "MIDI channel, 1 to 16." },
+        "BANK:PG": { "type": "parameter", "format": "hexPair", "parts": ["bank", "program"], "label": "Bank / Program (BANK:PG)", "description": "Optional MIDI bank select and program change (program change can also be sent as an FX command)." },
+        "CC#": { "type": "parameter", "format": "hexPair", "parts": ["CC number", "value"], "label": "Custom CC (CC:VAL)", "description": "A custom MIDI CC number with an optional default value, sent with the note-on after program change messages." }
+      }
+    },
+    "midiout": {
+      "name": "MIDI Out",
+      "description": "Controls external devices over USB MIDI or the TRS (type A) MIDI output.",
+      "params": {
+        "PORT": { "type": "option", "format": "hexOption", "label": "MIDI Port (PORT)", "description": "MIDI output port: MIDI and USB, MIDI only, USB only, or Internal (track MIDI input / global MIDI CCs from the MIDI Settings View)." },
+        "CHANNEL": { "type": "parameter", "format": "hex", "label": "MIDI Channel (CHANNEL)", "description": "MIDI channel, 1 to 16." },
+        "BANK:PG": { "type": "parameter", "format": "hexPair", "parts": ["bank", "program"], "label": "Bank / Program (BANK:PG)", "description": "Optional MIDI bank select and program change (program change can also be sent as an FX command)." },
+        "CC#": { "type": "parameter", "format": "hexPair", "parts": ["CC number", "value"], "label": "Custom CC (CC:VAL)", "description": "One of up to 10 custom MIDI CC numbers per instrument with an optional default value, sent with the note-on after program change messages." }
+      }
+    }
+  },
+
+  "instrumentTypeNames": {
+    "WAVS": "wavsynth",
+    "MACRO": "macrosynth",
+    "SAMPL": "sampler",
+    "FM": "fmsynth",
+    "HYPER": "hypersynth",
+    "EXTERN": "external",
+    "MIDI": "midiout"
+  }
+}

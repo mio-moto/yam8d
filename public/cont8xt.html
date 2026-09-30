@@ -4,6 +4,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>M8 Context</title>
+    <script type="importmap">
+      {
+        "imports": {
+          "post-me": "https://unpkg.com/post-me@0.4.5/dist/index.esnext.mjs"
+        }
+      }
+    </script>
     <link
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Kode+Mono:wght@400;500;600;700&display=swap"
@@ -32,193 +39,195 @@
         --amber-500: #ffbd59;
         --raspberry-500: #e85d8f;
         --bg-0: #141414;
-        --bg-1: #191d1e;
-        --bg-hover: #2e383c;
+        --bg-hover: #232c2f;
         --panel: rgba(20, 20, 20, 0.94);
-        --panel-border: #68858e;
         --text-primary: #d4dadc;
         --text-muted: #97aab0;
-        --border-color: var(--panel-border);
+      }
+
+      [hidden] {
+        display: none !important;
       }
 
       body {
         font-family: "Kode Mono", "Consolas", monospace;
-        background:
-          linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
-          var(--bg-0);
-        background-size: 28px 28px;
+        font-size: 13px;
+        background: var(--bg-0);
         color: var(--text-primary);
-        padding: 18px;
+        padding: 14px;
         min-height: 100svh;
-        display: flex;
-        justify-content: center;
       }
 
-      .layout {
-        width: min(1220px, 100%);
+      /*  layout  */
+      .app {
+        width: min(1280px, 100%);
+        margin: 0 auto;
         display: grid;
-        grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
-        gap: 14px;
+        grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+        gap: 12px;
         align-items: start;
       }
 
-      header {
+      .topbar {
+        grid-column: 1 / -1;
         display: flex;
-        justify-content: space-between;
-        gap: 12px;
-        align-items: flex-start;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
       }
 
       h1 {
         color: var(--teal-500);
-        margin-bottom: 4px;
-        font-size: 22px;
-        letter-spacing: 0;
+        font-size: 18px;
+        letter-spacing: 0.02em;
       }
 
-      .subtitle {
-        color: var(--text-muted);
-        font-size: 22px;
-        margin-bottom: 0;
-      }
-
-      .stack {
-        display: grid;
-        gap: 12px;
-      }
-
-      .status {
+      .conn {
         display: inline-flex;
         align-items: center;
-        gap: 10px;
-        padding: 8px 12px;
-        border-radius: 0;
-        border: 1px solid var(--anthracite-500);
-        border-left: 3px solid var(--ochre-500);
-        background: rgba(20, 20, 20, 0.94);
-        min-width: 220px;
+        gap: 7px;
+        color: var(--text-muted);
+        font-size: 11px;
       }
 
-      .status.connected {
-        border-color: var(--anthracite-500);
-        border-left-color: var(--lime-500);
-      }
-
-      .status-dot {
-        width: 10px;
-        height: 10px;
+      .conn .dot {
+        width: 9px;
+        height: 9px;
         border-radius: 50%;
         background: var(--ochre-500);
-        flex-shrink: 0;
       }
 
-      .status.connected .status-dot {
+      .conn.connected .dot {
         background: var(--lime-500);
       }
 
-      .status-copy {
-        display: grid;
-        gap: 2px;
-      }
-
-      .status-panel {
-        display: grid;
-        gap: 8px;
-        justify-items: end;
-      }
-
-      .status-actions {
-        display: flex;
-        gap: 8px;
-        flex-wrap: wrap;
-        justify-content: flex-end;
-      }
-
-      .status-label {
-        color: var(--text-muted);
-        font-size: 10px;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-      }
-
-      .status-value {
+      .cursor-chip {
+        flex: 1;
+        min-width: 220px;
+        padding: 5px 10px;
+        border: 1px solid var(--anthracite-700);
+        border-left: 3px solid var(--lime-500);
+        background: rgba(0, 213, 133, 0.05);
         color: var(--text-primary);
         font-size: 12px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
-      .command-strip {
-        display: grid;
-        grid-template-columns: auto minmax(0, 1fr);
-        gap: 10px;
+      .project-bar {
+        grid-column: 1 / -1;
+        display: flex;
         align-items: center;
-        padding: 9px 12px;
-        border-radius: 0;
-        background: rgba(20, 20, 20, 0.94);
-        border: 1px solid var(--anthracite-500);
-        border-left: 3px solid var(--amber-500);
-        color: var(--text-muted);
-        font-size: 12px;
+        gap: 8px;
+        flex-wrap: wrap;
       }
 
-      .command-strip strong {
+      .project-bar input {
+        max-width: 340px;
+      }
+
+      .status-line {
+        color: var(--text-muted);
+        font-size: 11px;
+        min-height: 14px;
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .status-line b {
         color: var(--amber-500);
         text-transform: uppercase;
-        font-size: 10px;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.06em;
+        font-weight: 600;
+        margin-right: 6px;
       }
 
-      .command-strip.ok strong {
+      .status-line.ok b {
         color: var(--lime-500);
       }
 
-      .command-strip.error strong {
+      .status-line.error b {
         color: var(--ochre-500);
       }
 
-      .state-grid {
+      .banner {
+        grid-column: 1 / -1;
+        border: 1px solid var(--ochre-500);
+        border-left: 3px solid var(--ochre-500);
+        background: rgba(255, 93, 56, 0.1);
+        padding: 7px 12px;
+        font-size: 12px;
+        color: var(--amber-500);
+      }
+
+      .picker {
+        grid-column: 1 / -1;
+        border: 1px solid var(--amber-500);
+        border-left: 3px solid var(--amber-500);
+        background: rgba(255, 189, 89, 0.06);
+        padding: 8px 12px;
         display: grid;
-        grid-template-columns: 1fr;
+        gap: 6px;
+      }
+
+      .picker-lines {
+        display: grid;
+        gap: 1px;
+        max-height: 220px;
+        overflow: auto;
+      }
+
+      .picker-line {
+        white-space: pre;
+        font-size: 12px;
+        padding: 2px 8px;
+        cursor: pointer;
+        border-left: 2px solid transparent;
+      }
+
+      .picker-line:hover {
+        background: var(--bg-hover);
+        border-left-color: var(--amber-500);
+        color: var(--amber-500);
+      }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--anthracite-500);
+        padding: 12px;
+        display: grid;
         gap: 10px;
+        min-width: 0;
+      }
+
+      .panel-title {
+        color: var(--teal-500);
         font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
       }
 
-      .state-item {
-        background: rgba(20, 20, 20, 0.9);
-        padding: 10px 12px;
-        border-radius: 0;
-        border: 1px solid var(--anthracite-700);
-      }
-
-      .state-item.wide {
-        display: grid;
-        grid-template-columns: 0.5fr 1.5fr;
-        gap: 8px;
-      }
-
-      .state-item .label {
+      .muted {
         color: var(--text-muted);
         font-size: 11px;
-        text-transform: uppercase;
       }
 
-      .state-item .value {
-        color: var(--teal-300);
-        font-family: monospace;
-      }
-
+      /*  controls  */
       button {
         --command-color: var(--teal-500);
         background: #20282b;
         color: var(--text-primary);
         border: 1px solid var(--anthracite-700);
-        border-bottom: 3px solid var(--command-color);
-        padding: 8px 14px 6px;
+        border-bottom: 2px solid var(--command-color);
+        padding: 6px 12px 5px;
         border-radius: 0;
         cursor: pointer;
+        font-family: inherit;
         font-size: 12px;
         font-weight: 600;
-        text-transform: none;
         transition:
           color 0.15s ease,
           border-color 0.18s ease,
@@ -236,12 +245,10 @@
         background: #191d1e;
         color: var(--anthracite-500);
         cursor: not-allowed;
-        border-color: var(--anthracite-700);
       }
 
       button.secondary {
         background: #191d1e;
-        color: var(--text-primary);
         --command-color: var(--anthracite-500);
       }
 
@@ -250,499 +257,1605 @@
         --command-color: var(--raspberry-500);
       }
 
-      .section {
-        background: var(--panel);
-        padding: 13px;
-        border-radius: 0;
-        border: 1px solid var(--panel-border);
-        box-shadow: inset 3px 0 rgba(46, 197, 230, 0.18);
-      }
-
-      .section h3 {
-        font-size: 18px;
-        color: var(--teal-500);
-        margin-bottom: 12px;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-      }
-
-      .inline-actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        align-items: center;
+      button.mini {
+        padding: 2px 7px 1px;
+        font-size: 11px;
+        flex-shrink: 0;
       }
 
       input[type="text"],
-      input[type="number"],
       textarea,
       select {
-        flex: 1;
-        min-width: 110px;
+        width: 100%;
         background: #0d1011;
         border: 1px solid var(--anthracite-700);
         border-left: 3px solid var(--anthracite-500);
         color: var(--text-primary);
-        padding: 9px 10px 9px 12px;
+        padding: 7px 9px;
         border-radius: 0;
-        font-family: "Kode Mono", monospace;
+        font-family: inherit;
         font-size: 12px;
-        min-height: 36px;
       }
 
       textarea {
         color: var(--teal-300);
+        resize: vertical;
+        min-height: 120px;
       }
 
       input:focus,
+      textarea:focus,
       select:focus {
         outline: none;
         border-color: var(--ochre-700);
         border-left-color: var(--ochre-500);
-        color: var(--ochre-500);
         background: #111719;
       }
 
-      .compact-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+      .row {
+        display: flex;
         gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
       }
 
-      @media (max-width: 1080px) {
-        .layout {
+      .row > input[type="text"] {
+        flex: 1;
+        min-width: 140px;
+      }
+
+      .field {
+        display: grid;
+        gap: 4px;
+      }
+
+      .field > label,
+      .label {
+        color: var(--text-muted);
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .check {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+
+      /*  notes tree  */
+      .live {
+        border: 1px solid var(--anthracite-700);
+        border-left: 3px solid var(--lime-500);
+        background: rgba(0, 213, 133, 0.04);
+        padding: 8px 10px;
+        display: grid;
+        gap: 6px;
+      }
+
+      .live-list,
+      .note-tree,
+      .note-tree ul {
+        list-style: none;
+        display: grid;
+        gap: 0;
+      }
+
+      .live-list {
+        gap: 3px;
+      }
+
+      .note-tree {
+        max-height: calc(100svh - 300px);
+        min-height: 260px;
+        overflow: auto;
+        padding-right: 4px;
+      }
+
+      .tree-group-header {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        padding: 4px 8px;
+        cursor: pointer;
+        color: var(--teal-300);
+        font-size: 12px;
+        min-height: 26px;
+      }
+
+      .tree-group-header:hover {
+        background: var(--bg-hover);
+      }
+
+      .tree-caret {
+        color: var(--text-muted);
+        width: 10px;
+        flex-shrink: 0;
+      }
+
+      .badge {
+        margin-left: auto;
+        font-size: 10px;
+        color: var(--text-muted);
+        border: 1px solid var(--anthracite-700);
+        padding: 0 6px;
+        flex-shrink: 0;
+      }
+
+      .tree-children {
+        /* left edge sits under the parent's caret; guides hang from it */
+        margin-left: 13px;
+        padding-left: 16px;
+      }
+
+      .tree-children > li {
+        position: relative;
+        padding-top: 3px;
+      }
+
+      /* horizontal elbow to the node */
+      .tree-children > li::before {
+        content: "";
+        position: absolute;
+        left: -16px;
+        top: 16px;
+        width: 14px;
+        border-top: 1px solid var(--anthracite-500);
+      }
+
+      /* vertical guide; stops at the elbow for the last child (└) */
+      .tree-children > li::after {
+        content: "";
+        position: absolute;
+        left: -16px;
+        top: 0;
+        bottom: 0;
+        border-left: 1px solid var(--anthracite-500);
+      }
+
+      .tree-children > li:last-child::after {
+        bottom: auto;
+        height: 17px;
+      }
+
+      .note-item {
+        display: grid;
+        gap: 3px;
+        padding: 3px 8px 5px;
+        border: 1px solid transparent;
+        border-left: 3px solid transparent;
+        cursor: pointer;
+      }
+
+      .note-item:hover {
+        background: var(--bg-hover);
+      }
+
+      .note-item.selected {
+        border-color: var(--ochre-500);
+        border-left-color: var(--ochre-500);
+      }
+
+      .note-item.match-soft {
+        border-left-color: var(--amber-500);
+      }
+
+      .note-item.match-project {
+        border-left-color: var(--aqua-500);
+      }
+
+      .note-item.match-view {
+        border-left-color: var(--teal-500);
+        background: rgba(46, 197, 230, 0.07);
+      }
+
+      .note-item.match-row {
+        border-left-color: var(--lime-500);
+        background: rgba(0, 213, 133, 0.1);
+      }
+
+      .note-item.match-cell {
+        border-left-color: var(--raspberry-500);
+        background: rgba(232, 93, 143, 0.13);
+      }
+
+      .note-head {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        min-height: 20px;
+      }
+
+      .note-title {
+        flex: 1;
+        min-width: 0;
+        color: var(--text-primary);
+        font-weight: 600;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .note-text {
+        color: var(--teal-300);
+        font-size: 12px;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        display: -webkit-box;
+        -webkit-line-clamp: 4;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+
+      .note-item.selected .note-text {
+        -webkit-line-clamp: unset;
+      }
+
+      .note-meta {
+        color: var(--text-muted);
+        font-size: 10px;
+        overflow-wrap: anywhere;
+      }
+
+      .tag {
+        margin-left: 6px;
+        color: var(--amber-500);
+      }
+
+      .scope-chip {
+        font-size: 9px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        padding: 1px 5px;
+        border: 1px solid currentColor;
+        flex-shrink: 0;
+      }
+
+      .view-chip {
+        font-size: 10px;
+        color: var(--teal-300);
+        background: rgba(46, 197, 230, 0.1);
+        padding: 1px 6px;
+        flex-shrink: 0;
+        white-space: nowrap;
+      }
+
+      .scope-general { color: var(--amber-500); }
+      .scope-project { color: var(--aqua-500); }
+      .scope-view { color: var(--teal-500); }
+      .scope-row { color: var(--lime-500); }
+      .scope-cell { color: var(--raspberry-500); }
+
+      /*  capture  */
+      details.capture {
+        border: 1px solid var(--anthracite-700);
+        padding: 6px 8px;
+      }
+
+      details summary {
+        cursor: pointer;
+        color: var(--text-muted);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .capture-body {
+        display: grid;
+        gap: 6px;
+        margin-top: 8px;
+      }
+
+      .kv {
+        display: grid;
+        grid-template-columns: 90px 1fr;
+        gap: 6px;
+        font-size: 12px;
+      }
+
+      .kv span:first-child {
+        color: var(--text-muted);
+        font-size: 10px;
+        text-transform: uppercase;
+      }
+
+      .kv span:last-child {
+        overflow-wrap: anywhere;
+      }
+
+      .screen {
+        font-family: monospace;
+        font-size: 11px;
+        line-height: 1.3;
+        white-space: pre;
+        background: #111719;
+        border: 1px solid var(--anthracite-700);
+        padding: 8px;
+        max-height: 330px;
+        overflow: auto;
+        color: var(--anthracite-100);
+      }
+
+      /*  debug  */
+      .debug {
+        grid-column: 1 / -1;
+        font-size: 11px;
+      }
+
+      .log {
+        max-height: 160px;
+        overflow: auto;
+        margin-top: 6px;
+        color: var(--text-muted);
+      }
+
+      .log-entry.error {
+        color: var(--ochre-500);
+      }
+
+      @media (max-width: 960px) {
+        .app {
           grid-template-columns: 1fr;
         }
 
-        .state-grid {
-          grid-template-columns: 1fr;
+        .note-tree {
+          max-height: 60svh;
         }
       }
 
-      @media (max-width: 720px) {
+      @media (max-width: 560px) {
         body {
-          padding: 14px;
-        }
-
-        header {
-          flex-direction: column;
-          align-items: stretch;
-        }
-
-        .status {
-          min-width: 0;
-        }
-
-        .status-panel {
-          justify-items: stretch;
-        }
-
-        .status-actions {
-          justify-content: stretch;
-        }
-
-        .status-actions button {
-          flex: 1;
-        }
-
-        .compact-grid {
-          grid-template-columns: 1fr;
+          padding: 10px;
         }
       }
     </style>
   </head>
   <body>
-    <main class="layout">
-      <section class="stack">
-        <header>
-          <div>
-            <h1>Cont8xt</h1>
-            <p class="subtitle">
-              YAM8D companion app for taking notes about a song, an instrument
-              or any view or anything your cursor can point to.
-            </p>
-          </div>
-          <button onclick="location.reload();">Reload</button>
-          <div class="status-panel">
-            <div id="status" class="status">
-              <span class="status-dot" aria-hidden="true"></span>
-              <div class="status-copy">
-                <div class="status-label">Connection</div>
-                <div id="connection-state" class="status-value">Connecting...</div>
-              </div>
-            </div>
-            <div class="status-actions">
-              <button class="secondary" onclick="fetchFreshState()">Fetch State</button>
-              <button class="secondary" onclick="reconnect()">Reconnect</button>
-            </div>
-          </div>
-        </header>
+    <main class="app">
+      <header class="topbar">
+        <h1>Cont8xt</h1>
+        <span id="conn" class="conn">
+          <span class="dot" aria-hidden="true"></span>
+          <span id="connection-state">Connecting...</span>
+        </span>
+        <div id="cursor-summary" class="cursor-chip">no M8 context yet</div>
+        <button class="secondary" data-action="reconnect">Reconnect</button>
+      </header>
 
-        <div id="command-strip" class="command-strip">
-          <strong id="command-label">Ready</strong>
-          <span id="command-status">Waiting for SDK connection.</span>
+      <div class="project-bar">
+        <span class="label">Project</span>
+        <input
+          type="text"
+          id="project-name"
+          placeholder="(not detected yet)"
+        />
+        <button class="secondary" data-action="detect">Detect from M8</button>
+        <div id="status-line" class="status-line">
+          <b id="status-label">Ready</b><span id="status-text">Waiting for the SDK connection.</span>
         </div>
+      </div>
 
-        <div class="section">
-          <h3>Current State</h3>
-          <div class="state-grid" id="state-grid">
-            <div class="state-item wide">
-              <div class="label">View Name</div>
-              <div class="value" id="view-name">-</div>
-              <div class="label">Cell Id</div>
-              <div class="value" id="cell-id">-</div>
-              <div class="label">Text Under Cursor</div>
-              <div class="value" id="text-cursor">-</div>
-              <div class="label">Current Line</div>
-              <div class="value" id="current-line">-</div>
-              <div class="label">Cursor Position</div>
-              <div class="value" id="cursor-pos">-</div>
-              <div class="label">Selection Mode</div>
-              <div class="value" id="selection-mode">-</div>
-              <div class="label">Cursor Rect</div>
-              <div class="value" id="cursor-rect">-</div>
-            </div>
-          </div>
-        </div>
+      <div id="warning-banner" class="banner" hidden></div>
+      <div id="project-picker" class="picker" hidden></div>
 
-        <div class="section">
-          <h3><a onclick="storeView();">About the current view
-              (click this title to store)</a></h3>
-          <h4>Short description</h4>
-          <div class="inline-actions">
-            <textarea type="text" id="view-desc-short" rows="1"
-                placeholder="This view is..."></textarea>
-          </div>
-          <h4>Long description</h4>
-          <div class="inline-actions">
-            <textarea type="text" id="view-desc-long"
-                placeholder="I wanted a powerful but soothing..."></textarea>
-          </div>
-          <h3><a onclick="storeCell();">About the cell you hover over
-              (click this title to store)</a></h3>
-          <h4>Short description</h4>
-          <div class="inline-actions">
-            <textarea type="text" id="cell-desc-short" rows="1"
-                placeholder="This cell is..."></textarea>
-          </div>
-          <h4>Long description</h4>
-          <div class="inline-actions">
-            <textarea type="text" id="cell-desc-long"
-                placeholder="I wanted a powerful but memorable..."></textarea>
-          </div>
-          <p>Click the "About..." titles to store the text.</p>
+      <!-- Notes: the main thing, first on screen -->
+      <section class="panel">
+        <div class="live">
+          <div class="label" id="live-title">At cursor</div>
+          <ul class="live-list" id="live-notes"></ul>
         </div>
-
-        <div class="section" style="display:none;">
-          <h3>Event Log</h3>
-          <div class="log" id="log"></div>
-          <button onclick="clearLog()" style="margin-top: 10px">
-            Clear Log
-          </button>
-          <span id="device-model" hidden>-</span>
+        <div class="row">
+          <input
+            type="text"
+            id="note-search"
+            placeholder="Search notes, tags, captured screens..."
+          />
+          <button data-action="new">+ New</button>
+          <button class="secondary" data-action="export">Export</button>
+          <button class="secondary" data-action="import">Import</button>
+          <input type="file" id="import-file" accept="application/json" hidden />
         </div>
+        <ul class="note-tree" id="note-tree"></ul>
       </section>
+
+      <!-- Editor -->
+      <section class="panel">
+        <div class="panel-title" id="editor-title">New note</div>
+        <div class="muted" id="anchor-preview">-</div>
+        <div class="field">
+          <label for="note-scope">Scope</label>
+          <select id="note-scope">
+            <option value="auto">Auto (from cursor)</option>
+            <option value="general">General (no position)</option>
+            <option value="project">Project</option>
+            <option value="view">View</option>
+            <option value="row">Row</option>
+            <option value="cell">Cell</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="note-title">Title</label>
+          <input type="text" id="note-title" placeholder="Short title (optional)" />
+        </div>
+        <div class="field">
+          <label for="note-body">Note</label>
+          <textarea id="note-body" placeholder="Your comment..."></textarea>
+        </div>
+        <div class="field">
+          <label for="note-tags">Tags (comma separated)</label>
+          <input type="text" id="note-tags" placeholder="fx, mixing, idea..." />
+        </div>
+        <label class="check" id="reanchor-wrap" hidden>
+          <input type="checkbox" id="note-reanchor" />
+          Re-anchor to the current M8 cursor (refreshes the capture)
+        </label>
+        <div class="row">
+          <button data-action="save">Save note</button>
+          <button class="secondary" data-action="clear">Clear</button>
+          <button class="secondary" id="goto-btn" data-action="goto-selected" hidden>
+            &#8982; Go to note
+          </button>
+          <button class="danger" id="delete-note-btn" data-action="delete" hidden>
+            Delete
+          </button>
+        </div>
+        <div class="muted" id="capture-hint">
+          Saving captures everything: cursor, semantic description, and the
+          whole screen.
+        </div>
+        <div id="capture-panel"></div>
+      </section>
+
+      <details class="debug">
+        <summary>Debug — SDK state &amp; event log</summary>
+        <div class="row" style="margin: 8px 0">
+          <button class="secondary" data-action="fetch-state">Fetch state</button>
+          <button class="secondary" data-action="clear-log">Clear log</button>
+        </div>
+        <div class="kv"><span>View</span><span id="view-name">-</span></div>
+        <div class="kv"><span>Cell id</span><span id="cell-id">-</span></div>
+        <div class="kv"><span>Text</span><span id="text-cursor">-</span></div>
+        <div class="kv"><span>Line</span><span id="current-line">-</span></div>
+        <div class="kv"><span>Cursor</span><span id="cursor-pos">-</span></div>
+        <div class="kv"><span>Selection</span><span id="selection-mode">-</span></div>
+        <div class="kv"><span>Device</span><span id="device-model">-</span></div>
+        <div class="log" id="log"></div>
+      </details>
     </main>
 
-    <!-- Load the SDK client -->
     <script type="module">
-      // Import post-me as ES module
+      // Latest @yam8d/m8-sdk bundle, served (and copied into dist/) by the
+      // serve-and-copy-m8-sdk vite plugin. It externalizes post-me, which the
+      // import map in <head> resolves.
       import {
-        ChildHandshake,
-        WindowMessenger,
-      } from "https://unpkg.com/post-me@0.4.5/dist/index.esnext.mjs";
+        createM8Client,
+        formatFieldValue,
+        lookupFxCommand,
+      } from "./m8-sdk/index.js";
 
-      // Make available globally for debugging
-      window.PostMe = { ChildHandshake, WindowMessenger };
+      const $ = (id) => document.getElementById(id);
+      const setText = (id, value) => {
+        const el = $(id);
+        if (el) el.textContent = value;
+      };
+      const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+      const hex2 = (n) => n.toString(16).toUpperCase().padStart(2, "0");
 
+      const LOG_LIMIT = 200;
       const log = (message, type = "info") => {
-        const logEl = document.getElementById("log");
-        const entry = document.createElement("div");
-        entry.className = `log-entry ${type}`;
-        entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-        logEl.appendChild(entry);
-        logEl.scrollTop = logEl.scrollHeight;
+        const logEl = $("log");
+        if (logEl) {
+          const entry = document.createElement("div");
+          entry.className = `log-entry ${type}`;
+          entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+          logEl.appendChild(entry);
+          while (logEl.childElementCount > LOG_LIMIT) logEl.firstChild.remove();
+          logEl.scrollTop = logEl.scrollHeight;
+        }
         console.log(`[Cont8xt] ${message}`);
       };
 
       const setCommandStatus = (label, message, type = "info") => {
-        const strip = document.getElementById("command-strip");
-        document.getElementById("command-label").textContent = label;
-        document.getElementById("command-status").textContent = message;
-        strip.classList.toggle("ok", type === "ok");
-        strip.classList.toggle("error", type === "error");
+        const line = $("status-line");
+        setText("status-label", label);
+        setText("status-text", message);
+        line.classList.toggle("ok", type === "ok");
+        line.classList.toggle("error", type === "error");
       };
 
-      const runCommand = async (label, fn) => {
-        setCommandStatus(label, "Running...");
+      //  SDK client 
+      let m8Client = null;
+
+      async function connectClient() {
+        setCommandStatus("Connect", "Opening SDK handshake...");
         try {
-          const result = await fn();
-          setCommandStatus(label, "Completed.", "ok");
-          return result;
+          m8Client = await createM8Client({ debug: false });
+          window.m8Client = m8Client;
+          log("SDK handshake complete");
+
+          m8Client.onStateChange(updateUI);
+          m8Client.onViewChange((viewName, viewTitle) => {
+            log(`viewChanged: ${viewTitle || viewName}`);
+            updateUI();
+          });
+          m8Client.onCursorMove(updateUI);
+          m8Client.onTextUpdate(updateUI);
+
+          setCommandStatus("Connect", "Connected.", "ok");
+          updateUI();
         } catch (error) {
-          setCommandStatus(label, error.message, "error");
-          throw error;
+          log(`Connection failed: ${error.message}`, "error");
+          $("conn").classList.remove("connected");
+          setText("connection-state", `Connection failed: ${error.message}`);
+          setCommandStatus("Connect", `Retrying in 3s: ${error.message}`, "error");
+          setTimeout(connectClient, 3000);
         }
+      }
+
+      async function reconnect() {
+        m8Client?.disconnect();
+        m8Client = null;
+        window.m8Client = null;
+        updateUI();
+        await connectClient();
+      }
+
+      //  live context (built from SDK state + semantic context) 
+      function getLiveContext() {
+        const state = m8Client?.getState() ?? {};
+        const ctx = m8Client?.getSemanticContext() ?? null;
+        const viewName = ctx?.viewName ?? state.viewName ?? null;
+        const viewId = ctx?.viewId ?? null;
+        const viewKey = viewName ? (viewId ? `${viewName}:${viewId}` : viewName) : null;
+        return {
+          state,
+          ctx,
+          viewName,
+          viewId,
+          viewKey,
+          viewTitle: state.viewTitle ?? ctx?.viewTitle ?? null,
+          cursorPos: state.cursorPos ? { x: state.cursorPos.x, y: state.cursorPos.y } : null,
+          // Real row number parsed from the screen line (e.g. song row 0x2A). On
+          // scrolling views the cursor y only says where on screen we are.
+          rowIndex: ctx?.row?.rowIndex ?? null,
+          fieldKey: ctx?.activeField?.key ?? null,
+          fieldLabel: ctx?.activeField?.label ?? null,
+          fieldType: ctx?.activeField?.type ?? null,
+          cellLabel: ctx?.activeField ? formatFieldValue(ctx.activeField) : null,
+          textUnderCursor: state.textUnderCursor ?? null,
+          currentLine: state.currentLine ?? null,
+          projectName: settings.projectName || "",
+        };
+      }
+
+      // "Phrase 02", "Chain F2", "Song": view name + item number. The raw screen
+      // title (" PHRASE 02*") already ends with the id and the unsaved marker, so
+      // strip both and re-append the parsed id once.
+      const titleCase = (s) => s.toLowerCase().replace(/\b[a-z]/g, (ch) => ch.toUpperCase());
+      function viewDisplayName(v) {
+        const raw = (v.viewTitle ?? "").replace(/[{}]/g, "0").trim().replace(/\*$/, "").trim();
+        const base = raw
+          ? raw.replace(/\s+[0-9A-F]{1,2}$/i, "")
+          : (v.viewName ?? "");
+        const name = titleCase(base) || "?";
+        return v.viewId ? `${name} ${v.viewId}` : name;
+      }
+      const viewLabel = viewDisplayName;
+
+      // "Phrase 02 row 07 · Note (N): Note C-4": view and row in our words, then the
+      // SDK description without its own location part ("Phrase View row 07").
+      function describeLiveContext() {
+        const c = getLiveContext();
+        if (!c.viewName) return "no M8 context yet";
+        const row = c.rowIndex != null ? ` row ${c.rowIndex.toString(16).toUpperCase().padStart(2, "0")}` : "";
+        const parts = (m8Client?.describeContextParts() ?? []).filter((p) => p.kind !== "location");
+        let text = `${viewLabel(c)}${row}`;
+        if (parts.length) text += ` · ${parts.map((p) => p.text).join(" — ")}`;
+        if (!c.ctx?.isGridView && c.textUnderCursor) text += ` · “${c.textUnderCursor}”`;
+        if (c.projectName) text += ` · ${c.projectName}`;
+        return text;
+      }
+
+      function updateUI() {
+        const state = m8Client?.getState() ?? {};
+        const connected = !!m8Client?.isConnected;
+        $("conn").classList.toggle("connected", connected);
+        setText(
+          "connection-state",
+          connected ? `${state.deviceModel || "M8"} connected` : "Connecting...",
+        );
+        setText("cursor-summary", state.viewTitle);
+
+        const ctx = m8Client?.getSemanticContext() ?? null;
+        const c = getLiveContext();
+        setText("view-name", state.viewTitle || state.viewName || "-");
+        setText(
+          "cell-id",
+          ctx ? `${c.viewKey}:row${c.rowIndex ?? "-"}:${c.fieldKey ?? "-"}` : "-",
+        );
+        setText("text-cursor", state.textUnderCursor || "-");
+        setText("current-line", state.currentLine || "-");
+        setText(
+          "cursor-pos",
+          state.cursorPos ? `(${state.cursorPos.x}, ${state.cursorPos.y})` : "-",
+        );
+        setText("selection-mode", state.selectionMode ? "On" : "Off");
+        setText("device-model", state.deviceModel || "-");
+        scheduleContextRefresh();
+      }
+
+      function showWarning(message) {
+        const el = $("warning-banner");
+        el.hidden = !message;
+        el.textContent = message ?? "";
+      }
+
+      // ════════════════════════════════════════════════════════════════════
+      //  Cont8xt notes — hierarchical contextual comments (localStorage).
+      //  Scopes: general → project → view → row → cell.
+      //  Saving a note captures everything the SDK knows: cursor, semantic
+      //  description, and the whole screen.
+      // ════════════════════════════════════════════════════════════════════
+      const NOTES_KEY = "cont8xt.notes.v1";
+      const SETTINGS_KEY = "cont8xt.settings.v1";
+      const SCOPE_ORDER = ["general", "project", "view", "row", "cell"];
+      const VIEW_ORDER = [
+        "project", "song", "chain", "phrase", "table", "groove", "instrument",
+        "instmods", "mixer", "mixeq", "effectsettings",
+      ];
+      const MATCH_RANK = { cell: 4, row: 3, view: 2, project: 1, soft: 0 };
+
+      let notes = [];
+      let settings = { projectName: "" };
+      let editingNoteId = null;
+      let selectedNoteId = null;
+      const collapsedGroups = new Set();
+      let refreshTimer = null;
+      let lastContextSig = "";
+      let navBusy = false;
+
+      //  persistence 
+      function loadNotes() {
+        try {
+          const list = JSON.parse(localStorage.getItem(NOTES_KEY) ?? "[]");
+          return Array.isArray(list) ? list : [];
+        } catch (error) {
+          log(`Notes load failed: ${error.message}`, "error");
+          return [];
+        }
+      }
+
+      function persistNotes() {
+        try {
+          localStorage.setItem(NOTES_KEY, JSON.stringify(notes));
+        } catch (error) {
+          log(`Notes save failed: ${error.message}`, "error");
+        }
+      }
+
+      function loadSettings() {
+        try {
+          return { projectName: "", ...JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? "{}") };
+        } catch {
+          return { projectName: "" };
+        }
+      }
+
+      function persistSettings() {
+        try {
+          localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+        } catch (error) {
+          log(`Settings save failed: ${error.message}`, "error");
+        }
+      }
+
+      const makeId = () =>
+        `n_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
+
+      const escapeHtml = (value) =>
+        String(value ?? "").replace(
+          /[&<>"']/g,
+          (ch) =>
+            ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch],
+        );
+
+      //  scope & context building 
+      // Deepest sensible scope for the current cursor position.
+      function suggestScope(c) {
+        if (c.fieldKey && c.rowIndex != null) return "cell";
+        if (c.rowIndex != null) return "row";
+        // Parameter views (instrument, mixer, ...) have no rows: the cursor cell
+        // itself is the finest anchor.
+        if (c.viewKey && c.ctx && !c.ctx.isGridView && c.textUnderCursor) return "cell";
+        if (c.viewKey) return "view";
+        if (c.projectName) return "project";
+        return "general";
+      }
+
+      // What a note stores about "where it is". `snap` is the SDK snapshot.
+      function buildContext(c, snap, projectName) {
+        return {
+          viewKey: c.viewKey,
+          viewName: c.viewName,
+          viewTitle: c.viewTitle,
+          viewId: c.viewId,
+          cursorPos: c.cursorPos,
+          rowIndex: c.rowIndex,
+          fieldKey: c.fieldKey,
+          fieldLabel: c.fieldLabel,
+          fieldType: c.fieldType,
+          cellLabel: c.cellLabel,
+          textUnderCursor: c.textUnderCursor,
+          currentLine: c.currentLine,
+          // Semantic description provided by the SDK.
+          description: snap?.description ?? null,
+          viewDescription: snap?.semantic?.viewDescription ?? null,
+          projectName,
+        };
+      }
+
+      const captureScreenText = (note) => {
+        const cap = note.capture;
+        if (!cap) return "";
+        if (cap.screen?.lines) return cap.screen.lines.join("\n").trimEnd();
+        return cap.text ?? ""; // notes saved by the previous version
       };
 
-      // Hack the Minimal SDK Client implementation for testing
-      class M8TestClient {
-        constructor() {
-          this.state = {
-            viewName: null,
-            viewTitle: null,
-            cellId: null,
-            cursorPos: null,
-            cursorRect: null,
-            selectionMode: false,
-            textUnderCursor: null,
-            currentLine: null,
-            deviceModel: null,
-            macroRunning: false,
-          };
-          this.isConnected = false;
-          this.remoteHandle = null;
-          this.localHandle = null;
-          this.connection = null;
+      //  waiting on the M8 (state updates are asynchronous) 
+      async function readLive() {
+        await m8Client.fetchState();
+        return getLiveContext();
+      }
+
+      async function waitForLive(pred, { timeout = 1500, interval = 60 } = {}) {
+        const t0 = Date.now();
+        let c = await readLive();
+        while (!pred(c) && Date.now() - t0 < timeout) {
+          await sleep(interval);
+          c = await readLive();
         }
+        return c;
+      }
 
-        async connect() {
-          try {
-            this.disconnect();
-            setCommandStatus("Connect", "Opening SDK handshake...");
-            log("Attempting to connect to parent...");
+      const positionSig = (c) =>
+        `${c.viewKey}|${c.rowIndex}|${c.cursorPos?.x},${c.cursorPos?.y}|${c.currentLine}`;
 
-            // Check if post-me is available
-            if (typeof PostMe === "undefined") {
-              throw new Error("PostMe library not loaded");
-            }
+      // Returns once the row / cursor stopped moving (keys are applied lazily).
+      async function settledLive(timeout = 700) {
+        let prev = await readLive();
+        const t0 = Date.now();
+        while (Date.now() - t0 < timeout) {
+          await sleep(70);
+          const cur = await readLive();
+          if (positionSig(cur) === positionSig(prev)) return cur;
+          prev = cur;
+        }
+        return prev;
+      }
 
-            const { ChildHandshake, WindowMessenger } = PostMe;
+      // Returns once the screen text stopped changing (and `pred` holds).
+      async function waitScreenSettled(pred = () => true, timeout = 2000) {
+        let prev = await m8Client.getScreen();
+        const t0 = Date.now();
+        while (Date.now() - t0 < timeout) {
+          await sleep(90);
+          const cur = await m8Client.getScreen();
+          const same = cur.lines.join("\n") === prev.lines.join("\n");
+          if (same && cur.lines.some((l) => l.trim()) && pred(cur.lines)) return cur;
+          prev = cur;
+        }
+        return prev;
+      }
 
-            if (!ChildHandshake || !WindowMessenger) {
-              throw new Error("PostMe exports not available");
-            }
-
-            log("Creating WindowMessenger...");
-            const messenger = new WindowMessenger({
-              localWindow: window,
-              remoteWindow: window.parent,
-              remoteOrigin: "*",
-            });
-
-            log("Starting ChildHandshake...");
-            const connection = await ChildHandshake(messenger, {
-              ping: async () => "pong",
-            });
-
-            log("Handshake complete!");
-
-            this.connection = connection;
-            this.remoteHandle = connection.remoteHandle();
-            this.localHandle = connection.localHandle();
-            this.isConnected = true;
-
-            // Setup event listeners
-            log("Setting up event listeners...");
-
-            this.remoteHandle.addEventListener("stateChanged", (state) => {
-              log(`Event: stateChanged received`);
-              this.state = { ...this.state, ...state };
-              updateUI();
-            });
-
-            this.remoteHandle.addEventListener(
-              "viewChanged",
-              ({ viewName, viewTitle }) => {
-                log(`Event: viewChanged - ${viewTitle || viewName}`);
-                this.state.viewName = viewName;
-                this.state.viewTitle = viewTitle;
-                updateUI();
-              },
-            );
-
-            this.remoteHandle.addEventListener(
-              "cursorMoved",
-              ({ pos, rect, selectionMode }) => {
-                log(
-                  `Event: cursorMoved - (${pos?.x}, ${pos?.y}) - Rect ${rect?.x}, ${rect?.y}, ${rect?.w}x${rect?.h} sel=${selectionMode}`,
-                );
-                this.state.cellId = _maybe_this_is_where_your_magic_fn_goes_;
-                this.state.cursorPos = pos;
-                this.state.cursorRect = rect;
-                this.state.selectionMode = selectionMode;
-                updateUI();
-              },
-            );
-
-            this.remoteHandle.addEventListener(
-              "textUpdated",
-              ({ textUnderCursor, currentLine }) => {
-                log(`Event: textUpdated - "${textUnderCursor}"`);
-                this.state.textUnderCursor = textUnderCursor;
-                this.state.currentLine = currentLine;
-                updateUI();
-              },
-            );
-
-            // Listen for key press events
-            this.remoteHandle.addEventListener("keyPressed", ({ keys }) => {
-              log(
-                `Event: keyPressed - keys: ${keys} (0x${keys.toString(16).toUpperCase().padStart(2, "0")})`,
-              );
-            });
-
-            // Fetch initial state
-            log("Fetching initial state...");
-            const initialState = await this.remoteHandle.call("getState");
-            log(
-              `Initial state received: ${JSON.stringify(initialState).slice(0, 200)}`,
-            );
-            this.state = { ...this.state, ...initialState };
-            updateUI();
-
-            document.getElementById("status").classList.add("connected");
-            document.getElementById("connection-state").textContent =
-              `${this.state.deviceModel || "Unknown device"} connected`;
-            setCommandStatus("Connect", "SDK handshake complete.", "ok");
-            log("Connected to M8 host successfully!");
-
-            // Emit ready
-            this.localHandle.emit("ready", undefined);
-          } catch (error) {
-            this.isConnected = false;
-            log(`Connection failed: ${error.message}`, "error");
-            console.error("Connection error:", error);
-            document.getElementById("status").classList.remove("connected");
-            document.getElementById("connection-state").textContent =
-              `Connection failed: ${error.message}`;
-            setCommandStatus(
-              "Connect",
-              `Retrying in 3 seconds: ${error.message}`,
-              "error",
-            );
-            setTimeout(() => this.connect(), 3000);
+      //  navigation: note → M8 
+      // Scrolling grids (song view) keep the cursor at the top/bottom of the
+      // screen while the rows move, so the screen y says nothing about the row.
+      // We therefore walk up/down until the row number parsed from the screen
+      // matches, then fix the column.
+      async function alignRow(target, label) {
+        let cur = await settledLive();
+        let stuck = 0;
+        for (let i = 0; i < 300 && cur.rowIndex != null && cur.rowIndex !== target; i++) {
+          const diff = target - cur.rowIndex;
+          const key = diff > 0 ? "down" : "up";
+          const presses = Math.min(Math.abs(diff), 8); // never overshoot
+          setCommandStatus(
+            label,
+            `Scrolling to row 0x${hex2(target)} (now 0x${hex2(cur.rowIndex)})...`,
+          );
+          for (let p = 0; p < presses; p++) await m8Client.sendKeyPress([key]);
+          const before = cur.rowIndex;
+          cur = await settledLive();
+          if (cur.rowIndex === before) {
+            if (++stuck >= 3) break;
+          } else {
+            stuck = 0;
           }
         }
+        return cur.rowIndex === target;
+      }
 
-        async fetchState() {
-          if (!this.isConnected) throw new Error("Not connected");
-          log("Calling getState");
-          const state = await this.remoteHandle.call("getState");
-          this.state = { ...this.state, ...state };
-          updateUI();
-          return state;
+      async function gotoContext(ctx, label = "Go to note") {
+        if (!m8Client) {
+          setCommandStatus(label, "Not connected to the M8.", "error");
+          return false;
         }
+        if (navBusy) {
+          setCommandStatus(label, "Another navigation is still running.", "error");
+          return false;
+        }
+        navBusy = true;
+        try {
+          let cur = await readLive();
 
-        disconnect() {
-          this.connection?.close();
-          this.connection = null;
-          this.remoteHandle = null;
-          this.localHandle = null;
-          this.isConnected = false;
-          document.getElementById("status")?.classList.remove("connected");
+          // 1. view
+          if (ctx.viewName && cur.viewName !== ctx.viewName) {
+            setCommandStatus(label, `Opening ${viewDisplayName(ctx)}...`);
+            await m8Client.navigateToView(ctx.viewName);
+            cur = await waitForLive(
+              (c) => c.viewName === ctx.viewName && c.cursorPos && c.currentLine != null,
+              { timeout: 2500 },
+            );
+            cur = await settledLive();
+          }
+
+          // 2. row (real row number, not the screen line)
+          if (ctx.rowIndex != null && cur.rowIndex != null && cur.rowIndex !== ctx.rowIndex) {
+            await alignRow(ctx.rowIndex, label);
+            cur = await settledLive();
+          }
+
+          // 3. column (and y for views without a row number)
+          if (ctx.cursorPos && cur.cursorPos) {
+            const rowAligned = ctx.rowIndex != null && cur.rowIndex === ctx.rowIndex;
+            const y = rowAligned ? cur.cursorPos.y : ctx.cursorPos.y;
+            if (cur.cursorPos.x !== ctx.cursorPos.x || cur.cursorPos.y !== y) {
+              setCommandStatus(label, "Moving the cursor...");
+              await m8Client.navigateTo(ctx.cursorPos.x, y);
+              cur = await settledLive();
+            }
+          }
+
+          // 4. verify
+          const fmtRow = (r) => `0x${hex2(r)}`;
+          if (ctx.viewId && cur.viewId && cur.viewId !== ctx.viewId) {
+            showWarning(
+              `Note is on ${viewDisplayName(ctx)} but the M8 shows ` +
+                `${viewDisplayName(cur)} — select the right item on the M8. ` +
+                `The cursor was placed at the note's position.`,
+            );
+            setCommandStatus(label, "Arrived in the right view, but another item.", "error");
+            return false;
+          }
+          if (ctx.rowIndex != null && cur.rowIndex !== ctx.rowIndex) {
+            showWarning(
+              `Could not reach row ${fmtRow(ctx.rowIndex)}` +
+                (cur.rowIndex != null ? ` — the cursor is on ${fmtRow(cur.rowIndex)}.` : "."),
+            );
+            setCommandStatus(label, "Row not reached.", "error");
+            return false;
+          }
+          showWarning(null);
+          setCommandStatus(label, `Arrived: ${describeLiveContext()}`, "ok");
+          return true;
+        } catch (error) {
+          setCommandStatus(label, `Navigation failed: ${error.message}`, "error");
+          return false;
+        } finally {
+          navBusy = false;
         }
       }
 
-      // Global client instance
-      window.m8Client = new M8TestClient();
-
-      const formatViewLabel = (viewName) =>
-        viewName
-          .replace(/([a-z])([A-Z])/g, "$1 $2")
-          .replace(/([a-z])([0-9])/g, "$1 $2")
-          .replace(/^./, (char) => char.toUpperCase());
-
-      // UI Update function
-      function updateUI() {
-        const state = window.m8Client.state;
-        const viewDisplay = state.viewTitle || state.viewName || "-";
-        const cellId = state.cellId || "-";
-        const cursorPos = state.cursorPos
-          ? `(${state.cursorPos.x}, ${state.cursorPos.y})`
-          : "-";
-        const selection = state.selectionMode ? "On" : "Off";
-        const cursorRectSummary = state.cursorRect
-          ? `${state.cursorRect.x}, ${state.cursorRect.y}, ${state.cursorRect.w}x${state.cursorRect.h}`
-          : "-";
-        document.getElementById("view-name").textContent = viewDisplay;
-        document.getElementById("cell-id").textContent = cellId;
-        document.getElementById("cursor-pos").textContent = cursorPos;
-        document.getElementById("text-cursor").textContent =
-          state.textUnderCursor || "-";
-        document.getElementById("current-line").textContent =
-          state.currentLine || "-";
-        document.getElementById("selection-mode").textContent =
-          selection;
-        document.getElementById("device-model").textContent =
-          state.deviceModel || "-";
-        document.getElementById("cursor-rect").textContent = cursorRectSummary;
-        document.getElementById("connection-state").textContent =
-          window.m8Client.isConnected
-            ? `${state.deviceModel || "Unknown device"} connected`
-            : "Connecting...";
-
+      async function gotoNoteById(id) {
+        const note = notes.find((n) => n.id === id);
+        if (!note) return;
+        if (!note.context) {
+          if (note.scope === "project" && m8Client) {
+            await gotoContext({ viewName: "project" });
+          } else {
+            setCommandStatus("Go to note", "This note has no position on the M8.", "error");
+          }
+          return;
+        }
+        await gotoContext(note.context);
       }
 
-      // Expose functions to global scope for button onclick handlers
-      window.fetchFreshState = async () => {
-        try {
-          await runCommand("Fetch State", () => window.m8Client.fetchState());
-          log("Fresh state fetched");
-        } catch (error) {
-          log(`Fetch state failed: ${error.message}`, "error");
+      //  project name detection 
+      // Reads the whole Project screen through the SDK (no cursor scanning),
+      // looks for a NAME/TITLE line and otherwise lets the user click the line.
+      // The value ends at the first run of 2+ spaces: on the real Project screen the
+      // line continues with the track minimap ("name   rareorangeee        7 ---").
+      const NAME_LINE = /^\s*(?:PROJECT\s+|SONG\s+)?(?:NAME|TITLE)\b\s*[:=]?\s*(\S+(?: \S+)*)/i;
+      const LABEL_PREFIX = /^\s*(?:PROJECT|SONG|NAME|TITLE)\b\s*[:=]?\s+(\S+(?: \S+)*)/i;
+
+      function extractProjectName(lines) {
+        for (const line of lines) {
+          const m = line.match(NAME_LINE);
+          if (m && !/^[-.\s]*$/.test(m[1])) return m[1];
         }
-      };
-
-      window.clearLog = () => {
-        document.getElementById("log").innerHTML = "";
-      };
-
-      window.reconnect = async () => {
-        window.m8Client.disconnect();
-        updateUI();
-        await window.m8Client.connect();
-      };
-
-      window.store = async (key, value) => {
-        log(`Storing info...`);
-        // do the right thing
+        return "";
       }
 
-      window.storeView = async () => {
-        cleanTitles();
-        try {
-          store(_view_ID_+"short", document.getElementById(view-desc-short).value);
-          store(_view_ID_+"long", document.getElementById(view-desc-long).value);
-        } catch (error) {
-          log(`Store view info failed: ${error.message}`, "error");
+      function setProjectName(name) {
+        settings.projectName = name;
+        persistSettings();
+        $("project-name").value = name;
+        hideProjectPicker();
+        renderAll();
+        log(`Project name: "${name}"`);
+      }
+
+      function showProjectPicker(lines) {
+        const el = $("project-picker");
+        const rows = lines
+          .map((line, i) => ({ line, i }))
+          .filter(({ line }) => line.trim());
+        el.innerHTML = `
+          <div class="label">No NAME field found on the Project screen — click the line that holds your project name (or type it above)</div>
+          <div class="picker-lines">${rows
+            .map(
+              ({ line, i }) =>
+                `<div class="picker-line" data-action="pick-line" data-line="${i}">${escapeHtml(line)}</div>`,
+            )
+            .join("")}</div>
+          <div><button class="secondary mini" data-action="hide-picker">Cancel</button></div>`;
+        el._lines = lines;
+        el.hidden = false;
+      }
+
+      function hideProjectPicker() {
+        const el = $("project-picker");
+        el.hidden = true;
+        el.innerHTML = "";
+      }
+
+      function pickProjectLine(index) {
+        const line = $("project-picker")._lines?.[Number(index)] ?? "";
+        const m = line.match(LABEL_PREFIX);
+        setProjectName((m ? m[1] : line.trim().split(/\s{2,}/)[0]).trim());
+      }
+
+      async function detectProjectName() {
+        if (!m8Client) {
+          setCommandStatus("Project", "Not connected to the M8.", "error");
+          return "";
         }
+        hideProjectPicker();
+        let name = "";
+        let finalStatus = null;
+        const start = await readLive();
+        const startCtx = buildContext(start, null, null);
+        const alreadyThere = start.viewName === "project";
+        try {
+          if (!alreadyThere) {
+            setCommandStatus("Project", "Opening the Project view...");
+            await m8Client.navigateToView("project");
+            const c = await waitForLive((x) => x.viewName === "project", { timeout: 3000 });
+            if (c.viewName !== "project") throw new Error("could not reach the Project view");
+          }
+          const screen = await waitScreenSettled((lines) =>
+            lines.some((l) => /PROJECT/i.test(l)),
+          );
+          name = extractProjectName(screen.lines);
+          if (name) {
+            setProjectName(name);
+            finalStatus = ["Project", `Project name: "${name}"`, "ok"];
+          } else {
+            showProjectPicker(screen.lines);
+            finalStatus = ["Project", "No NAME field found — pick the name line in the panel above.", "error"];
+          }
+        } catch (error) {
+          finalStatus = ["Project", `Detection failed: ${error.message}`, "error"];
+        } finally {
+          // Put the user back where they were.
+          if (!alreadyThere && startCtx.viewName) {
+            await gotoContext(startCtx, "Project");
+          }
+          if (finalStatus) setCommandStatus(...finalStatus);
+        }
+        return name;
+      }
+
+      //  matching: M8 state → relevant notes 
+      // General notes are not tied to a position; they softly light up when
+      // their tags match what the cursor is on (e.g. "fx" over an FX field).
+      function topicMatches(note, c) {
+        const hay = [note.title, note.body, (note.tags ?? []).join(" ")]
+          .join(" ")
+          .toLowerCase();
+        const fieldType = c.fieldType;
+        if (/\b(fx|effect|effects)\b/.test(hay)) {
+          if (fieldType === "fxCommand" || fieldType === "fxValue") return true;
+          if (c.viewName === "effectsettings" || (c.viewName ?? "").includes("eq")) return true;
+        }
+        if (/\b(note|notes|melody|scale|scales)\b/.test(hay)) {
+          if (fieldType === "note" || c.viewName === "scale") return true;
+        }
+        if (/\b(mix|mixer|mixing|eq|gain)\b/.test(hay)) {
+          if (c.viewName === "mixer" || (c.viewName ?? "").includes("eq")) return true;
+        }
+        if (/\b(midi|mod|mods|macro|macrosynth)\b/.test(hay)) {
+          if (c.viewName === "instmods" || fieldType === "instrumentRef") return true;
+        }
+        return false;
+      }
+
+      function matchLevel(note, c) {
+        const ctx = note.context;
+        switch (note.scope) {
+          case "general":
+            return topicMatches(note, c) ? "soft" : null;
+          case "project":
+            return note.projectName && c.projectName && note.projectName === c.projectName
+              ? "project"
+              : null;
+          case "view":
+            return ctx?.viewKey && ctx.viewKey === c.viewKey ? "view" : null;
+          case "row":
+            return ctx?.viewKey === c.viewKey && ctx.rowIndex != null && ctx.rowIndex === c.rowIndex
+              ? "row"
+              : null;
+          case "cell": {
+            if (!ctx || ctx.viewKey !== c.viewKey) return null;
+            if (ctx.rowIndex != null || c.rowIndex != null) {
+              // Grid view: the screen y is meaningless (scrolling), use row + field.
+              return ctx.rowIndex === c.rowIndex && ctx.fieldKey === c.fieldKey ? "cell" : null;
+            }
+            // Parameter view: exact cursor position.
+            return ctx.cursorPos &&
+              c.cursorPos &&
+              ctx.cursorPos.x === c.cursorPos.x &&
+              ctx.cursorPos.y === c.cursorPos.y
+              ? "cell"
+              : null;
+          }
+          default:
+            return null;
+        }
+      }
+
+      //  rendering 
+      function noteAnchorText(note, { withView = true } = {}) {
+        const ctx = note.context;
+        const bits = [];
+        if (note.scope === "general") bits.push("general");
+        else if (note.scope === "project" && !ctx) bits.push(`project ${note.projectName ?? "?"}`);
+        if (ctx?.viewName && withView) bits.push(viewDisplayName(ctx));
+        if (ctx?.description) {
+          bits.push(ctx.description);
+        } else if (ctx) {
+          if (ctx.rowIndex != null) bits.push(`row 0x${hex2(ctx.rowIndex)}`);
+          if (ctx.fieldLabel) bits.push(ctx.fieldLabel);
+        }
+        if (note.capture) bits.push("▣");
+        return bits.join(" · ");
+      }
+
+      function noteHtml(note, c) {
+        const level = matchLevel(note, c);
+        const classes = ["note-item"];
+        if (level) classes.push(`match-${level}`);
+        if (note.id === selectedNoteId) classes.push("selected");
+
+        // Without a title, the first line of the note acts as the title.
+        const body = (note.body ?? "").trim();
+        let head = note.title;
+        let rest = body;
+        if (!head) {
+          const [first, ...others] = body.split("\n");
+          head = first || "(untitled)";
+          rest = others.join("\n").trim();
+        }
+        const tags = (note.tags ?? [])
+          .map((t) => `<span class="tag">#${escapeHtml(t)}</span>`)
+          .join("");
+        const goto =
+          note.context || note.scope === "project"
+            ? `<button class="mini" data-action="goto" data-id="${escapeHtml(note.id)}" title="Go to note position on the M8">&#8982;</button>`
+            : "";
+        return `<li class="${classes.join(" ")}" data-action="select" data-id="${escapeHtml(note.id)}">
+          <div class="note-head">
+            <span class="scope-chip scope-${escapeHtml(note.scope)}">${escapeHtml(note.scope)}</span>
+            ${note.context?.viewName ? `<span class="view-chip">${escapeHtml(viewDisplayName(note.context))}</span>` : ""}
+            <span class="note-title">${escapeHtml(head)}</span>
+            ${goto}
+          </div>
+          ${rest ? `<div class="note-text">${escapeHtml(rest)}</div>` : ""}
+          <div class="note-meta">${escapeHtml(noteAnchorText(note, { withView: false }))}${tags}</div>
+        </li>`;
+      }
+
+      const byScopeThenTime = (a, b) =>
+        SCOPE_ORDER.indexOf(a.scope) - SCOPE_ORDER.indexOf(b.scope) ||
+        (b.updatedAt ?? 0) - (a.updatedAt ?? 0);
+
+      const viewRank = (viewName) => {
+        const i = VIEW_ORDER.indexOf(viewName);
+        return i === -1 ? VIEW_ORDER.length : i;
       };
 
-      window.storeCell = async () => {
-        cleanTitles();
-        try {
-          store(_some_ID_+"short", document.getElementById(cell-desc-short).value);
-          store(_some_ID_+"long", document.getElementById(cell-desc-long).value);
-        } catch (error) {
-          log(`Store cell info failed: ${error.message}`, "error");
+      function groupHtml(key, label, count, itemsHtml) {
+        const collapsed = collapsedGroups.has(key);
+        return `<li>
+          <div class="tree-group-header" data-action="toggle" data-key="${escapeHtml(key)}">
+            <span class="tree-caret">${collapsed ? "▸" : "▾"}</span>
+            <span>${escapeHtml(label)}</span>
+            <span class="badge">${count}</span>
+          </div>
+          ${collapsed ? "" : `<ul class="tree-children">${itemsHtml}</ul>`}
+        </li>`;
+      }
+
+      function noteSearchText(n) {
+        return [
+          n.title,
+          n.body,
+          (n.tags ?? []).join(" "),
+          n.context?.description,
+          n.context?.cellLabel,
+          captureScreenText(n),
+        ]
+          .join(" ")
+          .toLowerCase();
+      }
+
+      function renderTree() {
+        const container = $("note-tree");
+        const scrollTop = container.scrollTop;
+        const q = ($("note-search").value ?? "").trim().toLowerCase();
+        const c = getLiveContext();
+        const visible = notes.filter((n) => !q || noteSearchText(n).includes(q));
+
+        // General, then per project: project notes + view groups containing row
+        // groups containing row/cell notes.
+        const general = [];
+        const projects = new Map();
+        for (const n of visible) {
+          if (n.scope === "general") {
+            general.push(n);
+            continue;
+          }
+          const proj = n.projectName || n.context?.projectName || "(no project)";
+          if (!projects.has(proj)) projects.set(proj, { notes: [], views: new Map() });
+          const bucket = projects.get(proj);
+          if (n.scope === "project" || !n.context?.viewKey) {
+            bucket.notes.push(n);
+            continue;
+          }
+          const vk = n.context.viewKey;
+          if (!bucket.views.has(vk)) {
+            bucket.views.set(vk, {
+              rank: viewRank(n.context.viewName),
+              label: viewDisplayName(n.context),
+              notes: [],
+              rows: new Map(),
+            });
+          }
+          const vb = bucket.views.get(vk);
+          if (n.context.rowIndex == null) {
+            vb.notes.push(n);
+            continue;
+          }
+          const rk = n.context.rowIndex;
+          if (!vb.rows.has(rk)) vb.rows.set(rk, []);
+          vb.rows.get(rk).push(n);
         }
+
+        const rowLabel = (rk) => `Row 0x${hex2(rk)}`;
+        const notesHtml = (list) => list.sort(byScopeThenTime).map((n) => noteHtml(n, c)).join("");
+        const rowCount = (v) => [...v.rows.values()].reduce((s, l) => s + l.length, 0);
+
+        let html = "";
+        if (general.length) {
+          html += groupHtml("general", "General", general.length, notesHtml(general));
+        }
+        for (const [proj, p] of [...projects.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
+          const viewHtmls = [...p.views.entries()]
+            .sort((a, b) => a[1].rank - b[1].rank || a[1].label.localeCompare(b[1].label))
+            .map(([vk, v]) => {
+              const rowHtmls = [...v.rows.entries()]
+                .sort((a, b) => a[0] - b[0])
+                .map(([rk, list]) =>
+                  groupHtml(`r:${proj}:${vk}:${rk}`, rowLabel(rk), list.length, notesHtml(list)),
+                )
+                .join("");
+              return groupHtml(
+                `v:${proj}:${vk}`,
+                v.label,
+                v.notes.length + rowCount(v),
+                notesHtml(v.notes) + rowHtmls,
+              );
+            })
+            .join("");
+          const count =
+            p.notes.length + [...p.views.values()].reduce((s, v) => s + v.notes.length + rowCount(v), 0);
+          html += groupHtml(`p:${proj}`, `Project: ${proj}`, count, notesHtml(p.notes) + viewHtmls);
+        }
+        if (!html) {
+          html = `<li class="muted" style="padding: 8px">${
+            q ? "No note matches this search." : "No notes yet — move the M8 cursor and write one."
+          }</li>`;
+        }
+        container.innerHTML = html;
+        container.scrollTop = scrollTop;
+      }
+
+      function renderLiveContext() {
+        const c = getLiveContext();
+        setText("live-title", `At cursor — ${describeLiveContext()}`);
+        const ranked = notes
+          .map((n) => ({ n, level: matchLevel(n, c) }))
+          .filter((x) => x.level)
+          .sort((a, b) => (MATCH_RANK[b.level] ?? 0) - (MATCH_RANK[a.level] ?? 0));
+        $("live-notes").innerHTML = ranked.length
+          ? ranked.slice(0, 6).map(({ n }) => noteHtml(n, c)).join("")
+          : `<li class="muted">No notes here yet.</li>`;
+      }
+
+      // Current anchor shown above the editor.
+      function renderAnchorPreview() {
+        const note = editingNoteId ? notes.find((n) => n.id === editingNoteId) : null;
+        const reanchor = $("note-reanchor").checked;
+        if (note && !reanchor) {
+          setText("anchor-preview", `Anchored: ${noteAnchorText(note)}`);
+          return;
+        }
+        const c = getLiveContext();
+        const sel = $("note-scope").value;
+        const scope = sel === "auto" ? suggestScope(c) : sel;
+        setText(
+          "anchor-preview",
+          `${sel === "auto" ? `Auto → ${scope}` : scope} · ${describeLiveContext()}`,
+        );
+      }
+
+      function renderCapture() {
+        const el = $("capture-panel");
+        const note = editingNoteId ? notes.find((n) => n.id === editingNoteId) : null;
+        const screen = note ? captureScreenText(note) : "";
+        if (!note?.capture) {
+          el.innerHTML = "";
+          return;
+        }
+        const ctx = note.context ?? {};
+        const cap = note.capture;
+        const kv = (k, v) =>
+          v ? `<div class="kv"><span>${escapeHtml(k)}</span><span>${escapeHtml(v)}</span></div>` : "";
+        const field = ctx.fieldLabel
+          ? `${ctx.fieldLabel}${ctx.cellLabel ? ` = ${ctx.cellLabel}` : ""}`
+          : "";
+        el.innerHTML = `<details class="capture" open>
+          <summary>Captured context</summary>
+          <div class="capture-body">
+            ${kv("Semantic", ctx.description)}
+            ${kv("View", ctx.viewDescription)}
+            ${kv("Field", field)}
+            ${kv("Line", ctx.currentLine)}
+            ${kv("Cursor", ctx.cursorPos ? `(${ctx.cursorPos.x}, ${ctx.cursorPos.y})` : "")}
+            ${kv("Captured", cap.capturedAt ? new Date(cap.capturedAt).toLocaleString() : "")}
+            ${screen ? `<pre class="screen">${escapeHtml(screen)}</pre>` : ""}
+            ${
+              screen
+                ? `<div class="row">
+                     <button class="mini secondary" data-action="copy-screen">Copy screen</button>
+                     <button class="mini secondary" data-action="insert-screen">Insert into note</button>
+                   </div>`
+                : ""
+            }
+          </div>
+        </details>`;
+      }
+
+      function renderAll() {
+        renderTree();
+        renderLiveContext();
+        renderAnchorPreview();
+      }
+
+      // Re-highlight when the cursor/view changes (debounced; skipped when the
+      // context did not actually move).
+      function scheduleContextRefresh() {
+        if (refreshTimer) clearTimeout(refreshTimer);
+        refreshTimer = setTimeout(() => {
+          refreshTimer = null;
+          const c = getLiveContext();
+          const sig = [
+            c.viewKey,
+            c.rowIndex,
+            c.fieldKey,
+            c.cursorPos?.x,
+            c.cursorPos?.y,
+            c.projectName,
+          ].join("|");
+          if (sig === lastContextSig) return;
+          lastContextSig = sig;
+          renderAll();
+        }, 150);
+      }
+
+      //  note editing 
+      function selectNote(id) {
+        const note = notes.find((n) => n.id === id);
+        if (!note) return;
+        editingNoteId = note.id;
+        selectedNoteId = note.id;
+        setText("editor-title", `Edit note (${note.scope})`);
+        $("note-scope").value = note.scope;
+        $("note-title").value = note.title ?? "";
+        $("note-body").value = note.body ?? "";
+        $("note-tags").value = (note.tags ?? []).join(", ");
+        $("note-reanchor").checked = false;
+        $("reanchor-wrap").hidden = note.scope === "general" && !note.context;
+        $("delete-note-btn").hidden = false;
+        $("goto-btn").hidden = !(note.context || note.scope === "project");
+        $("capture-hint").hidden = true;
+        renderCapture();
+        renderAll();
+      }
+
+      function clearEditor() {
+        editingNoteId = null;
+        selectedNoteId = null;
+        setText("editor-title", "New note");
+        $("note-scope").value = "auto";
+        $("note-title").value = "";
+        $("note-body").value = "";
+        $("note-tags").value = "";
+        $("note-reanchor").checked = false;
+        $("reanchor-wrap").hidden = true;
+        $("delete-note-btn").hidden = true;
+        $("goto-btn").hidden = true;
+        $("capture-hint").hidden = false;
+        renderCapture();
+        renderAll();
+      }
+
+      function newNote() {
+        clearEditor();
+        $("note-body").focus();
+      }
+
+      async function saveNote() {
+        try {
+          const scopeSel = $("note-scope").value;
+          const title = $("note-title").value.trim();
+          const body = $("note-body").value.trim();
+          const tags = $("note-tags").value
+            .split(",")
+            .map((t) => t.trim())
+            .filter(Boolean);
+          if (!title && !body) {
+            setCommandStatus("Save", "The note is empty — nothing to save.", "error");
+            return;
+          }
+
+          const existing = editingNoteId ? notes.find((n) => n.id === editingNoteId) : null;
+          const scopeNow = scopeSel === "auto" ? null : scopeSel;
+          // A new note is always anchored. An existing note keeps its anchor and
+          // capture unless asked (or unless it becomes positional for the first time).
+          const needsAnchor =
+            !existing ||
+            $("note-reanchor").checked ||
+            (scopeNow && scopeNow !== "general" && !existing.context);
+
+          let scope = existing?.scope ?? "general";
+          let context = existing?.context ?? null;
+          let capture = existing?.capture ?? null;
+          let projectName = existing?.projectName ?? settings.projectName ?? null;
+
+          if (needsAnchor) {
+            if (!m8Client) {
+              setCommandStatus("Save", "Not connected to the M8 — cannot anchor the note.", "error");
+              return;
+            }
+            // Snapshot first: project detection moves the M8 around.
+            setCommandStatus("Save", "Capturing the M8 screen...");
+            const snap = await m8Client.captureSnapshot();
+            const c = getLiveContext();
+            scope = scopeNow ?? suggestScope(c);
+
+            projectName = settings.projectName || null;
+            if (!projectName && scope !== "general") {
+              projectName = (await detectProjectName()) || null;
+            }
+            if (scope === "project" && !projectName) {
+              setCommandStatus(
+                "Save",
+                "Project name unknown — pick it in the panel above (or type it), then save again.",
+                "error",
+              );
+              return;
+            }
+            if (scope === "general") {
+              context = null;
+              capture = null;
+            } else {
+              context = buildContext(c, snap, projectName);
+              capture = { version: 2, ...snap, projectName };
+            }
+          } else if (scopeNow) {
+            scope = scopeNow;
+            if (scope === "general") {
+              context = null;
+              capture = null;
+            }
+          }
+
+          const now = Date.now();
+          if (existing) {
+            Object.assign(existing, {
+              title, body, tags, scope, projectName, context, capture, updatedAt: now,
+            });
+            log(`Note updated: ${existing.id}`);
+          } else {
+            const note = {
+              id: makeId(),
+              title, body, tags, scope, projectName, context, capture,
+              createdAt: now,
+              updatedAt: now,
+            };
+            notes.push(note);
+            editingNoteId = note.id;
+            log(`Note created: ${note.id} (${scope})`);
+          }
+          selectedNoteId = editingNoteId;
+          persistNotes();
+          selectNote(editingNoteId);
+          setCommandStatus("Save", `Note saved (${scope}${capture ? ", screen captured" : ""}).`, "ok");
+        } catch (error) {
+          setCommandStatus("Save", `Save failed: ${error.message}`, "error");
+        }
+      }
+
+      function deleteCurrentNote() {
+        const note = notes.find((n) => n.id === editingNoteId);
+        if (!note || !confirm("Delete this note?")) return;
+        notes = notes.filter((n) => n.id !== note.id);
+        persistNotes();
+        log(`Note deleted: ${note.id}`);
+        clearEditor();
+        setCommandStatus("Save", "Note deleted.", "ok");
+      }
+
+      //  capture actions 
+      async function copyScreen() {
+        const note = notes.find((n) => n.id === editingNoteId);
+        const text = note ? captureScreenText(note) : "";
+        if (!text) return;
+        try {
+          await navigator.clipboard.writeText(text);
+          setCommandStatus("Capture", "Screen copied to the clipboard.", "ok");
+        } catch (error) {
+          setCommandStatus("Capture", `Copy failed: ${error.message}`, "error");
+        }
+      }
+
+      function insertScreen() {
+        const note = notes.find((n) => n.id === editingNoteId);
+        const text = note ? captureScreenText(note) : "";
+        if (!text) return;
+        const bodyEl = $("note-body");
+        bodyEl.value = `${bodyEl.value}${bodyEl.value ? "\n" : ""}--- screen ---\n${text}\n---\n`;
+        setCommandStatus("Capture", "Screen inserted into the note (save to keep it).", "ok");
+      }
+
+      //  import / export 
+      function exportNotes() {
+        const payload = JSON.stringify(
+          { version: 2, exportedAt: new Date().toISOString(), settings, notes },
+          null,
+          2,
+        );
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(new Blob([payload], { type: "application/json" }));
+        a.download = `cont8xt-notes-${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        setCommandStatus("Export", `${notes.length} notes exported.`, "ok");
+      }
+
+      function importNotes(event) {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const data = JSON.parse(reader.result);
+            const incoming = Array.isArray(data) ? data : (data.notes ?? []);
+            let added = 0;
+            let updated = 0;
+            for (const n of incoming) {
+              if (!n || !n.id) continue;
+              const idx = notes.findIndex((x) => x.id === n.id);
+              if (idx === -1) {
+                notes.push(n);
+                added++;
+              } else if ((n.updatedAt ?? 0) > (notes[idx].updatedAt ?? 0)) {
+                notes[idx] = n;
+                updated++;
+              }
+            }
+            if (data.settings?.projectName && !settings.projectName) {
+              setProjectName(data.settings.projectName);
+            }
+            persistNotes();
+            renderAll();
+            setCommandStatus("Import", `Imported: ${added} new, ${updated} updated.`, "ok");
+          } catch (error) {
+            setCommandStatus("Import", `Import failed: ${error.message}`, "error");
+          }
+        };
+        reader.readAsText(file);
+        event.target.value = "";
+      }
+
+      //  wiring 
+      function toggleGroup(key) {
+        if (collapsedGroups.has(key)) collapsedGroups.delete(key);
+        else collapsedGroups.add(key);
+        renderTree();
+      }
+
+      const ACTIONS = {
+        select: ({ id }) => selectNote(id),
+        goto: ({ id }) => gotoNoteById(id),
+        "goto-selected": () => editingNoteId && gotoNoteById(editingNoteId),
+        toggle: ({ key }) => toggleGroup(key),
+        new: newNote,
+        save: saveNote,
+        clear: clearEditor,
+        delete: deleteCurrentNote,
+        export: exportNotes,
+        import: () => $("import-file").click(),
+        detect: detectProjectName,
+        reconnect,
+        "fetch-state": async () => {
+          try {
+            await m8Client.fetchState();
+            log("Fresh state fetched");
+          } catch (error) {
+            log(`Fetch state failed: ${error.message}`, "error");
+          }
+        },
+        "clear-log": () => {
+          $("log").innerHTML = "";
+        },
+        "copy-screen": copyScreen,
+        "insert-screen": insertScreen,
+        "pick-line": ({ line }) => pickProjectLine(line),
+        "hide-picker": hideProjectPicker,
       };
 
-      window.cleanTitles = async () => {
-        try {
-          document.querySelectorAll('h3').forEach(h3 => {
-            h3.textContent = h3.textContent.replace(/\s*\([^)]*\)/g, '');
-          });
-        } catch (error) {
-          log(`Clean titles failed: ${error.message}`, "error");
-        }
-      };
+      document.addEventListener("click", (event) => {
+        const el = event.target.closest("[data-action]");
+        if (!el) return;
+        ACTIONS[el.dataset.action]?.(el.dataset);
+      });
 
-      // Connect on load
+      function initNotesUI() {
+        notes = loadNotes();
+        settings = loadSettings();
+        const projInput = $("project-name");
+        projInput.value = settings.projectName || "";
+        projInput.addEventListener("change", () => {
+          settings.projectName = projInput.value.trim();
+          persistSettings();
+          renderAll();
+          log(`Project name set to "${settings.projectName || "(none)"}"`);
+        });
+        $("note-search").addEventListener("input", renderTree);
+        $("note-scope").addEventListener("change", renderAnchorPreview);
+        $("note-reanchor").addEventListener("change", renderAnchorPreview);
+        $("import-file").addEventListener("change", importNotes);
+        renderAll();
+        log(`Notes loaded: ${notes.length} note(s)`);
+      }
+
       window.addEventListener("load", () => {
-        log("Cont8xt Client loaded");
-        window.m8Client.connect();
+        initNotesUI();
+        connectClient();
       });
     </script>
   </body>

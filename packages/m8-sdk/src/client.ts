@@ -2,12 +2,27 @@
 import { ChildHandshake, DebugMessenger, WindowMessenger } from 'post-me'
 // @ts-expect-error - post-me types are incomplete for the generic handshake signatures used here.
 import type { Connection, LocalHandle, RemoteHandle } from 'post-me'
-import type { M8ClientEvents, M8ClientMethods, M8HostEvents, M8HostMethods, M8KeyName, M8SdkConfig, M8State } from './types'
-import { getSemanticContext, describeContext } from './viewContext'
-import type { M8SemanticContext } from './viewContext'
+import type { M8ClientEvents, M8ClientMethods, M8HostEvents, M8HostMethods, M8KeyName, M8Screen, M8SdkConfig, M8State } from './types'
+import { getSemanticContext, describeContext, describeContextParts } from './viewContext'
+import type { M8DescriptionPart, M8SemanticContext } from './viewContext'
 
-export type { CursorPos, CursorRect, M8KeyName, M8State, RGB, SystemInfos } from './types'
-export type { M8SemanticContext } from './viewContext'
+export type { CursorPos, CursorRect, M8KeyName, M8Screen, M8State, RGB, SystemInfos } from './types'
+export type { M8DescriptionPart, M8SemanticContext } from './viewContext'
+
+/**
+ * Everything the SDK knows about the moment: raw state, semantic context, its
+ * human-readable description and the whole screen. Plain JSON, safe to persist.
+ */
+export interface M8Snapshot {
+  capturedAt: number
+  state: Pick<M8State, 'viewName' | 'viewTitle' | 'cursorPos' | 'selectionMode' | 'textUnderCursor' | 'currentLine' | 'deviceModel'>
+  semantic: M8SemanticContext | null
+  /** describeContext() output, e.g. "Note (N): Note C-4 — Phrase View row 00". */
+  description: string | null
+  /** The same description as tagged parts (describeContextParts()). */
+  descriptionParts: M8DescriptionPart[] | null
+  screen: M8Screen
+}
 
 export interface M8Client {
   readonly state: M8State
@@ -25,6 +40,13 @@ export interface M8Client {
   sendKeyUp(): Promise<void>
   getState(): M8State
   fetchState(): Promise<M8State>
+  /**
+   * Whole screen as text rows, read directly from the M8 character stream.
+   * No cursor movement involved, so it is instant and side-effect free.
+   */
+  getScreen(): Promise<M8Screen>
+  /** Fresh state + semantic context + description + whole screen in one call. */
+  captureSnapshot(): Promise<M8Snapshot>
   onStateChange(callback: (state: M8State) => void): () => void
   onViewChange(callback: (viewName: string | null, viewTitle: string | null) => void): () => void
   onCursorMove(callback: (pos: M8State['cursorPos'], rect: M8State['cursorRect'], selectionMode: boolean) => void): () => void
@@ -39,9 +61,21 @@ export interface M8Client {
   getSemanticContext(): M8SemanticContext | null
   /**
    * Returns a short human-readable description of what the cursor is on,
-   * e.g. "Track 3 — Chain 0A — Song View row 02".
+   * e.g. "Track 3: 0A — Track 3 — Song View row 01".
+   *
+   * It also reads the cursor against its surroundings when that changes the meaning:
+   * an FX cell under a running REP says which command is repeating and where it has
+   * got to, FX values are explained (ARP 37 → "+3 and +7 semitones"), and the Scale
+   * View names the scale the enabled notes spell. The surroundings come from a copy of
+   * the screen the client keeps fresh in the background; call getScreen() (or await
+   * captureSnapshot()) first if you need it guaranteed current.
    */
   describeContext(): string | null
+  /**
+   * The description as ordered, tagged parts ({ kind: 'field' | 'meaning' | 'location' | …, text }),
+   * for consumers that want to keep, drop, reorder or style some of them.
+   */
+  describeContextParts(): M8DescriptionPart[] | null
 }
 
 const getDefaultState = (): M8State => ({
@@ -72,6 +106,9 @@ class M8ClientImpl implements M8Client {
   private readonly textCallbacks = new Set<(textUnderCursor: string | null, currentLine: string | null) => void>()
   private readonly keyCallbacks = new Set<(keys: number) => void>()
   private _state: M8State = getDefaultState()
+  private _screen: M8Screen | null = null
+  private screenRefreshing = false
+  private screenDirty = false
   private _isConnected = false
   private readonly config: M8SdkConfig
 
@@ -115,6 +152,7 @@ class M8ClientImpl implements M8Client {
 
     this.remoteHandle.addEventListener('stateChanged', (state: M8State) => {
       this._state = state
+      this.refreshScreen()
       this.stateCallbacks.forEach((cb) => {
         cb(state)
       })
@@ -122,6 +160,7 @@ class M8ClientImpl implements M8Client {
 
     this.remoteHandle.addEventListener('viewChanged', ({ viewName, viewTitle }: { viewName: string | null; viewTitle: string | null }) => {
       this._state = { ...this._state, viewName, viewTitle }
+      this.refreshScreen()
       this.viewCallbacks.forEach((cb) => {
         cb(viewName, viewTitle)
       })
@@ -129,6 +168,7 @@ class M8ClientImpl implements M8Client {
 
     this.remoteHandle.addEventListener('cursorMoved', ({ pos, rect, selectionMode }: { pos: M8State['cursorPos']; rect: M8State['cursorRect']; selectionMode: boolean }) => {
       this._state = { ...this._state, cursorPos: pos, cursorRect: rect, selectionMode }
+      this.refreshScreen()
       this.cursorCallbacks.forEach((cb) => {
         cb(pos, rect, selectionMode)
       })
@@ -136,6 +176,7 @@ class M8ClientImpl implements M8Client {
 
     this.remoteHandle.addEventListener('textUpdated', ({ textUnderCursor, currentLine }: { textUnderCursor: string | null; currentLine: string | null }) => {
       this._state = { ...this._state, textUnderCursor, currentLine }
+      this.refreshScreen()
       this.textCallbacks.forEach((cb) => {
         cb(textUnderCursor, currentLine)
       })
@@ -148,7 +189,36 @@ class M8ClientImpl implements M8Client {
     })
 
     await this.fetchState()
+    this.refreshScreen()
     this.localHandle.emit('ready', undefined)
+  }
+
+  /**
+   * Keeps the cached screen close to the state without a round-trip per event: at most
+   * one request in flight, and one more queued if events arrived meanwhile.
+   */
+  private refreshScreen(): void {
+    if (!this.remoteHandle) return
+    if (this.screenRefreshing) {
+      this.screenDirty = true
+      return
+    }
+    this.screenRefreshing = true
+    this.remoteHandle
+      .call('getScreen')
+      .then((screen: M8Screen) => {
+        this._screen = screen
+      })
+      .catch(() => {
+        // Descriptions simply fall back to the cursor row alone.
+      })
+      .finally(() => {
+        this.screenRefreshing = false
+        if (this.screenDirty) {
+          this.screenDirty = false
+          this.refreshScreen()
+        }
+      })
   }
 
   async navigateToView(viewName: string): Promise<boolean> {
@@ -217,6 +287,34 @@ class M8ClientImpl implements M8Client {
     return state
   }
 
+  async getScreen(): Promise<M8Screen> {
+    if (!this.remoteHandle) throw new Error('M8 SDK client is not connected')
+    const screen = await this.remoteHandle.call('getScreen')
+    this._screen = screen
+    return screen
+  }
+
+  async captureSnapshot(): Promise<M8Snapshot> {
+    const [state, screen] = await Promise.all([this.fetchState(), this.getScreen()])
+    const semantic = getSemanticContext(state, screen)
+    return {
+      capturedAt: Date.now(),
+      state: {
+        viewName: state.viewName,
+        viewTitle: state.viewTitle,
+        cursorPos: state.cursorPos,
+        selectionMode: state.selectionMode,
+        textUnderCursor: state.textUnderCursor,
+        currentLine: state.currentLine,
+        deviceModel: state.deviceModel,
+      },
+      semantic,
+      description: semantic ? describeContext(semantic) : null,
+      descriptionParts: semantic ? describeContextParts(semantic) : null,
+      screen,
+    }
+  }
+
   onStateChange(callback: (state: M8State) => void): () => void {
     this.stateCallbacks.add(callback)
     return () => this.stateCallbacks.delete(callback)
@@ -248,6 +346,7 @@ class M8ClientImpl implements M8Client {
     this.remoteHandle = null
     this.localHandle = null
     this._isConnected = false
+    this._screen = null
     this.stateCallbacks.clear()
     this.viewCallbacks.clear()
     this.cursorCallbacks.clear()
@@ -256,12 +355,17 @@ class M8ClientImpl implements M8Client {
   }
 
   getSemanticContext(): M8SemanticContext | null {
-    return getSemanticContext(this._state)
+    return getSemanticContext(this._state, this._screen)
   }
 
   describeContext(): string | null {
-    const ctx = getSemanticContext(this._state)
+    const ctx = getSemanticContext(this._state, this._screen)
     return ctx ? describeContext(ctx) : null
+  }
+
+  describeContextParts(): M8DescriptionPart[] | null {
+    const ctx = getSemanticContext(this._state, this._screen)
+    return ctx ? describeContextParts(ctx) : null
   }
 }
 

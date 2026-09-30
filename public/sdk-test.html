@@ -214,6 +214,10 @@
         font-family: monospace;
       }
 
+      .state-item .value.parts {
+        white-space: pre-line;
+      }
+
       .cursor-summary {
         display: grid;
         gap: 8px;
@@ -541,6 +545,8 @@
           <div class="state-item wide" id="state-context-grid">
             <div class="label">Description</div>
             <div class="value" id="ctx-description">-</div>
+            <div class="label">Description Parts</div>
+            <div class="value parts" id="ctx-parts">-</div>
             <div class="label">View</div>
             <div class="value" id="ctx-view">-</div>
             <div class="label">Active Field</div>
@@ -777,6 +783,7 @@ await m8.setValueToString("filter", false, true);
             <pre>
 m8.onStateChange((state) => renderState(state));
 m8.onViewChange((name, title) => log("view", name ?? title));
+m8.onCursorMove((pos, rect, sel) => log("cursor", pos, sel));
 m8.onTextUpdate((text) => log("text", text));
 m8.onKeyPress((keys) => log("keys", keys));
 </pre>
@@ -795,13 +802,60 @@ await m8.browseFile("bass", false); // partial match
               The extension is optional in the search text.
             </p>
           </div>
+          <div class="method-card">
+            <h4>7) Semantic Context API</h4>
+            <pre>
+// Typed interpretation of the cursor position: the view, the
+// row, and the field under the cursor. Derived locally from the
+// last state, so no host round-trip is needed.
+const ctx = m8.getSemanticContext();
+console.log(ctx?.viewId); // e.g. "0A" from " PHRASE 0A*"
+console.log(ctx?.row?.rowIndex);
+console.log(ctx?.activeField?.key); // e.g. "note", "fx1cmd"
+
+console.log(m8.describeContext());
+// e.g. "Note (N): Note A#4 — Phrase View row 07"
+
+// The same description as tagged parts, to keep, drop or restyle:
+console.log(m8.describeContextParts());
+// [{ kind: "field", text: "Note (N): Note A#4" },
+//  { kind: "location", text: "Phrase View row 07" }]
+
+// Standalone helpers work on any M8State snapshot:
+import {
+  getSemanticContext,
+  describeContext,
+  describeContextParts,
+  formatFieldValue,
+  lookupFxCommand,
+} from "@yam8d/m8-sdk";
+
+if (ctx?.activeField) {
+  console.log(formatFieldValue(ctx.activeField)); // "Note A#4"
+  if (ctx.activeField.type === "fxCommand" && !ctx.activeField.isEmpty) {
+    console.log(lookupFxCommand(ctx.activeField.rawValue)?.description);
+  }
+}</pre>
+            <p class="note">
+              Grid views (song, chain, phrase, table, groove, scale, instrument
+              pool) parse every column of the cursor row; parameter views
+              (instrument, mixer, project, effects, EQ, file browsers, ...) are
+              read through their label/value layouts. Every part of the
+              description is also in the context as data (fxLane, relativeFx,
+              resetsRelative, scaleNote, scale, ...).
+            </p>
+          </div>
         </section>
       </aside>
     </main>
 
     <!-- Load the SDK client -->
     <script type="module">
-      import { createM8Client, getSemanticContext, describeContext } from "./m8-sdk/index.js";
+      import {
+        createM8Client,
+        formatFieldValue,
+        lookupFxCommand,
+      } from "./m8-sdk/index.js";
 
       const log = (message, type = "info") => {
         const logEl = document.getElementById("log");
@@ -855,7 +909,8 @@ await m8.browseFile("bass", false); // partial match
         if (/^(0x[\da-f]+|\d+(?:\.\d+)?)$/i.test(token)) {
           return `<span class="syntax-number">${token}</span>`;
         }
-        if (/^[A-Za-z_$][\w$]*(?=\()/.test(token)) {
+        // tokenPattern only yields a bare identifier when a '(' follows it.
+        if (/^[A-Za-z_$][\w$]*$/.test(token)) {
           return `<span class="syntax-function">${token}</span>`;
         }
         return token;
@@ -871,7 +926,7 @@ await m8.browseFile("bass", false); // partial match
         });
       };
 
-      // ─── SDK client setup ───────────────────────────────────────────────────
+      //  SDK client setup 
 
       let m8Client = null;
 
@@ -988,6 +1043,10 @@ await m8.browseFile("bass", false); // partial match
         const ctx = m8Client?.getSemanticContext() ?? null;
         document.getElementById("ctx-description").textContent =
           m8Client?.describeContext() ?? "-";
+        const parts = m8Client?.describeContextParts() ?? [];
+        document.getElementById("ctx-parts").textContent = parts.length
+          ? parts.map((p) => `${p.kind}: ${p.text}`).join("\n")
+          : "-";
         if (ctx) {
           let viewLabel = ctx.viewTitle ?? ctx.viewName;
           if (ctx.viewId) viewLabel += ` [${ctx.viewId}]`;
@@ -999,9 +1058,18 @@ await m8.browseFile("bass", false); // partial match
             state.viewTitle || state.viewName || "-";
         }
         const af = ctx?.activeField;
-        document.getElementById("ctx-field").textContent = af
-          ? `${af.label} [${af.type}] = ${af.rawValue}${af.hexValue != null ? ` (0x${af.hexValue.toString(16).toUpperCase()})` : ""}`
-          : "-";
+        let fieldText = "-";
+        if (af) {
+          fieldText = `${af.label} [${af.type}] = ${formatFieldValue(af)}`;
+          if (af.hexValue != null) {
+            fieldText += ` (0x${af.hexValue.toString(16).toUpperCase()})`;
+          }
+          if (af.type === "fxCommand" && !af.isEmpty) {
+            const fx = lookupFxCommand(af.rawValue);
+            if (fx) fieldText += ` — ${fx.description}`;
+          }
+        }
+        document.getElementById("ctx-field").textContent = fieldText;
         document.getElementById("ctx-row").textContent =
           ctx?.row?.rowIndex != null
             ? `0x${ctx.row.rowIndex.toString(16).toUpperCase().padStart(2, "0")} (${ctx.row.rowIndex})`

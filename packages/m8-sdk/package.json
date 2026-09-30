@@ -1,6 +1,6 @@
 {
   "name": "@yam8d/m8-sdk",
-  "version": "0.2.0",
+  "version": "0.3.3",
   "description": "Client SDK for iframe applications that communicate with yam8d M8 host.",
   "type": "module",
   "main": "./dist/index.js",
@@ -18,8 +18,9 @@
     "README.md"
   ],
   "scripts": {
-    "build": "vite build",
-    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
+    "build": "vite build && npm run build:types",
+    "build:types": "node -e \"require('node:fs').rmSync('types', { recursive: true, force: true })\" && tsc -p tsconfig.types.json",
+    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true }); require('node:fs').rmSync('types', { recursive: true, force: true })\"",
     "prepack": "npm run build"
   },
   "keywords": [
