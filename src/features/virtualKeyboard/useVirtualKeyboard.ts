@@ -2,31 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ConnectedBus } from '../connection/connection.ts'
 import { shouldIgnoreAppKeyboardEvent } from '../inputs/inputGate'
 import { useSettingsContext } from '../settings/settings.tsx'
-
-export const defaultKeyMap = Object.freeze({
-    KeyA: 0,
-    KeyW: 1,
-    KeyS: 2,
-    KeyE: 3,
-    KeyD: 4,
-    KeyF: 5,
-    KeyT: 6,
-    KeyG: 7,
-    KeyY: 8,
-    KeyH: 9,
-    KeyU: 10,
-    KeyJ: 11,
-    KeyK: 12,
-    KeyO: 13,
-    KeyL: 14,
-    KeyP: 15,
-    Semicolon: 16,
-    Quote: 17,
-    BracketLeft: 'velDown',
-    BracketRight: 'velUp',
-    Minus: 'octDown',
-    Equal: 'octUp',
-})
+import { defaultKeyMap } from './defaultKeyMap'
 
 const KEY_MAP_SETTINGS = 'keyMap'
 

@@ -255,14 +255,7 @@ import type {
 
 ## Security Considerations
 
-- The SDK currently uses `remoteOrigin: '*'` for the iframe
-- For production, specify allowed origins in the config:
-
-  ```typescript
-  useM8SdkHost(bus, {
-    allowedOrigins: ["https://trusted-domain.com"],
-  });
-  ```
+- The SDK currently uses `remoteOrigin: '*'` for the iframe, so only load trusted apps in the External Apps panel.
 
 ## Debug Mode
 

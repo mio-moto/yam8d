@@ -36,11 +36,3 @@ export function enableInputGate(): void {
     window.addEventListener('keyup', captureHandler, { capture: true })
     window.addEventListener('keypress', captureHandler, { capture: true })
 }
-
-export function disableInputGate(): void {
-    if (!installed) return
-    installed = false
-    window.removeEventListener('keydown', captureHandler, { capture: true } as EventListenerOptions)
-    window.removeEventListener('keyup', captureHandler, { capture: true } as EventListenerOptions)
-    window.removeEventListener('keypress', captureHandler, { capture: true } as EventListenerOptions)
-}

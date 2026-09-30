@@ -1,29 +1,19 @@
 import { useCallback, useEffect, useRef } from 'react'
+import type { Edge } from '../../utils/astar'
 import type { ConnectedBus } from '../connection/connection.ts'
 import { useMacroStatus, useViewName } from '../state/viewStore'
 import { getLoadedEdgeKeys, getLoadedGraph, loadM8GraphJson, loadViewList } from './m8GraphLoader'
-import { getLatestDiscoveredGraph } from './autoViewGraph'
 import { useMacroRunner } from './macroRunner'
 import { computePagePath, toKeyMasks } from './navAStar'
-//import { M8KeyMask } from '../connection/keys.ts'
 
-export function getM8GraphAsMap() {
-    // Prefer JSON loaded graph
-    const loaded = getLoadedGraph()
-    if (loaded) return loaded
-    // Fallback to automaton's latest discovery
-    const discovered = getLatestDiscoveredGraph()
-    if (discovered) return discovered
-    // No graph yet
-    return new Map<string, { to: string; dir: 'up' | 'down' | 'left' | 'right' }[]>()
-}
+// Graph loaded from public/m8Graph.generated.json (empty until loaded)
+const getM8GraphAsMap = () => getLoadedGraph() ?? new Map<string, Edge[]>()
 
 export const useViewNavigation = (connection?: ConnectedBus) => {
     const runner = useMacroRunner(connection)
     const [viewName] = useViewName()
     const [macroStatus] = useMacroStatus()
     const viewSetRef = useRef<Set<string>>(new Set())
-    //const retryRef = useRef<boolean>(false)
     const navigationGoal = useRef<string | null>(null)
     const navigationSteps = useRef<number>(0)
     const maxNavigationSteps = 20 // Safety limit to prevent infinite loops

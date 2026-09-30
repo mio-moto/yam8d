@@ -1,4 +1,7 @@
 import { atom, useAtom } from 'jotai'
+import type { RGB } from '../../utils/colorTools'
+
+export type { RGB }
 
 export interface CursorPos {
     x: number
@@ -10,17 +13,6 @@ export interface CursorRect {
     w: number
     h: number
 }
-export interface RGB {
-    r: number
-    g: number
-    b: number
-}
-export interface HSL {
-    h: number
-    l: number
-    s: number
-}
-
 export interface SystemInfos {
     model: string
     fontMode: number
@@ -85,17 +77,8 @@ export const recordingStateAtom = atom<{ mode: 'canvas' | 'display' | null; isRe
 
 export const useViewName = () => useAtom(viewNameAtom)
 export const useViewTitle = () => useAtom(viewTitleAtom)
-export const useMinimapKey = () => useAtom(minimapKeyAtom)
 export const useCursor = () => useAtom(cursorPosAtom)
 export const useCursorRect = () => useAtom(cursorRectAtom)
-export const useSelectionMode = () => useAtom(selectionModeAtom)
-export const useHighlightColor = () => useAtom(highlightColorAtom)
-export const useTextUnderCursor = () => useAtom(textUnderCursorAtom)
-export const useCurrentLine = () => useAtom(currentLineAtom)
-export const useTitleColor = () => useAtom(titleColorAtom)
 export const useBackgroundColor = () => useAtom(backgroundColorAtom)
 export const useMacroStatus = () => useAtom(macroStatusAtom)
-export const useCellMetrics = () => useAtom(cellMetricsAtom)
-export const useDeviceModel = () => useAtom(deviceModelAtom)
-export const useFontMode = () => useAtom(fontModeAtom)
 export const useSystemInfo = () => useAtom(systemInfoAtom)

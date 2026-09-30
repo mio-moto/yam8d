@@ -135,12 +135,6 @@ export const useViewNavigator = (connection?: ConnectedBus) => {
         return { x: rect.rx + rect.rw / 2, y: rect.ry + rect.rh / 2 }
     }, [])
 
-    const normalizeTarget = useCallback((target: Point, _rect: RectState): Point => {
-        // Keep raw target coordinates as-is. In some layouts (ex: huge font),
-        // reachable raw protocol coordinates can exceed nominal screen height.
-        return target
-    }, [])
-
     const isWithinX = useCallback((rect: RectState, target: Point) => {
         return target.x >= rect.rx - POSITION_EPSILON && target.x <= rect.rx + rect.rw + POSITION_EPSILON
     }, [])
@@ -292,7 +286,8 @@ export const useViewNavigator = (connection?: ConnectedBus) => {
         const rect = getRect()
         if (!rect) return
 
-        const target = normalizeTarget(targetRef.current, rect)
+        // Raw target coordinates are used as-is: in some layouts (ex: huge font) they can exceed nominal screen height.
+        const target = targetRef.current
         log('advance', { reason, rect, target, priority: priorityRef.current, blocked: blockedAxisRef.current })
 
         if (samplesRef.current.length === 0 || !sameRect(samplesRef.current[samplesRef.current.length - 1].rect, rect)) {
@@ -378,7 +373,6 @@ export const useViewNavigator = (connection?: ConnectedBus) => {
         hasTwoPositionBounce,
         isWithinX,
         isWithinY,
-        normalizeTarget,
         rememberSample,
         rollbackToIndex,
         scheduleMoveTimeout,
@@ -449,11 +443,10 @@ export const useViewNavigator = (connection?: ConnectedBus) => {
                 return
             }
 
-            const normalized = normalizeTarget(target, rect)
-            rememberSample(rect, normalized)
+            rememberSample(rect, target)
             advance('start')
         })
-    }, [advance, connection, cursor, finish, getRect, normalizeTarget, rememberSample, resetState, log])
+    }, [advance, connection, cursor, finish, getRect, rememberSample, resetState, log])
 
     return { navigateTo }
 }

@@ -2,10 +2,8 @@ import { css } from '@linaria/core'
 import './App.css'
 import { type FC, lazy, Suspense, useCallback, useState } from 'react'
 import { style } from './app/style/style'
-// import { DebugMenu, DebugPortalContextProvider } from './components/DebugMenu'
 import type { ConnectedBus } from './features/connection/connection'
 import { device } from './features/connection/device'
-import type { SystemCommand } from './features/connection/protocol'
 import { useM8Input } from './features/inputs/useM8input'
 import { M8Player } from './features/M8Player'
 import { useMacroInput } from './features/macros/useMacroInput'
@@ -13,11 +11,8 @@ import { Menu } from './features/settings/menu'
 import { useSettingsContext } from './features/settings/settings'
 import { useZoomViewShortcut } from './features/settings/useZoomViewShortcut'
 import { VirtualKeyboard } from './features/virtualKeyboard/VirtualKeyboard'
-//import { ProgramChangeKeyboard } from './features/virtualKeyboard/ProgramChangeKeyboard'
 import { ExternalAppsDisplay } from './features/externalApps/ExternalAppsDisplay'
 import { WelcomeSplash } from './features/WelcomeSplash'
-// import { StatusPanel } from './features/debug/StatusPanel'
-// import { SdkTest } from './components/SdkTest'
 
 const BackgroundShaderEditor = lazy(async () => {
   const module = await import('./features/rendering/BackgroundShaderEditor')
@@ -52,7 +47,6 @@ export const App: FC = () => {
   const { settings } = useSettingsContext()
 
   const [connectedBus, setConnectedBus] = useState<ConnectedBus>()
-  // const [model, setModel] = useState<1 | 2>(2)
 
   const tryConnect = useCallback(() => {
     const res = device()
@@ -84,13 +78,6 @@ export const App: FC = () => {
         if (!bus) return
 
         setConnectedBus(bus)
-        const onSystemCommand = (sys: SystemCommand | undefined) => {
-          if (sys) {
-            // setModel(sys.model === 'M8 Model:02' ? 2 : 1)
-          }
-        }
-        bus.protocol.eventBus.on('system', onSystemCommand)
-        onSystemCommand(bus.protocol.getSystemInfo())
         await res.audio.connect()
       })()
   }, [])
@@ -106,7 +93,6 @@ export const App: FC = () => {
         <>
           <Menu />
           <div className={appClass}>
-            {/* not ready <ProgramChangeKeyboard bus={connectedBus} strokeColor={style.themeColors.text.default} /> */}
             {settings.virtualKeyboard && <VirtualKeyboard bus={connectedBus} strokeColor={style.themeColors.text.default}></VirtualKeyboard>}
             <div className={playerRowClass}>
               <M8Player bus={connectedBus} fullView={settings.fullM8View} />
@@ -118,8 +104,6 @@ export const App: FC = () => {
             </Suspense>
           )}
           {settings.displayExternalApps && <ExternalAppsDisplay bus={connectedBus} />}
-          {/* <SdkTest bus={connectedBus} /> */}
-          {/* <StatusPanel /> */}
         </>
       )}
     </>

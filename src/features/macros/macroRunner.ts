@@ -16,16 +16,12 @@ export const useMacroRunner = (connection?: ConnectedBus) => {
     }, [running])
 
     const cancel = useCallback(
-        (reason?: string) => {
+        (_reason?: string) => {
             if (!runningRef.current && queue.current.length === 0 && !store.get(macroStatusAtom).running) return
             queue.current = []
             lastSent.current = null
             setRunning(false)
             store.set(macroStatusAtom, { running: false })
-            if (reason) {
-                // optional: log reason
-                //console.debug('Macro canceled:', reason)
-            }
         },
         [store],
     )
@@ -35,10 +31,6 @@ export const useMacroRunner = (connection?: ConnectedBus) => {
         if (queue.current.length === 0) return
         setRunning(true)
         store.set(macroStatusAtom, { running: true, currentStep: 0, sequenceLength: queue.current.length })
-        // // kick off
-        // const first = queue.current.shift() as number
-        // lastSent.current = first
-        // connection?.commands.sendKeys(first)
     }
 
 

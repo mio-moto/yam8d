@@ -99,22 +99,6 @@ export interface M8ClientEvents {
 
 // Connection configuration
 export interface M8SdkConfig {
-    // Origin of the iframe content for security
-    allowedOrigins?: string[]
     // Enable debug logging
     debug?: boolean
 }
-
-// Navigation target types
-export interface ViewNavigationTarget {
-    type: 'view'
-    viewName: string
-}
-
-export interface CoordinateNavigationTarget {
-    type: 'coordinate'
-    x: number
-    y: number
-}
-
-export type NavigationTarget = ViewNavigationTarget | CoordinateNavigationTarget
