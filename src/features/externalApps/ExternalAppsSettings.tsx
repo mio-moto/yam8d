@@ -2,7 +2,7 @@ import { css } from '@linaria/core'
 import { type FC, useEffect, useMemo, useState } from 'react'
 import { Button } from '../../components/Button'
 import { Input } from '../../components/Input'
-import type { ExternalAppConfig } from '../settings/settings'
+import type { ExternalAppConfig } from './externalAppsConfig'
 import { useSettingsContext } from '../settings/settings'
 
 const externalAppsSettingsClass = css`

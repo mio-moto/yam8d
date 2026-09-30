@@ -1,22 +1,23 @@
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
+import {
+    DEFAULT_SDK_TEST_URL,
+    DEFAULT_SHORTCUTS_URL,
+    defaultExternalApps,
+    type ExternalAppConfig,
+    mergeStoredExternalAppsWithDefaults,
+    normalizeExternalApps,
+} from '../externalApps/externalAppsConfig'
 import { defaultInputMap } from '../inputs/defaultInputMap'
 import { defaultMacroInputMap, type MacroInputMap } from '../macros/defaultMacroInputMap'
 import { defaultKeyMap } from '../virtualKeyboard/defaultKeyMap'
-import DefaultCustomBackgroundShaderSource from '../rendering/shader/default_spectrum.frag?raw'
+import { DEFAULT_CUSTOM_BACKGROUND_SHADER } from '../rendering/defaultSpectrumShader'
 
 const SETTINGS = 'M8settings'
+const CORRUPT_SETTINGS_BACKUP = 'M8settings.corruptBackup'
 const EXTERNAL_APPS_DEFAULTS_VERSION_KEY = 'M8settings.externalAppsDefaultsVersion'
 const EXTERNAL_APPS_DEFAULTS_VERSION = '2'
-export const DEFAULT_CUSTOM_BACKGROUND_SHADER_NAME = 'Spectrum Depth Demo'
-export const DEFAULT_CUSTOM_BACKGROUND_SHADER = DefaultCustomBackgroundShaderSource
 
 export const DEFAULT_ZOOM_VIEW_KEY = 'KeyV'
-
-export const DEFAULT_SHORTCUTS_URL = 'https://m8-shortcuts-65mb.vercel.app/' //'https://miomoto.de/m8-shortcuts/'
-export const DEFAULT_SDK_TEST_URL = 'sdk-test.html'
-export const DEFAULT_CONT8XT_URL = 'cont8xt.html'
-export const DEFAULT_GROOVE_EXTRACTOR_URL = 'https://groove.matterwarlox.com/'
-export const DEFAULT_SCALE_DIVINATOR_URL = 'https://scale.matterwarlox.com/'
 
 const normalizeSettings = (settings: Settings): Settings => {
     const normalizedExternalApps = normalizeExternalApps(settings)
@@ -45,108 +46,6 @@ const normalizeBackgroundShaderValue = (value: unknown): boolean => {
     }
 
     return false
-}
-
-export type ExternalAppConfig = {
-    id: string
-    name: string
-    url: string
-    useUrlFallback: boolean
-}
-
-const defaultExternalApps = (shortcutsHost: string, sdkTestHost: string): ExternalAppConfig[] => [
-    {
-        id: 'm8-shortcuts',
-        name: 'M8 Shortcuts',
-        url: shortcutsHost,
-        useUrlFallback: true,
-    },
-    {
-        id: 'm8-sdk-test',
-        name: 'M8 SDK Test',
-        url: sdkTestHost,
-        useUrlFallback: false,
-    },
-    {
-        id: 'm8-cont8xt',
-        name: 'Cont8xt Notes',
-        url: DEFAULT_CONT8XT_URL,
-        useUrlFallback: false,
-    },
-    {
-        id: 'm8-groove-extractor',
-        name: 'M8 Groove Extractor',
-        url: DEFAULT_GROOVE_EXTRACTOR_URL,
-        useUrlFallback: false,
-    },
-    {
-        id: 'm8-scale-divinator',
-        name: 'M8 Scale Divinator',
-        url: DEFAULT_SCALE_DIVINATOR_URL,
-        useUrlFallback: false,
-    },
-]
-
-/**
- * Appends default external apps that are missing from the stored list,
- * deduplicating by URL (case-insensitive) so user-customized lists keep
- * their own entries and only receive the new defaults.
- */
-const mergeStoredExternalAppsWithDefaults = (storedApps: ExternalAppConfig[]): ExternalAppConfig[] => {
-    const knownUrls = new Set(
-        storedApps
-            .map((app) => (app && typeof app.url === 'string' ? app.url.trim().toLowerCase() : ''))
-            .filter((url) => url !== ''),
-    )
-    const missingDefaults = defaultExternalApps(DEFAULT_SHORTCUTS_URL, DEFAULT_SDK_TEST_URL).filter(
-        (app) => !knownUrls.has(app.url.toLowerCase()),
-    )
-    return [...storedApps, ...missingDefaults]
-}
-
-const normalizeExternalApps = (settings: Settings): Pick<Settings, 'externalApps' | 'activeExternalAppId'> => {
-    const fallbackApps = defaultExternalApps(settings.shortcutsHost, settings.sdkTestHost)
-    const sourceApps = Array.isArray(settings.externalApps) && settings.externalApps.length > 0
-        ? settings.externalApps
-        : fallbackApps
-    const usedIds = new Set<string>()
-    const externalApps = sourceApps
-        .map((app, index): ExternalAppConfig | null => {
-            if (!app || typeof app.name !== 'string' || typeof app.url !== 'string') {
-                return null
-            }
-
-            const idBase = typeof app.id === 'string' && app.id.trim()
-                ? app.id.trim()
-                : `external-app-${index + 1}`
-            let id = idBase
-            let suffix = 2
-            while (usedIds.has(id)) {
-                id = `${idBase}-${suffix}`
-                suffix += 1
-            }
-            usedIds.add(id)
-
-            return {
-                id,
-                name: app.name.trim() || `External App ${index + 1}`,
-                url: app.url.trim(),
-                useUrlFallback: typeof app.useUrlFallback === 'boolean'
-                    ? app.useUrlFallback
-                    : id === 'm8-shortcuts',
-            }
-        })
-        .filter((app): app is ExternalAppConfig => app !== null)
-
-    const normalizedApps = externalApps.length > 0 ? externalApps : fallbackApps
-    const activeExternalAppId = normalizedApps.some((app) => app.id === settings.activeExternalAppId)
-        ? settings.activeExternalAppId
-        : normalizedApps[0]?.id ?? null
-
-    return {
-        externalApps: normalizedApps,
-        activeExternalAppId,
-    }
 }
 
 export type Settings = {
@@ -210,19 +109,34 @@ const defaultSettings: Settings = {
     zoomViewKey: DEFAULT_ZOOM_VIEW_KEY,
 }
 
+// Stored settings as an object, or null when the value is not a JSON object
+const parseStoredSettings = (raw: string): Partial<Settings> | null => {
+    try {
+        const parsed: unknown = JSON.parse(raw)
+        return parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as Partial<Settings>) : null
+    } catch {
+        return null
+    }
+}
+
 const loadInitialSettings = (): Settings => {
     if (typeof window === 'undefined' || !window.localStorage) {
         return defaultSettings
     }
 
     const raw = window.localStorage.getItem(SETTINGS)
-    if (!raw) {
+    const storedSettings = raw ? parseStoredSettings(raw) : null
+    if (!storedSettings) {
+        if (raw) {
+            // Unreadable settings must not crash the app: start from defaults, keeping the old value aside
+            console.warn('[settings] Stored settings are unreadable, falling back to defaults')
+            window.localStorage.setItem(CORRUPT_SETTINGS_BACKUP, raw)
+        }
         window.localStorage.setItem(SETTINGS, JSON.stringify(defaultSettings))
         window.localStorage.setItem(EXTERNAL_APPS_DEFAULTS_VERSION_KEY, EXTERNAL_APPS_DEFAULTS_VERSION)
         return defaultSettings
     }
 
-    const storedSettings: Partial<Settings> = JSON.parse(raw)
     const normalizedStoredSettings: Partial<Settings> = {
         ...storedSettings,
         backgroundShader: normalizeBackgroundShaderValue(storedSettings.backgroundShader),
@@ -248,23 +162,25 @@ const SettingsContext = React.createContext<SettingsContextValue>({
     updateSettingValue: () => { },
 })
 
+const persistSettings = (settings: Settings) => {
+    if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(SETTINGS, JSON.stringify(settings))
+    }
+}
+
 export const SettingsProvider = ({ children }: { children?: React.ReactNode }) => {
     const [settingsContextValues, setSettingsContextValues] = useState<Settings>(() => loadInitialSettings())
     const updateSettingValue = useCallback(
         <K extends keyof Settings>(settingName: K, value: Settings[K]) => {
-            setSettingsContextValues((prev) => {
-                const newSettingsValues = normalizeSettings({
-                    ...prev,
-                    [settingName]: value,
-                })
-                if (typeof window !== 'undefined' && window.localStorage) {
-                    window.localStorage.setItem(SETTINGS, JSON.stringify(newSettingsValues))
-                }
-                return newSettingsValues
-            })
+            setSettingsContextValues((prev) => normalizeSettings({ ...prev, [settingName]: value }))
         },
         [],
     )
+
+    // Persist after the state commits, so the updater above stays free of side effects
+    useEffect(() => {
+        persistSettings(settingsContextValues)
+    }, [settingsContextValues])
 
     return <SettingsContext.Provider value={{ settings: settingsContextValues, updateSettingValue }}>{children}</SettingsContext.Provider>
 }

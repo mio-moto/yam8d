@@ -3,7 +3,6 @@ import type { Edge } from '../../utils/astar'
 type EdgeJson = { to: string; dir?: 'up' | 'down' | 'left' | 'right'; keys?: number[]; weight?: number }
 
 let loadedGraph: Map<string, Edge[]> | null = null
-let loadedViewList: Set<string> | null = null
 // Optional per-edge key sequences (from -> to -> frames)
 let loadedEdgeKeys: Map<string, Map<string, number[]>> | null = null
 
@@ -42,26 +41,3 @@ export const loadM8GraphJson = async (): Promise<Map<string, Edge[]>> => {
 
 export const getLoadedGraph = () => loadedGraph
 export const getLoadedEdgeKeys = () => loadedEdgeKeys
-
-export const loadViewList = async (): Promise<Set<string>> => {
-    const base = (import.meta as unknown as { env: { BASE_URL?: string } }).env?.BASE_URL || '/'
-    try {
-        const url = `${base}viewlist.json`
-        const res = await fetch(url, { cache: 'no-cache' })
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        const json = (await res.json()) as { views: string[] }
-        const list: string[] = Array.isArray(json.views) ? json.views : []
-        const set = new Set<string>()
-        list
-            .map((s) => String(s).trim().toLowerCase())
-            .filter((s) => !!s)
-            .forEach((s) => { set.add(s) })
-        loadedViewList = set
-        return set
-    } catch (_e) {
-        loadedViewList = null
-        return new Set<string>()
-    }
-}
-
-export const getLoadedViewList = () => loadedViewList

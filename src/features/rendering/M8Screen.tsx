@@ -4,9 +4,9 @@ import type { ConnectedBus } from '../connection/connection'
 import type { CharacterCommand, RectCommand, SystemCommand, WaveCommand } from '../connection/protocol'
 import { shouldIgnoreAppKeyboardEvent } from '../inputs/inputGate'
 import { useSettingsContext } from '../settings/settings'
-import { vjActiveKeyAtom } from '../state/viewStore'
 import type { ScreenLayout } from './renderer'
 import { findSavedShaderById, WEBCAM_VIDEO_SOURCE } from './shaderLibrary'
+import { vjActiveKeyAtom } from './vjState'
 import type { DrawCommand, WorkerInMessage, WorkerOutMessage } from './renderer.worker'
 
 const makeScreenLayout = ({ model, fontMode }: SystemCommand): ScreenLayout => {

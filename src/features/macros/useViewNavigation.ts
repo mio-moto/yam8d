@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef } from 'react'
 import type { Edge } from '../../utils/astar'
 import type { ConnectedBus } from '../connection/connection.ts'
-import { useMacroStatus, useViewName } from '../state/viewStore'
-import { getLoadedEdgeKeys, getLoadedGraph, loadM8GraphJson, loadViewList } from './m8GraphLoader'
+import { useViewName } from '../state/viewStore'
+import { loadViewList } from '../state/viewList'
+import { getLoadedEdgeKeys, getLoadedGraph, loadM8GraphJson } from './m8GraphLoader'
+import { useMacroStatus } from './macroStatus'
 import { useMacroRunner } from './macroRunner'
 import { computePagePath, toKeyMasks } from './navAStar'
 

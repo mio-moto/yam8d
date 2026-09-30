@@ -1,4 +1,4 @@
-import { DEFAULT_CUSTOM_BACKGROUND_SHADER, DEFAULT_CUSTOM_BACKGROUND_SHADER_NAME } from '../settings/settings'
+import { DEFAULT_CUSTOM_BACKGROUND_SHADER, DEFAULT_CUSTOM_BACKGROUND_SHADER_NAME } from './defaultSpectrumShader'
 import CyberPunkShaderSource from './shader/cyberpunk.frag?raw'
 import FontAtlasGlitchShaderSource from './shader/font_atlas_glitch.frag?raw'
 import VideoBackgroundShaderSource from './shader/video_background.frag?raw'

@@ -19,7 +19,7 @@ import {
     type CursorRect,
     type RGB,
 } from './viewStore'
-import { getLoadedViewList, loadViewList } from '../macros/m8GraphLoader'
+import { getLoadedViewList, loadViewList } from './viewList'
 
 // Heuristics aligned with existing extraction logic
 const STABILIZE_MS = 50

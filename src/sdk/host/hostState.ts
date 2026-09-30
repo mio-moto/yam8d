@@ -11,12 +11,12 @@ import {
     currentLineAtom,
     titleColorAtom,
     backgroundColorAtom,
-    macroStatusAtom,
     deviceModelAtom,
     fontModeAtom,
     systemInfoAtom,
     cellMetricsAtom,
 } from '../../features/state/viewStore'
+import { macroStatusAtom } from '../../features/macros/macroStatus'
 import type { M8State } from '../types'
 
 // Helper to get current state from all atoms
