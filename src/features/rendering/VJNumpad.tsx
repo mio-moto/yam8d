@@ -3,27 +3,7 @@ import { useAtom } from 'jotai'
 import { useEffect, useRef, useState } from 'react'
 import { useSettingsContext } from '../settings/settings'
 import { vjActiveKeyAtom } from '../state/viewStore'
-
-const STORAGE_KEY = 'M8savedBackgroundShaders'
-
-type SavedBackgroundShader = {
-  id: string
-  name: string
-  source: string
-  compositeM8Screen: boolean
-  videoUrl?: string
-  updatedAt: number
-}
-
-const loadSavedShaders = (): SavedBackgroundShader[] => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return []
-    return JSON.parse(raw) as SavedBackgroundShader[]
-  } catch {
-    return []
-  }
-}
+import { loadSavedShaders, type SavedBackgroundShader } from './shaderLibrary'
 
 // Numpad layout: row-major, [key, col, row] — matches physical numpad
 const NUMPAD_KEYS = [
