@@ -26,7 +26,9 @@ import {
     systemInfoAtom,
     cellMetricsAtom,
 } from '../features/state/viewStore'
+import { getScreenLines, SCREEN_ROWS } from '../features/state/viewExtractor'
 import type {
+    M8Screen,
     M8State,
     M8HostMethods,
     M8ClientMethods,
@@ -36,6 +38,8 @@ import type {
     M8KeyName,
 } from './types'
 
+
+const SCREEN_COLUMNS = 40
 
 // Helper to get current state from all atoms
 const getCurrentState = (): M8State => {
@@ -1505,6 +1509,46 @@ export const useM8SdkHost = (bus: ConnectedBus | undefined, config: M8SdkConfig 
             return searchTerms.some(term => exact ? term === normalizedTarget : term.includes(normalizedTarget))
         }
 
+        // The whole screen is readable, so a match anywhere in the visible list can be
+        // reached directly instead of stepping through every row above it. Screen line
+        // index === cursor grid row, so the row delta is the number of steps to take.
+        const findMatchingRowOnScreen = (cursorY: number): number | null => {
+            let bestRow: number | null = null
+            getScreenLines().forEach((line, row) => {
+                if (!entryMatchesTarget(line.trim())) return
+                if (bestRow === null || Math.abs(row - cursorY) < Math.abs(bestRow - cursorY)) {
+                    bestRow = row
+                }
+            })
+            return bestRow
+        }
+
+        // 'none': nothing visible matches (cursor untouched). 'failed': we moved toward a
+        // visible match but the cursor never landed on it (e.g. stale screen); callers
+        // should stop using this shortcut for the current directory.
+        const selectVisibleMatch = async (): Promise<'found' | 'none' | 'failed'> => {
+            for (let i = 0; i < SCREEN_ROWS * 2; i++) {
+                const snapshot = getFileBrowserSnapshot()
+                const cursorY = snapshot.cursorPos?.y
+                if (cursorY === undefined || cursorY === null) return i === 0 ? 'none' : 'failed'
+
+                const row = findMatchingRowOnScreen(cursorY)
+                if (row === null) return i === 0 ? 'none' : 'failed'
+
+                if (row === cursorY) {
+                    const entry = getSelectedFileBrowserEntry(snapshot)
+                    if (!entryMatchesTarget(entry)) return 'failed'
+                    browseLog('match found on screen', { entry, y: cursorY })
+                    await stepFileBrowser(M8KeyMask.Edit, 500)
+                    return 'found'
+                }
+
+                const result = await stepFileBrowser(getStepMask(row < cursorY ? 'up' : 'down'), 250)
+                if (!result.changed) return 'failed'
+            }
+            return 'failed'
+        }
+
         const getPrimaryFileSearchTerm = (entry: string | null): string | null => {
             if (!isM8FileEntry(entry)) return null
             const terms = getFileEntrySearchTerms(entry)
@@ -1644,6 +1688,8 @@ export const useM8SdkHost = (bus: ConnectedBus | undefined, config: M8SdkConfig 
                 return 'continue'
             }
 
+            let visibleShortcutUsable = true
+
             if (exact) {
                 let snapshot = await moveToTopOfCurrentDirectory()
                 let allowCoarseJumps = true
@@ -1657,6 +1703,15 @@ export const useM8SdkHost = (bus: ConnectedBus | undefined, config: M8SdkConfig 
                             entry: getSelectedFileBrowserEntry(snapshot),
                             y: snapshot.cursorPos?.y,
                         })
+                    }
+
+                    if (visibleShortcutUsable) {
+                        const visible = await selectVisibleMatch()
+                        if (visible === 'found') return true
+                        if (visible === 'failed') {
+                            visibleShortcutUsable = false
+                            snapshot = getFileBrowserSnapshot()
+                        }
                     }
 
                     const entry = getSelectedFileBrowserEntry(snapshot)
@@ -1733,6 +1788,10 @@ export const useM8SdkHost = (bus: ConnectedBus | undefined, config: M8SdkConfig 
                 return false
             }
 
+            const initialVisible = await selectVisibleMatch()
+            if (initialVisible === 'found') return true
+            if (initialVisible === 'failed') visibleShortcutUsable = false
+
             const startSnapshot = getFileBrowserSnapshot()
             browseLog('fuzzy search begins', { entry: getSelectedFileBrowserEntry(startSnapshot), y: startSnapshot.cursorPos?.y })
             const initialInspection = await inspectCurrentEntry()
@@ -1776,6 +1835,12 @@ export const useM8SdkHost = (bus: ConnectedBus | undefined, config: M8SdkConfig 
             }
 
             for (let i = 0; i < 2048; i++) {
+                if (visibleShortcutUsable) {
+                    const visible = await selectVisibleMatch()
+                    if (visible === 'found') return true
+                    if (visible === 'failed') visibleShortcutUsable = false
+                }
+
                 const result = await stepFileBrowser(getStepMask('down'), 250)
                 downwardSnapshot = result.snapshot
                 if (!result.changed) {
@@ -2015,6 +2080,10 @@ export const useM8SdkHost = (bus: ConnectedBus | undefined, config: M8SdkConfig 
                     },
                     getState: async (): Promise<M8State> => {
                         return getCurrentState()
+                    },
+                    getScreen: async (): Promise<M8Screen> => {
+                        const lines = getScreenLines()
+                        return { width: SCREEN_COLUMNS, height: SCREEN_ROWS, lines }
                     },
                 }
 

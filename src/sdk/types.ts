@@ -34,6 +34,13 @@ export interface M8State {
     macroSequenceLength?: number
 }
 
+// Whole-screen text capture: one string per screen row (columns preserved, trailing spaces trimmed)
+export interface M8Screen {
+    width: number
+    height: number
+    lines: string[]
+}
+
 // M8 Key names for sendKeyPress
 export type M8KeyName = 'left' | 'right' | 'up' | 'down' | 'shift' | 'play' | 'opt' | 'edit'
 
@@ -65,6 +72,8 @@ export interface M8HostMethods {
 
     // Get current state
     getState(): Promise<M8State>
+    /** Whole screen as text rows, read straight from the character stream (no cursor movement) */
+    getScreen(): Promise<M8Screen>
 }
 
 // Methods exposed by the client (iframe) to the host (parent) - if needed

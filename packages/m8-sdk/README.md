@@ -25,6 +25,7 @@ Client SDK for iframe applications that communicate with an M8 tracker host via 
   - [M8State](#m8state)
   - [CursorPos / CursorRect / RGB / SystemInfos](#cursorpos--cursorrect--rgb--systeminfos)
   - [M8SemanticContext](#m8semanticcontext)
+  - [M8DescriptionPart](#m8descriptionpart)
   - [M8ParsedRow](#m8parsedrow)
   - [M8ActiveField / M8ParsedField](#m8activefield--m8parsedfield)
   - [M8FieldType](#m8fieldtype)
@@ -287,11 +288,38 @@ if (ctx?.activeField?.type === 'chainRef') {
 
 Returns a human-readable one-liner, e.g.:
 
-- `"Track 3 — Chain 0A — Song View row 02"`
-- `"Note A#4 — Step 7 (Phrase View)"`
-- `"FX1 Command: KIL (Kill Note) — Step 0 — Phrase View row 03"`
+- `"Track 3: 0A — Track 3 — Song View row 01"`
+- `"Note (N): Note C-4 — Phrase View row 00"`
+- `"FX2 Command: KIL — (Kill: stops the playing instrument after XX ticks) — value 03: stops the note after 3 ticks — Phrase View row 01"`
 
-Returns `null` when not connected or no view is active.
+Returns `null` when not connected or no view is active. It is the text of `describeContextParts()` joined with `' — '`.
+
+It reads the cursor against its surroundings when that changes the meaning:
+
+- **FX values are explained** — `ARP37` on `C-4` → `"+3 and +7 semitones: C-4 D#4 G-4"`, `KIL04` → `"stops the note after 4 ticks"`, relative instrument commands show their sign.
+- **REP is followed down its FX lane.** With `VOL10` above, `REP05` reads `"repeats VOL from 10 (step 1), +05 per step → 15 on this step"`, and an empty cell below it reads `"REP still active: VOL reaches 1A on this step (+05 per step since step 3)"`. A new command, `REP00`, or an `RTO` limit in the same lane ends or caps it. `^^` (a REP carried over from the previous phrase) is recognised when it can be attributed to one lane.
+- **Relative commands are tracked.** Per the manual, a relative instrument command (`VOL`, `CUT`, `PIT`, `EA1`… — the ones the device help marks `(RELATIVE)`) keeps its change until a note is triggered with a `RET` or with an instrument number in the `I` column. `VOL02` twice reads `"VOL has moved by +04 in 2 steps since the instrument number on step 0; stays until a note with an instrument number (I) or a RET resets it"`, REP repeats are counted, and the `I` cell or `RET` that resets it lists what it wipes (`"resets the relative changes still in force (CUT +10, VOL +0B)"`). Only the current phrase is visible, so totals start at the phrase's own last reset.
+- **Instrument-type commands say who offers them.** `FM3` → `"…; offered by FM Synth instruments"`.
+- **Scale View** names the scale the enabled notes spell (`"Scale: C D E F G A B — Major (Ionian)"`), says what the row under the cursor is (`"E — a major 3rd (+4 semitones above C) — is in the scale"`), reports detuning, and explains the KEY / TUNE / NAME rows.
+
+The surroundings come from a copy of the screen that the client refreshes in the background after every state event. It is only used when its row under the cursor still matches `currentLine`; otherwise the description quietly falls back to the cursor row alone. Call `await m8.getScreen()` or `await m8.captureSnapshot()` first when you need it guaranteed current.
+
+#### `describeContextParts(): M8DescriptionPart[] | null`
+
+The same description as ordered, tagged parts, so you can keep, drop, reorder or style some of them instead of parsing the string:
+
+```ts
+m8.describeContextParts()
+// [{ kind: 'field',    text: 'FX2 Command: KIL' },
+//  { kind: 'fxInfo',   text: '(Kill: stops the playing instrument after XX ticks)' },
+//  { kind: 'meaning',  text: 'value 03: stops the note after 3 ticks' },
+//  { kind: 'location', text: 'Phrase View row 01' }]
+
+// Your own view label instead of the SDK's location:
+const text = m8.describeContextParts()?.filter((p) => p.kind !== 'location').map((p) => p.text).join(' · ')
+```
+
+See [`M8DescriptionPart`](#m8descriptionpart) for the kinds. Everything a part says is also in the context as data (`activeField`, `fxLane`, `relativeFx`, `resetsRelative`, `scaleNote`, `scale`, …), for when you want to write the text yourself.
 
 ---
 
@@ -307,9 +335,11 @@ Closes the host connection and clears all event listeners and internal state.
 
 These are re-exported from `@yam8d/m8-sdk` for use without an `M8Client` instance.
 
-### `getSemanticContext(state: M8State): M8SemanticContext | null`
+### `getSemanticContext(state: M8State, screen?: M8Screen | null): M8SemanticContext | null`
 
 Parses an `M8State` snapshot into a semantic context. Returns `null` if `state.viewName` is not set.
+
+Pass the whole `screen` (from `getScreen()`) to fill the context's look-around fields: `steps` (all 16 phrase steps), `fxLane` (what the FX cell under the cursor means in its lane), `relativeFx`, `resetsRelative`, `carriedRepLane`, and `scale` (Scale View). A screen whose cursor row no longer matches `state.currentLine` is ignored. `lineText` is always set for grid views.
 
 ```ts
 import { getSemanticContext } from '@yam8d/m8-sdk'
@@ -325,6 +355,10 @@ if (ctx?.isGridView && ctx.row) {
 
 Returns a human-readable summary of the context (see examples above).
 
+### `describeContextParts(ctx: M8SemanticContext): M8DescriptionPart[]`
+
+The summary as ordered, tagged parts; `describeContext()` joins their text with `' — '`.
+
 ### `formatFieldValue(field: M8ParsedField): string`
 
 Formats a single parsed field as a display string:
@@ -339,16 +373,39 @@ Formats a single parsed field as a display string:
 | `chainRef` / `phraseRef` / `fxCommand` / `volume` | raw value, e.g. `"0A"`, `"KIL"` |
 | empty cell | `"(empty)"` |
 
-### `lookupFxCommand(cmd: string): { description: string } | undefined`
+### `lookupFxCommand(cmd: string): M8FxCommandInfo | undefined`
 
-Looks up a 3-character FX command name (case-insensitive) across all categories (sequencer, instrument, mixer).
+Looks up a 3-character FX command name (case-insensitive) across all categories (sequencer, instrument, modulation, mixer). Modulator commands carry their slot as the third character (`EA1`, `LF3`).
 
 ```ts
 import { lookupFxCommand } from '@yam8d/m8-sdk'
 
-const info = lookupFxCommand('KIL')
-// → { description: 'Kill: stops the playing instrument after XX ticks.' }
+lookupFxCommand('KIL')
+// → { description: 'Kill: stops the playing instrument after XX ticks.',
+//     category: 'sequencer', relative: false, instrumentTypes: null, slot: null }
+lookupFxCommand('FM3')
+// → { …, category: 'instrument', relative: true, instrumentTypes: ['fmsynth'], slot: null }
+lookupFxCommand('LF3')
+// → { …, category: 'modulation', relative: false, instrumentTypes: null, slot: 3 }
 ```
+
+`instrumentTypes` lists the instrument types that offer the command when not every type does (`null` = all, or not an instrument command).
+
+### `getInstrumentFxCommands(type: string): M8InstrumentFxList | null`
+
+The instrument commands offered by an instrument type (the "Current Instrument" section of the Effect Command Help view, opened with `[EDIT]+[UP/DOWN]` on an FX command). `type` is the key from `M8SemanticContext.instrumentType.key`.
+
+```ts
+getInstrumentFxCommands('hypersynth')
+// → { type: 'hypersynth', verified: true,
+//     commands: ['VOL','PIT','FIN','CRD','CVO','SWM','WID','SUB','FIL','CUT','RES','AMP','LIM','PAN','SNC','ERR','DRY','SMX','SDL','SRV'] }
+```
+
+`verified: true` means the list was read from a real M8 (Model:02): **sampler, macrosynth, fmsynth, hypersynth**. Wavsynth and External were not available on that device, so their lists are unknown (`null`); `midiout` only holds the documented `CHD`/`ADD`. The Sequencer FX and Mixer/Effects sections are the same for every type, and the Instrument Mods section depends on the kind of each modulator slot (envelope: `EA AT HO DE ET`, LFO: `LA LO LS LF LT`).
+
+### `RELATIVE_FX_RULE: string`
+
+The manual's rule for relative commands, for tooltips.
 
 ---
 
@@ -398,11 +455,51 @@ interface M8SemanticContext {
   viewDescription: string | null // long description from schema
   viewId: string | null          // item ID parsed from screen title, e.g. 'F2', '03'; null for song/instrumentpool
   isUnsaved: boolean             // true when the title carries a '*' suffix (unsaved changes)
-  isGridView: boolean            // true for song/chain/phrase/table/groove/instrumentpool
+  isGridView: boolean            // true for song/chain/phrase/table/groove/scale/instrumentpool
+  isParameterView: boolean       // true for the label/value views (inst, mixer, project, …)
+  section: string | null         // effectsettings: 'MODFX' | 'DELAY' | 'REVERB'
+  instrumentType: { text: string; key: string | null } | null // inst view + screen, e.g. { text: 'WAVSYNTH', key: 'wavsynth' }
   row: M8ParsedRow | null        // all columns on the line at cursorPos.y
   activeField: M8ActiveField | null  // the column currently under the cursor
+  lineText: string | null            // cursor row text, playback marker removed
+  steps: M8ParsedRow[] | null        // phrase view + screen: all 16 steps (index = step)
+  carriedRepLane: number | null      // FX lane (1–3) showing '^^' (REP from previous phrase)
+  fxLane: M8FxLaneTrace | null       // phrase view + screen: what the FX cell means in its lane
+  relativeFx: Record<string, M8RelativeFxState> | null // phrase view + screen: relative commands in force, with net change since the last trigger
+  resetsRelative: Record<string, M8RelativeFxState> | null // phrase view + screen: when the cursor step triggers the instrument (I number or RET), the relative changes it puts back
+  scaleNote: M8ScaleNote | null      // scale view: the interval row under the cursor { interval, semitone, enabled, offset }
+  scale: M8ScaleInfo | null          // scale view + screen: the 12 intervals interpreted together
 }
 ```
+
+### `M8DescriptionPart`
+
+```ts
+interface M8DescriptionPart {
+  kind: M8DescriptionPartKind
+  text: string
+}
+```
+
+Parts come in reading order; a kind can appear more than once.
+
+| Kind | Example |
+|---|---|
+| `field` | `"FX1 Command: KIL"`, `"Tempo (TEMPO): 120.00 BPM"` |
+| `fxInfo` | `"(Kill: stops the playing instrument after XX ticks)"` |
+| `fxTarget` | on an FX value: `"for KIL (…)"` |
+| `meaning` | `"value 03: stops the note after 3 ticks"`, `"E is detuned by −0.50 st"` |
+| `fxLane` | `"REP still active: VOL reaches 09 on this step (+02 per step since step 1)"` |
+| `relative` | `"relative: VOL has moved by +0C over 2 steps since …"`, `"triggers the instrument again: resets …"` |
+| `optionInfo` | what the selected option does |
+| `fieldInfo` | what the field is |
+| `fileInfo` | `"directory: [EDIT] opens it"` |
+| `instrument` | `"Wavsynth instrument"` |
+| `section` | `"Delay"`, `"MOD2"` |
+| `scale` | `"Scale: C D E F G A B"`, `"Major (Ionian); detuned: E −0.50 st"` |
+| `track` | `"Track 3"` |
+| `location` | `"Phrase View row 07"`, `"Mixer View"` |
+| `line` | the cursor row's text, when no field on it is recognised |
 
 ### `M8ParsedRow`
 
@@ -410,6 +507,7 @@ interface M8SemanticContext {
 interface M8ParsedRow {
   rowIndex: number | null                   // hex row index from leftmost chars; null if unparseable
   rowKey: string                            // schema key, e.g. 'songRow', 'step', 'chainPos'
+  rowId: string | null                      // parameter views: matched schema row ('tempo', 'gain', …)
   fields: Record<string, M8ParsedField>     // column key → parsed field
 }
 ```
@@ -427,6 +525,15 @@ interface M8ParsedField {
   hexValue: number | null            // parsed integer; null for empty cells and text types
   isEmpty: boolean                   // true when '--', '---', '---00', etc.
   meta?: Record<string, unknown>     // view-specific extras (e.g. { trackIndex: 3 })
+  // parameter views (all optional):
+  description?: string               // what the field is
+  text?: string | null               // non-numeric part: option name, caption, name, instrument type
+  numericValue?: number | null       // value in its natural base (hex, decimal, fractional)
+  values?: number[] | null           // both numbers of an 'XX:YY' pair
+  parts?: string[]                   // names of those numbers, e.g. ['left time', 'right time']
+  unit?: string                      // e.g. ' BPM', ' dB'
+  valueDescription?: string          // what the selected option does
+  fileKind?: M8FileKind              // file browser rows: 'parent' | 'directory' | 'instrumentPreset' | 'sample' | 'm8file' | 'file'
 }
 
 interface M8ActiveField extends M8ParsedField {
@@ -453,6 +560,16 @@ type M8FieldType =
   | 'instrumentName' // instrument name text ≤12 chars; no hexValue
   | 'eqSlot'         // EQ slot assignment hex; '--' = none
   | 'rowIndex'       // row/step index hex
+  | 'noteInterval'   // scale view row label: C, C#, D, …
+  | 'onOff'          // 'ON' / 'OFF' toggle
+  | 'semitoneOffset' // scale view detune, e.g. '-00.50'
+  | 'swing'          // groove swing percentage
+  | 'instrumentType' // instrument engine: WAVSYNTH, SAMPLER, FMSYNTH, …
+  | 'name'           // free-text name field; dashes = unnamed
+  | 'parameter'      // named editable value: CUTOFF, TEMPO, GAIN, …
+  | 'option'         // choice from a list: '00CHORUS', 'BELL', 'STEREO'
+  | 'action'         // button: LOAD, SAVE, RENDER, SETTINGS, EQ, …
+  | 'fileEntry'      // file browser row: '/folder', '/..', 'Bass.m8i'
 ```
 
 ### `M8KeyName`
@@ -495,16 +612,28 @@ The semantic context parser supports these `viewName` values:
 | `chain` | `phrase` (phraseRef), `transpose` |
 | `phrase` | `note`, `vel`, `inst`, `fx1cmd`, `fx1val`, `fx2cmd`, `fx2val`, `fx3cmd`, `fx3val` |
 | `table` | `transpose`, `volume`, `fx1cmd`, `fx1val`, `fx2cmd`, `fx2val`, `fx3cmd`, `fx3val` |
-| `groove` | `ticks`, `ppq` (row 0 only) |
+| `groove` | `ticks`, `ppq` (row 0 only), `swing` (row 0 only) |
+| `scale` | `interval`, `en` (onOff), `offset` (semitoneOffset) |
 | `instrumentpool` | `name`, `dry`, `mx`, `de`, `rv`, `eq` |
+| `inst` | header: `instrumentType`, `load`/`save` (action), `name`, `transpose` (onOff), `tableTic`, `eq`; then the type's parameters as label/value pairs (`parameter` / `option`), described per instrument type |
+| `instmods` | per modulation slot: type (`option`), `dest`, and the type's parameters (`amt`, `atk`, `hold`, `dec`, `sus`, `rel`, `peak`, `body`, `osc`, `trig`, `freq`, `src`, `lval`, `hval`) |
+| `mixer` | `speakerVol`, `track1`–`track8`, `modfxVol`/`delayVol`/`reverbVol`, `inputVol`/`inputVol2`/`usbVol` and their sends, `mixEq` (action), `mainVol`, `limiter`, `djFilter`, `ott` |
+| `project` | `tempo`, `transpose`, `groove`/`scale`/`liveQuantize` (option), `name`, and the `load`/`save`/`new`/`render`/`bundle`/… actions |
+| `effectsettings` | per `section` (MODFX / DELAY / REVERB): type, input EQ (action), depth/frequency pairs, width, sends, delay time, feedback, room size, decay/shimmer |
+| `mixeq`, `modfxeq`, `delayeq`, `reverbeq` | LOW/MID/HIGH band `gain`, `freq`, `q`, `type` (option), `mode` (option) |
+| `mixscope`, `limiterscope` | `zoom`, `peak`, `softClip`, `mainVol`, `limiter`, `djFilter`, `ott`, `mixEq`; `atk`/`rel`/`type`/`res`/`time`/`color` as label/value pairs |
+| `systemsettings` | `backlight`, `fontOptions`, `editTheme` (action), `notePreview`, `recCountIn`, `metronomeVol`, `usbAudioMode`, `usbMainOut`, `lineInGate`, `keyDelayRep`, … |
+| `loadinstrument`, `selectsavedirectory` | `entry` (fileEntry) |
+| `createdirectory` | `name` |
 
-All other views (`isGridView: false`) return a context with `row: null` and `activeField: null`.
+Grid views are read by column position (`src/m8-view-context.json`). Parameter views are label/value screens: a row is recognised from its label text and its cells come from `src/m8-parameter-views.json`, whose column positions were measured on the manual's screenshots. Instrument parameters vary with the instrument type, so they are read as label/value pairs and looked up in a per-type vocabulary. Layouts that only appear for some instrument types (Sampler `SAMPLE` row, FM operators, Hypersynth chord, MIDI CC rows) are best-effort.
 
 ---
 
 ## Notes
 
-- **Playback indicator** — When a row is actively playing the M8 prepends `<` or `>` to `currentLine`. The SDK strips this automatically before parsing so column offsets remain consistent.
+- **Screen geometry** — The screen is 40 × 24 characters. Every row has a one-column left margin, so schema `x` positions count from column 1 and `cursorPos.x` is the schema `x` + 1 (the SDK accounts for this). Titles are on row 3 and content starts on row 5. The text stream is lower case (`tempo`, `b-4`, `ff`); the SDK matches case-insensitively and shows values upper case, except user-typed names and file names.
+- **Playback indicator** — When a row is actively playing the M8 draws `<` or `>` in the left margin, so it appears as the first character of `currentLine`. The SDK strips this automatically before parsing so column offsets remain consistent.
 - **Font mode** — All column offsets assume font mode 0 (Headless: 8×10 px cells; Model:02: 12×14 px cells). Font modes 1 (bold) and 2 (large) may shift positions.
 - **Schema file** — View and column definitions live in `src/m8-view-context.json` and are bundled into `dist/index.js` at build time.
 - **Requirement** — The app must run inside the yam8d host iframe. The `ChildHandshake` from `post-me` will never resolve in a standalone tab.
@@ -565,7 +694,9 @@ The SDK can interpret the current cursor position and row text as typed, labelle
 const ctx = m8.getSemanticContext()
 // or as a human-readable string:
 const description = m8.describeContext()
-// e.g. "Track 3 — Chain 0A — Song View row 02"
+// e.g. "Track 3: 0A — Track 3 — Song View row 01"
+// or as tagged parts to build your own:
+const parts = m8.describeContextParts()
 ```
 
 ### Standalone functions
@@ -645,6 +776,16 @@ interface M8ParsedField {
 | `instrumentName` | Instrument name text (up to 12 chars). No `hexValue`. |
 | `eqSlot` | EQ slot assignment (hex). `--` = none. |
 | `rowIndex` | Row/step index (hex). |
+| `noteInterval` | Scale View row label (`C`, `C#`, …). |
+| `onOff` | `ON` / `OFF` toggle. |
+| `semitoneOffset` | Scale View detune, e.g. `-00.50`. |
+| `swing` | Groove swing percentage. |
+| `instrumentType` | Instrument engine (`WAVSYNTH`, `SAMPLER`, …); `text` holds the name. |
+| `name` | Free-text name field; a row of dashes = unnamed. |
+| `parameter` | Named editable value (`CUTOFF`, `TEMPO`, `GAIN`); read `hexValue` / `numericValue` / `values`. |
+| `option` | Choice from a list (`00CHORUS`, `BELL`); `hexValue` is the index when shown, `text` the name. |
+| `action` | Button caption (`LOAD`, `SAVE`, `RENDER`, `SETTINGS`); `text` holds it. |
+| `fileEntry` | File browser row: `/folder`, `/..`, or a file name. |
 
 ### Playback indicator
 

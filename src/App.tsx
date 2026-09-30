@@ -11,6 +11,7 @@ import { M8Player } from './features/M8Player'
 import { useMacroInput } from './features/macros/useMacroInput'
 import { Menu } from './features/settings/menu'
 import { useSettingsContext } from './features/settings/settings'
+import { useZoomViewShortcut } from './features/settings/useZoomViewShortcut'
 import { VirtualKeyboard } from './features/virtualKeyboard/VirtualKeyboard'
 //import { ProgramChangeKeyboard } from './features/virtualKeyboard/ProgramChangeKeyboard'
 import { ExternalAppsDisplay } from './features/externalApps/ExternalAppsDisplay'
@@ -96,6 +97,7 @@ export const App: FC = () => {
 
   useM8Input(connectedBus)
   useMacroInput(connectedBus)
+  useZoomViewShortcut()
 
   return (
     <>

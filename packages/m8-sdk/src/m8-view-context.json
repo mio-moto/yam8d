@@ -4,30 +4,42 @@
   "notes": {
     "fontMode": "All x/width values assume font mode 0 (standard, 12×14 px cells, 40 cols × ~22 rows). Font modes 1 (bold uppercase) and 2 (large) may shift column positions.",
     "playbackIndicator": "The M8 renders a '>' character one column to the left of the first data column when that step/row/track is currently playing. This character is part of the text stream; the editing cursor is a separate rect overlay.",
+    "screenGeometry": "The screen is 40 columns x 24 rows. Every row has a one-column left margin (the playback marker is drawn in it), so x positions in this schema count from column 1 of the raw screen and cursorPos.x is the schema x + 1. Titles are on row 3, content starts on row 5. The text stream is lower case ('tempo', 'b-4', 'ff').",
     "emptyCell": "An empty or unused cell displays '--' (2 chars) or '---' (3 chars) or '---00' (command+value). Parsed hexValue will be null for these.",
     "relativeHex": "Transpose and some FX values use relative hex: 00 = no change, 01-7F = +1-127, FF-80 = -1-128. See 'Relative and Absolute FX Commands' in the manual.",
-    "rowIndex": "Row/step indices are parsed from the leftmost characters of currentLine. They are hex for all grid views."
+    "rowIndex": "Row/step indices are parsed from the leftmost characters of currentLine. They are hex for all grid views.",
+    "titleAsterisk": "A '*' next to the item ID in the screen title (e.g. 'PHRASE 03*') indicates the item is used elsewhere in the chain or song (phrase view); on other views it marks unsaved changes. See 'An asterisk next to the phrase number' in the manual."
   },
   "fieldTypes": {
     "chainRef":      "Reference to a chain number (hex 00-FF). '--' means empty/unused.",
     "phraseRef":     "Reference to a phrase number (hex 00-FF). '--' means empty/unused.",
     "note":          "Musical note in M8 format: [A-G][#|-][0-9] e.g. 'C-4', 'A#3'. '---' = empty. 'OFF' = note-off.",
-    "velocity":      "Note velocity 00-7F (hex). Default is 64 (hex). '--' = inherit.",
+    "velocity":      "Note velocity 00-7F (hex), from 00 (silence) to 7F (maximum). Default is 64 (hex). '--' = inherit.",
     "instrumentRef": "Instrument number 00-7F (hex). '--' = no retrigger (keep current instrument).",
     "fxCommand":     "3-character sequencer or instrument FX command name, e.g. 'KIL', 'ARP', 'DEL'. '---' = none.",
     "fxValue":       "2-char hex value 00-FF accompanying an FX command. Interpretation depends on the command.",
     "transpose":     "Semitone or tick transpose. Relative: 00=none, 01-7F=+1-+127, FF-80=-1--128.",
     "ticks":         "Number of ticks this step consumes in a groove (hex 01-FF). '00' skips the step. '--' = empty (groove loops at this point).",
-    "volume":        "Volume multiplier 00-FF (hex). Multiplied with the phrase-row velocity. '--' = no override.",    "ppq":           "Pulses Per Quarter note: resolution of the groove clock (decimal). Only editable on groove row 0.",
+    "volume":        "Volume multiplier 00-FF (hex). Multiplied with the phrase-row velocity. '--' = no override.",    "ppq":           "Pulses Per Quarter note: resolution of the groove clock (decimal). One of 24 (default), 48, 96 or 192. Only present on groove row 0; absent on all other rows.",
     "instrumentName": "Instrument name string (up to 12 characters). Text field, no hex value.",
     "eqSlot":         "EQ slot assignment (hex). '--' = no EQ applied to this instrument.",
-    "rowIndex":       "The positional index of this row in the current view (song row, chain position, phrase step, etc.)."
+    "rowIndex":       "The positional index of this row in the current view (song row, chain position, phrase step, etc.).",
+    "noteInterval":   "Scale row label: one of the 12 note intervals C, C#, D, D#, E, F, F#, G, G#, A, A#, B (sharps use '#', naturals may render a dim '-' pad, e.g. 'C-').",
+    "onOff":          "Toggle field displayed as 'ON' or 'OFF' ('--' = unset). Used by the scale view 'EN' column.",
+    "semitoneOffset": "Signed semitone offset in decimal notation with two decimals (-24.00 to +24.00), e.g. '00.00', '-00.50', '12.00'. Used by the scale view 'OFFSET' column.",
+    "swing":          "Groove swing amount as a percentage with one decimal, e.g. '50.0%' = straight timing, higher = swung. Shown on every second groove row (0, 2, 4, …): the swing of that pair of steps (ticks 07,05 → 58.3%).",
+    "instrumentType": "Instrument engine chosen with the TYPE field of the Instrument view: WAVSYNTH, MACROSYN, SAMPLER, FMSYNTH, HYPERSYNTH, EXTERNAL INST, MIDI OUT (NONE for an unused slot). Text value; changes which parameters the view shows.",
+    "name":           "Free-text name field (instrument, song, sample, directory). Up to 12 characters; a row of dashes means unnamed.",
+    "parameter":      "Editable value of a named parameter (CUTOFF, TEMPO, GAIN, …). Its 'format' says how to read it: hex byte, 'XX:YY' pair, decimal, decimal with a fraction, or free text.",
+    "option":         "Choice from a list, shown as its name, optionally preceded by its index in hex (e.g. '00CHORUS', 'STEREO', 'BELL'). hexValue holds the index when there is one, text holds the name.",
+    "action":         "Button-like text that does something when [EDIT] is pressed on it (LOAD, SAVE, RENDER, SETTINGS, VIEW INST. POOL, EQ, …). The text is the caption.",
+    "fileEntry":      "Row of a file browser: '/name' is a directory, '/..' the parent directory, anything else a file (e.g. 'Bass.m8i')."
   },
   "views": {
     "song": {
       "title": "Song View",
       "type": "grid",
-      "description": "Arranges chains across 8 independent tracks to form the song structure. Each row is a song position; each column is a track.",
+      "description": "Arranges chains across 8 independent tracks to form the song structure. Each row is a song position (up to 256 rows); each column is a track. Each track advances vertically until it reaches an empty column ('--'), then loops back to row 00. Chains containing no notes are grayed out; chains '00' or 'FE' are commonly used as silent spacers. On row '00', [UP][UP] enters track reordering mode.",
       "rowField": {
         "x": 0, "width": 2, "parse": "hex", "type": "rowIndex",
         "key": "songRow", "description": "Song row 00-FF. Each track loops back to row 00 when it reaches '--'."
@@ -46,7 +58,7 @@
     "chain": {
       "title": "Chain View",
       "type": "grid",
-      "description": "An ordered list of up to 16 phrases. The first '--' phrase ends the chain and loops back to the song.",
+      "description": "An ordered list of up to 16 phrases (256 steps). The first '--' phrase ends the chain and the song continues on to the next chain in the song view. The 'TSP' column optionally transposes every note in the phrase in semitones (relative hex).",
       "rowField": {
         "x": 0, "width": 1, "parse": "hex", "type": "rowIndex",
         "key": "chainPos", "description": "Position within the chain (0-F, max 16 entries)."
@@ -59,7 +71,7 @@
     "phrase": {
       "title": "Phrase View",
       "type": "grid",
-      "description": "A 16-step sequence. Each step holds a note, velocity, instrument assignment, and up to 3 FX command+value pairs.",
+      "description": "A 16-step sequence. Each step holds a note, velocity, instrument assignment, and up to 3 FX command+value pairs. Notes cover 11 octaves (the full 128 MIDI note range); velocity defaults to 64 (hex); an empty instrument column plays the note without retriggering the instrument. A '*' next to the phrase number indicates the phrase is used elsewhere in the chain or song.",
       "rowField": {
         "x": 0, "width": 1, "parse": "hex", "type": "rowIndex",
         "key": "step", "description": "Step index 0-F (16th note by default; altered by groove)."
@@ -79,7 +91,7 @@
     "table": {
       "title": "Table View",
       "type": "grid",
-      "description": "A 16-step mini-sequencer that runs alongside an instrument. Used for arpeggios, multi-stage envelopes, and automated FX.",
+      "description": "A 16-step mini-sequencer that runs alongside an instrument. Used for arpeggios, multi-stage envelopes, and automated FX. The 'N' column transposes the instrument for the step (relative hex); 'V' multiplies with the phrase-row velocity. Each instrument has a dedicated table plus 128 assignable tables (TBL command). FX columns can run at independent speeds via TIC; a TIC on the last table row affects all rows. HOP shortens or loops the table.",
       "rowField": {
         "x": 0, "width": 1, "parse": "hex", "type": "rowIndex",
         "key": "step", "description": "Table step 0-F. Loops from bottom unless a HOP command redirects."
@@ -98,20 +110,31 @@
     "groove": {
       "title": "Groove View",
       "type": "grid",
-      "description": "Defines the timing of each phrase step in ticks. Used to create swing, shuffle, triplets, and other rhythmic feels.",
+      "description": "Defines the timing of each phrase step in ticks. Used to create swing, shuffle, triplets, and other rhythmic feels. At the default 24 PPQ a step is 6 ticks and a full phrase totals 96 ticks. The groove loops when a '--' entry is reached; a '00' entry skips the phrase step. Row 0 also holds the PPQ resolution (24/48/96/192) and the SWING percentage; editing the row 0 tick value alters rows 0 and 1 together (a common swing setting is 07,05 or 08,04).",
       "rowField": {
         "x": 0, "width": 1, "parse": "hex", "type": "rowIndex",
         "key": "step", "description": "Groove step 0-F. The groove loops when a '--' entry is reached."
       },
       "columns": [
         { "x": 2, "width": 2, "key": "ticks", "type": "ticks", "label": "Ticks (TIC)", "description": "Number of ticks this step takes. Default is 06 (at 24 PPQN = 1 sixteenth note). '00' skips the step." },
-        { "x": 6, "width": 2, "key": "ppq",   "type": "ppq",   "label": "PPQ",         "description": "Pulses Per Quarter note. Only present on groove row 0; absent on all other rows." }
+        { "x": 6, "width": 2, "key": "ppq",   "type": "ppq",   "label": "PPQ",         "description": "Pulses Per Quarter note: 24, 48, 96 or 192. Only present on groove row 0; absent on all other rows." },
+        { "x": 10, "width": 5, "key": "swing", "type": "swing", "label": "Swing",       "description": "Swing amount as a percentage (e.g. '50.0%' = straight). Shown on every second row (0, 2, 4, …) for that pair of steps; empty on the others." }
+      ]
+    },
+    "scale": {
+      "title": "Scale View",
+      "type": "grid",
+      "description": "Defines and quantizes note-related events (project/chain transpose, note entry, ARP, PIT, and the MIDIOUT instrument CHD and ADD commands). Up to 16 user-defined scales per project; scale '00' is the default for all 8 tracks and can be overridden per track with SCA/SCG FX commands. Each of the 12 note intervals can be enabled ('EN' = ON) with an optional detuning offset (-24.00 to +24.00 semitones). Rows below the 12 intervals (not column-mapped) hold: KEY (global root note for the default scale), TUNE (A4 reference in Hz, e.g. '440.00'), NAME (up to 16 characters, 92 factory scales load from /Scales/Factory), and the LOAD/SAVE actions.",
+      "columns": [
+        { "x": 0, "width": 2, "key": "interval", "type": "noteInterval",   "label": "Note Interval",      "description": "Note interval row label: C, C#, D, D#, E, F, F#, G, G#, A, A#, B." },
+        { "x": 3, "width": 3, "key": "en",       "type": "onOff",           "label": "Enabled (EN)",       "description": "Enables this note interval in the scale: 'ON' or 'OFF' ('--' = unset)." },
+        { "x": 6, "width": 6, "key": "offset",   "type": "semitoneOffset",  "label": "Offset (OFFSET)",    "description": "Detune offset in semitones, decimal with two decimals (-24.00 to +24.00), e.g. '00.00'." }
       ]
     },
     "instrumentpool": {
       "title": "Instrument Pool",
       "type": "grid",
-      "description": "Lists all instrument slots with their mix routing. Each row shows the instrument name and its dry/FX send levels.",
+      "description": "Lists all 128 instrument slots with their mix routing. Each row shows the instrument name (up to 12 chars, '------------' = empty slot) and its dry/FX send levels. Mixer-related settings can be adjusted per instrument here; [EDIT] on an empty slot loads an instrument or sample.",
       "rowField": {
         "x": 0, "width": 2, "parse": "hex", "type": "rowIndex",
         "key": "instIndex", "description": "Instrument slot index 00-7F."
@@ -124,13 +147,88 @@
         { "x": 25, "width": 2,  "key": "rv",   "type": "volume",         "label": "Reverb (RV)",      "description": "Reverb send level (hex 00-FF)." },
         { "x": 28, "width": 2,  "key": "eq",   "type": "eqSlot",         "label": "EQ Slot (EQ)",    "description": "EQ slot assignment. '--' = no EQ." }
       ]
+    },
+    "inst": {
+      "title": "Instrument View",
+      "type": "parameter",
+      "description": "Per-instrument parameters for the selected slot: TYPE (Wavsynth, Macrosynth, Sampler, FM Synth, Hypersynth, External Instrument, MIDI Out), LOAD/SAVE presets, NAME, TRANSP. (enable/disable transposition from scales and transpose columns), TABLE TIC (default table speed), and EQ slot, plus the synth engine parameters. Almost every parameter has an associated FX command; highlighting a parameter and navigating to the phrase or table view sets that parameter's FX command as default."
+    },
+    "instmods": {
+      "title": "Instrument Modulation View",
+      "type": "parameter",
+      "description": "Four configurable modulation slots per instrument: AHD envelope, ADSR envelope, DRUM envelope, LFO, TRIG envelope, or TRACKING, each with a destination parameter (DEST) and optional source (SRC)."
+    },
+    "mixer": {
+      "title": "Mixer View",
+      "type": "parameter",
+      "description": "Mix levels for the 8 tracks, the 3 send effects (MX/DE/RE), the analog input (INPUT, with dual-mono mode) and USB input, the DJ filter (DJF), OTT compression, main EQ, limiter (LIM) and main volume (MIX). All signals are summed through OTT, main EQ, limiter, DJ filter and main volume. Most values are also exposed as FX commands (VMV, VMX, VDE, VRE, VT1-8, DJC/DJR/DJT, IVO/IMX/IDE/IRV, USB, ...)."
+    },
+    "project": {
+      "title": "Project View",
+      "type": "parameter",
+      "description": "Song-wide settings such as tempo, project transpose (identical to the TSP FX command), and LIVE QUANTIZE behavior for cueing tracks in live mode. [SHIFT]+[OPTION] stores a song snapshot; [SHIFT]+[EDIT] recalls it."
+    },
+    "effectsettings": {
+      "title": "Effect Settings View",
+      "type": "parameter",
+      "description": "Settings for the 3 send effects: ModFX type/depth/frequency/width, Delay time/feedback/width, and Reverb size/decay/modulation/width/freeze — all addressable via the XMT-XMW, XDT-XDR and XRS-XRZ FX commands."
+    },
+    "mixeq": {
+      "title": "Mix EQ View",
+      "type": "parameter",
+      "description": "EQ editor for the main mix EQ slot (assign with the EQM FX command). Selecting EQ in the Mixer view and pressing [EDIT] or [SHIFT]+[RIGHT] opens this view."
+    },
+    "modfxeq": {
+      "title": "ModFX EQ View",
+      "type": "parameter",
+      "description": "EQ editor for the ModFX send path."
+    },
+    "delayeq": {
+      "title": "Delay EQ View",
+      "type": "parameter",
+      "description": "EQ editor for the Delay send path."
+    },
+    "reverbeq": {
+      "title": "Reverb EQ View",
+      "type": "parameter",
+      "description": "EQ editor for the Reverb send path."
+    },
+    "mixscope": {
+      "title": "Mix Scope View",
+      "type": "parameter",
+      "description": "Graphical scope of the main mix activity. Opened from the Mixer view with MIX selected via [EDIT] or [SHIFT]+[RIGHT]."
+    },
+    "limiterscope": {
+      "title": "Limiter Scope View",
+      "type": "parameter",
+      "description": "Graphical scope of the limiter's compression activity (the white line on the MIX indicator). Opened from the Mixer view with LIM selected via [EDIT] or [SHIFT]+[RIGHT]."
+    },
+    "systemsettings": {
+      "title": "System Settings View",
+      "type": "parameter",
+      "description": "System-level settings for the device."
+    },
+    "loadinstrument": {
+      "title": "Load Instrument",
+      "type": "parameter",
+      "description": "File browser for loading an instrument preset from the SD card ([EDIT] on an empty instrument slot, or LOAD in the Instrument view)."
+    },
+    "selectsavedirectory": {
+      "title": "Select Save Directory",
+      "type": "parameter",
+      "description": "File browser directory-selection step when saving a preset or project."
+    },
+    "createdirectory": {
+      "title": "Create Directory",
+      "type": "parameter",
+      "description": "File browser dialog for creating a new directory on the SD card."
     }
   },
   "fxCommands": {
     "sequencer": {
       "ARP": { "description": "Arpeggio: plays 3 notes rapidly. X=first interval semitones, Y=second interval semitones." },
-      "ARC": { "description": "Arpeggio Config: X=mode, Y=speed in ticks." },
-      "CHA": { "description": "Chance: X=probability left of command (0=never, F=always), Y=probability right." },
+      "ARC": { "description": "Arpeggio Config: X=direction and number of octaves, Y=speed in ticks." },
+      "CHA": { "description": "Chance: X=probability left of command (0=never, F=always), Y=probability right. In a table: probability for everything to the left of CHA from 00 (never) to FF (always)." },
       "DEL": { "description": "Delay: in phrase delays entire row by XX ticks; in table delays table playhead." },
       "GRV": { "description": "Groove: sets groove number XX for the current track." },
       "GGR": { "description": "Global Groove: sets groove XX for all tracks." },
@@ -138,50 +236,82 @@
       "INS": { "description": "Instrument: changes active instrument to XX as an FX command." },
       "KIL": { "description": "Kill: stops the playing instrument after XX ticks." },
       "RND": { "description": "Random: randomises the preceding FX command. X=left range, Y=right range (0=none, F=full)." },
-      "RNL": { "description": "Randomise Left: randomises the FX command to the left." },
+      "RNL": { "description": "Randomise Left: randomises the FX command to the left (X=left range, Y=right range). In the first column RNL randomises the note and instrument number in phrase, or note and velocity in table." },
       "RET": { "description": "Retrig: retriggers current row. Y≠0: retrig every Y ticks with X volume ramp. Y=0: single retrig after X ticks." },
-      "REP": { "description": "Repeat: repeats and increments the last FX command by XX each step." },
-      "RTO": { "description": "Repeat To: sets the min/max value that REP stops at." },
+      "REP": { "description": "Repeat: repeats and increments the last FX command by XX each step. Active until a new command or REP00 stops it; it does not need to appear on every row. In a table: loops the last row XX times. A double-caret '^^' appears next to an FX lane while a REP from a previous phrase is active." },
+      "RTO": { "description": "Repeat To: use after REP to hold at the given value (the min/max REP stops at). In a table, used alone: loops until the relative value is reached." },
       "RMX": { "description": "Remix: repositions the phrase playhead (Y) on tracks to the left (selected by X)." },
-      "NTH": { "description": "Nth Trigger: conditional trigger based on loop count." },
-      "PSL": { "description": "Pitch Slide (portamento): enables portamento for XX ticks." },
+      "NTH": { "description": "Nth Trigger: conditional trigger on the loop count. X=affects what is left of the command, Y=what is right (in a table: what is left)." },
+      "PSL": { "description": "Pitch Slide (portamento): slides to the given note over XX ticks." },
       "PBN": { "description": "Pitch Bend: continuous pitch slide up (00-7F) or down (80-FF)." },
       "PVB": { "description": "Vibrato: X=speed, Y=depth." },
       "PVX": { "description": "Extreme Vibrato: like PVB but with higher range." },
       "SCA": { "description": "Track Scale: X=key signature, Y=scale number for this track." },
       "SCG": { "description": "Global Scale: X=key, Y=scale number for the whole song." },
-      "SNG": { "description": "Song Hop: moves this track's song position by XX rows relative to current." },
+      "SNG": { "description": "Song Hop: moves this track's song position by XX rows relative to current. Ignored if the resulting song position is not playable." },
       "SED": { "description": "Random Seed: sets the random seed XX for this track." },
       "TBL": { "description": "Table: assigns table number XX to the current instrument." },
       "THO": { "description": "Table Hop: jumps all table columns to position 0X." },
-      "TIC": { "description": "Table Tick: sets the table tick rate. In a table, each FX column can run independently." },
-      "TBX": { "description": "Aux Table: runs table XX in parallel with the instrument table. 00=stop aux table." },
-      "TPO": { "description": "Tempo: sets song BPM to XX (hex → decimal conversion shown in help text)." },
-      "TSP": { "description": "Global Transpose: transposes the entire song by XX semitones." },
-      "NXT": { "description": "Next Track Trigger: plays instrument XX on the next track using current note/velocity." },
+      "TIC": { "description": "Table Tick: sets the table tick rate. 00 = increment row on each instrument trigger; 01-FB = ticks per row; FC = Octave Map (playing octave maps to table row); FD = Velocity Map; FE = Note Map (pair with HOP00 on row 0C to limit to 12 notes/octave); FF = increment at 200 Hz. In a table each FX column can run independently; a TIC on the last table row affects all rows." },
+      "TBX": { "description": "Aux Table: runs table XX in parallel with the instrument table. 00=stop aux table. A TIC in the same row as a TBX affects the auxiliary table's tick rate." },
+      "TPO": { "description": "Tempo: sets song BPM to XX. In a table the tempo is relative." },
+      "TSP": { "description": "Global Song Transpose: transposes the entire song by XX semitones. Identical to the transpose value in the Project View." },
+      "NXT": { "description": "Next Track Trigger: plays instrument XX on the track to the right using the current note/velocity. Does not work on track 8." },
       "OFF": { "description": "Note Off: stops the playing instrument after XX ticks. Triggers ADSR release stage." },
-      "MTT": { "description": "Micro Time: adjusts row playback timing in sub-tick (1/8 tick) amounts." }
+      "MTT": { "description": "Micro Time: adjusts row playback timing in positive or negative sub-tick (1/8 tick) amounts. Negative amounts do not work on the first phrase row. Currently has no action in tables." }
     },
     "instrument": {
-      "VOL": { "description": "Volume offset (relative)." },
-      "PIT": { "description": "Pitch offset in semitones (relative)." },
-      "FIN": { "description": "Fine tune: pitch offset -1 to +1 semitones (relative)." },
-      "EA1": { "description": "Envelope 1 Amount offset." },
-      "EA2": { "description": "Envelope 2 Amount offset." },
-      "AT1": { "description": "Envelope 1 Attack time offset." },
-      "AT2": { "description": "Envelope 2 Attack time offset." },
-      "HO1": { "description": "Envelope 1 Hold time offset." },
-      "HO2": { "description": "Envelope 2 Hold time offset." },
-      "DE1": { "description": "Envelope 1 Decay time offset." },
-      "DE2": { "description": "Envelope 2 Decay time offset." },
-      "ET1": { "description": "Retrigger Envelope 1 (any value > 00 retriggers)." },
-      "ET2": { "description": "Retrigger Envelope 2." },
-      "LA1": { "description": "LFO 1 Amount offset." },
-      "LA2": { "description": "LFO 2 Amount offset." },
-      "LF1": { "description": "LFO 1 Frequency offset." },
-      "LF2": { "description": "LFO 2 Frequency offset." },
-      "LT1": { "description": "Retrigger LFO 1 (value sets phase offset)." },
-      "LT2": { "description": "Retrigger LFO 2." }
+      "VOL": { "description": "Volume (relative).", "relative": true },
+      "PIT": { "description": "Pitch in semitones (relative).", "relative": true },
+      "FIN": { "description": "Fine tune: pitch shift of up to about one semitone (relative).", "relative": true },
+      "PLY": { "description": "Sampler play mode (FWD, REV, loop modes…)." },
+      "STA": { "description": "Sampler start position." },
+      "LOP": { "description": "Sampler loop start (relative).", "relative": true },
+      "LEN": { "description": "Sampler length (relative).", "relative": true },
+      "DEG": { "description": "Degrade amount (relative).", "relative": true },
+      "SLI": { "description": "Sampler slice to play." },
+      "ERR": { "description": "Error: randomizes pitch and parameters by the given amount." },
+      "FLT": { "description": "Filter type." },
+      "FIL": { "description": "Filter type." },
+      "ALG": { "description": "FM algorithm." },
+      "FM1": { "description": "FM modulation amount 1 (relative).", "relative": true },
+      "FM2": { "description": "FM modulation amount 2 (relative).", "relative": true },
+      "FM3": { "description": "FM modulation amount 3 (relative).", "relative": true },
+      "FM4": { "description": "FM modulation amount 4 (relative).", "relative": true },
+      "SNC": { "description": "Sync: on an FM synth the FM sync phase position; on a Hypersynth it offsets the sync of the oscillators by the given amount." },
+      "CRD": { "description": "Hypersynth chord set." },
+      "CVO": { "description": "Hypersynth chord voice offset: X=voice, Y=offset." },
+      "SWM": { "description": "Hypersynth oscillator swarm (relative).", "relative": true },
+      "WID": { "description": "Hypersynth stereo width (relative).", "relative": true },
+      "SUB": { "description": "Hypersynth sub-oscillator amount (relative).", "relative": true },
+      "OSC": { "description": "Macrosynth oscillator shape." },
+      "TBR": { "description": "Macrosynth timbre (relative).", "relative": true },
+      "COL": { "description": "Macrosynth color (relative).", "relative": true },
+      "RED": { "description": "Macrosynth bit reduction (relative).", "relative": true },
+      "TRG": { "description": "Macrosynth trigger/strike." },
+      "CUT": { "description": "Filter cutoff (relative).", "relative": true },
+      "RES": { "description": "Filter resonance (relative).", "relative": true },
+      "AMP": { "description": "Amp level (relative).", "relative": true },
+      "LIM": { "description": "Limit mode: how the amp stage clips." },
+      "PAN": { "description": "Pan (relative).", "relative": true },
+      "DRY": { "description": "Dry volume: the instrument's level in the main mix." },
+      "SMX": { "description": "Send to ModFX." },
+      "SDL": { "description": "Send to Delay." },
+      "SRV": { "description": "Send to Reverb." },
+      "CHD": { "description": "Chord (MIDIOUT instrument): triggers a chord. Quantized by the active scale." },
+      "ADD": { "description": "Add Note (MIDIOUT instrument): adds a note to the chord. Quantized by the active scale." }
+    },
+    "modulation": {
+      "EA": { "description": "Envelope amount of modulator N (relative).", "relative": true },
+      "AT": { "description": "Envelope attack of modulator N." },
+      "HO": { "description": "Envelope hold of modulator N." },
+      "DE": { "description": "Envelope decay of modulator N." },
+      "ET": { "description": "Envelope trigger of modulator N: retriggers the envelope." },
+      "LA": { "description": "LFO amount of modulator N (relative).", "relative": true },
+      "LO": { "description": "LFO oscillator shape of modulator N." },
+      "LS": { "description": "LFO trigger settings of modulator N." },
+      "LF": { "description": "LFO frequency of modulator N." },
+      "LT": { "description": "LFO trigger of modulator N: at the given offset, resets the LFO to that position." }
     },
     "mixer": {
       "VMV": { "description": "Main Volume: sets the main song output volume." },
@@ -200,7 +330,70 @@
       "DJR": { "description": "DJ Filter Resonance." },
       "DJT": { "description": "DJ Filter Type." },
       "EQM": { "description": "Assign main mix EQ slot." },
-      "EQI": { "description": "Assign current instrument EQ slot." }
+      "EQI": { "description": "Assign current instrument EQ slot." },
+      "XMT": { "description": "Send Effect: ModFX mod type and phase position (Effect Settings view)." },
+      "XMM": { "description": "Send Effect: ModFX mod depth (Effect Settings view)." },
+      "XMF": { "description": "Send Effect: ModFX mod frequency (Effect Settings view)." },
+      "XMW": { "description": "Send Effect: ModFX stereo width (Effect Settings view)." },
+      "XMR": { "description": "Send Effect: ModFX to reverb mix (Effect Settings view)." },
+      "XDT": { "description": "Send Effect: Delay time — X = left, Y = right, in large increments (Effect Settings view)." },
+      "XDF": { "description": "Send Effect: Delay feedback (Effect Settings view)." },
+      "XDW": { "description": "Send Effect: Delay stereo width (Effect Settings view)." },
+      "XDR": { "description": "Send Effect: Delay to reverb mix (Effect Settings view)." },
+      "XRS": { "description": "Send Effect: Reverb room size (Effect Settings view)." },
+      "XRD": { "description": "Send Effect: Reverb decay (Effect Settings view)." },
+      "XRM": { "description": "Send Effect: Reverb mod depth (Effect Settings view)." },
+      "XRF": { "description": "Send Effect: Reverb mod frequency (Effect Settings view)." },
+      "XRW": { "description": "Send Effect: Reverb stereo width (Effect Settings view)." },
+      "XRZ": { "description": "Send Effect: Reverb freeze — enabled with a value greater than 00, disabled at 00." },
+      "VIN": { "description": "Line Input Mixer: analog input volume (Mixer view)." },
+      "XRH": { "description": "Send Effect: Reverb shimmer (Effect Settings view)." },
+      "OTT": { "description": "OTT mix amount (Mixer OTT settings; OTC and OTI default to 80)." },
+      "OTC": { "description": "OTT color (default 80)." },
+      "OTI": { "description": "OTT time (default 80)." },
+      "IVO": { "description": "Alias of VIN as named in the manual: analog input volume (Mixer view)." },
+      "IMX": { "description": "Line Input Mixer: analog input ModFX send (Mixer view)." },
+      "IDE": { "description": "Line Input Mixer: analog input delay send (Mixer view)." },
+      "IRV": { "description": "Line Input Mixer: analog input reverb send (Mixer view). Also referenced as 'IRE' in the manual text." },
+      "IRE": { "description": "Alias of IRV: analog input reverb send (Mixer view)." },
+      "IV2": { "description": "Line Input Mixer: volume for the 2nd input (right channel in dual-mono input mode, set in the Mixer view)." },
+      "IM2": { "description": "Line Input Mixer: ModFX send for the 2nd input (right channel in dual-mono input mode)." },
+      "ID2": { "description": "Line Input Mixer: delay send for the 2nd input (right channel in dual-mono input mode)." },
+      "IR2": { "description": "Line Input Mixer: reverb send for the 2nd input (right channel in dual-mono input mode)." },
+      "USB": { "description": "USB input volume (Mixer view)." }
+    }
+  },
+  "instrumentFx": {
+    "_note": "Instrument commands offered by [EDIT]+[UP/DOWN] (Effect Command Help view) in the Current Instrument section depend on the instrument type; the Instrument Mods section depends on the modulators of that instrument, and Sequencer FX and Mixer/Effects are the same for every type. Lists marked verified were read from a real M8 (Model:02). Wavsynth, External and MIDI Out were not available on that device: their lists are not known here.",
+    "types": {
+      "sampler": {
+        "verified": true,
+        "commands": ["VOL", "PIT", "FIN", "PLY", "STA", "LOP", "LEN", "DEG", "FLT", "CUT", "RES", "AMP", "LIM", "PAN", "SLI", "ERR", "DRY", "SMX", "SDL", "SRV"]
+      },
+      "macrosynth": {
+        "verified": true,
+        "commands": ["VOL", "PIT", "FIN", "OSC", "TBR", "COL", "DEG", "RED", "FIL", "CUT", "RES", "AMP", "LIM", "PAN", "TRG", "ERR", "DRY", "SMX", "SDL", "SRV"]
+      },
+      "fmsynth": {
+        "verified": true,
+        "commands": ["VOL", "PIT", "FIN", "ALG", "FM1", "FM2", "FM3", "FM4", "FIL", "CUT", "RES", "AMP", "LIM", "PAN", "SNC", "ERR", "DRY", "SMX", "SDL", "SRV"]
+      },
+      "hypersynth": {
+        "verified": true,
+        "commands": ["VOL", "PIT", "FIN", "CRD", "CVO", "SWM", "WID", "SUB", "FIL", "CUT", "RES", "AMP", "LIM", "PAN", "SNC", "ERR", "DRY", "SMX", "SDL", "SRV"]
+      },
+      "midiout": {
+        "verified": false,
+        "commands": ["CHD", "ADD"]
+      }
+    },
+    "modulation": {
+      "_note": "Modulator slot N (1-4) offers the commands of its kind. Seen: an envelope slot (AHD) offers EA AT HO DE ET, an LFO slot offers LA LO LS LF LT. Slot kinds vary per instrument (e.g. Sampler 00: env, env, LFO, LFO; Hypersynth 01: env, LFO, LFO, LFO). Other modulator kinds were not captured.",
+      "envelope": ["EA", "AT", "HO", "DE", "ET"],
+      "lfo": ["LA", "LO", "LS", "LF", "LT"]
+    },
+    "relativeCommands": {
+      "description": "Relative commands add to the instrument parameter's current value (01-7F add, 80-FF subtract) and keep accumulating until a note is triggered with a RET command or with an instrument number in the I column; that resets every parameter to the instrument's own value."
     }
   }
 }
