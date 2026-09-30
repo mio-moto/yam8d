@@ -1638,9 +1638,5 @@ export const renderer = (element: HTMLCanvasElement | OffscreenCanvas | null, in
       mouseY = y
       mouseDown = down
     },
-    resetState: () => {
-      destroyStateBuffers()
-      queueFrame()
-    },
   }
 }

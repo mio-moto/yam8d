@@ -113,19 +113,11 @@ export default defineConfig({
 
         fixSourceMaps(),
         serveAndCopyM8Sdk(),
-        //mkcert()
     ],
     build: {
         sourcemap: process.env.NODE_ENV === 'development' ? 'inline' : false,
         minify: 'oxc',
         assetsInlineLimit: 0,
-        terserOptions: process.env.NODE_ENV === 'development' ? {} : undefined,
-    },
-    define: {
-        VITE_APP_VERSION: JSON.stringify(process.env.npm_package_version),
-        VITE_BUILD_TIME: JSON.stringify(new Date().toISOString()),
-        // Ensure consistent runtime behavior between dev and preview by disabling React StrictMode unless explicitly overridden
-        VITE_BUILD_WITHOUT_STRICT: process.env.VITE_BUILD_WITHOUT_STRICT ?? true,
     },
     server: {
         fs: {

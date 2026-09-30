@@ -1,4 +1,4 @@
-import type { CharacterCommand, RectCommand, WaveCommand, SystemCommand } from '../connection/protocol'
+import type { CharacterCommand, RectCommand, WaveCommand } from '../connection/protocol'
 import { renderer, type BackgroundShader, type ScreenLayout } from './renderer'
 
 export type DrawCommand =
@@ -23,9 +23,6 @@ export type WorkerInMessage =
   | { type: 'videoFrame'; bitmap: ImageBitmap }
   | { type: 'precompileVJShader'; id: string; source: string }
   | { type: 'activateVJShader'; id: string; compositeM8Screen: boolean }
-  | { type: 'resetState' }
-  // system info from bus — drives setScreenLayout on reconnect
-  | { type: 'system'; data: SystemCommand }
 
 export type WorkerOutMessage = { type: 'shaderError'; error: string | null; usesAudio: boolean; usesVideo: boolean }
 
@@ -126,14 +123,6 @@ self.addEventListener('message', (rawEvent: Event) => {
         // biome-ignore lint/suspicious/noExplicitAny: postMessage from worker to main — no targetOrigin needed
         ;(self as any).postMessage({ type: 'shaderError', error: null, usesAudio: result.usesAudio, usesVideo: result.usesVideo } satisfies WorkerOutMessage)
       }
-      break
-    }
-    case 'resetState': {
-      render?.resetState()
-      break
-    }
-    case 'system': {
-      // handled by M8Screen, not forwarded to here — included for completeness
       break
     }
   }

@@ -1,6 +1,5 @@
-import { aStar, type Graph } from '../../utils/astar'
+import { aStar, type Direction, type Graph } from '../../utils/astar'
 import { M8KeyMask } from '../connection/keys'
-import type { Direction } from './m8Graph'
 
 export const computePagePath = (graph: Graph, start: string, goal: string) => {
     return aStar(graph, start, goal)

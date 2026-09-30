@@ -1,6 +1,6 @@
 export type Direction = 'up' | 'down' | 'left' | 'right'
 
-export type Edge = { to: string; dir: Direction; keys?: number[]; weight?: number }
+export type Edge = { to: string; dir: Direction; weight?: number }
 export type Graph = Map<string, Edge[]>
 
 export type Heuristic = (a: string, b: string) => number
@@ -15,8 +15,6 @@ const defaultEdgeCost: EdgeCostFn = () => 1
 export interface PathResult {
     pages: string[] // includes start and goal
     directions: Direction[] // one per step
-    // Concatenated key frames for the full path (if available on edges)
-    frames: number[]
     cost: number // number of steps
 }
 
@@ -26,7 +24,7 @@ export function aStar(graph: Graph, start: string, goal: string, heuristic: Heur
     if (!graph.has(s) || !graph.has(g)) return null
 
     const openSet = new Set<string>([s])
-    const cameFrom = new Map<string, { prev: string; viaDir: Direction; viaKeys?: number[] }>()
+    const cameFrom = new Map<string, { prev: string; viaDir: Direction }>()
     const gScore = new Map<string, number>()
     const fScore = new Map<string, number>()
 
@@ -57,27 +55,15 @@ export function aStar(graph: Graph, start: string, goal: string, heuristic: Heur
             // reconstruct
             const pages: string[] = [g]
             const dirs: Direction[] = []
-            const frames: number[] = []
             let cur = g
             while (cur !== s) {
                 const link = cameFrom.get(cur)
                 if (!link) break // safety
                 dirs.unshift(link.viaDir)
                 pages.unshift(link.prev)
-                // keys are aggregated after loop by inspecting edges between pages
                 cur = link.prev
             }
-            // Build frames by walking pages forward and using edge keys when present
-            if (pages.length > 1) {
-                for (let i = 0; i < pages.length - 1; i += 1) {
-                    const from = pages[i]
-                    const to = pages[i + 1]
-                    const neighbors: Edge[] = graph.get(from) ?? []
-                    const e = neighbors.find((n) => n.to === to)
-                    if (e?.keys?.length) frames.push(...e.keys)
-                }
-            }
-            return { pages, directions: dirs, frames, cost: dirs.length }
+            return { pages, directions: dirs, cost: dirs.length }
         }
         openSet.delete(current)
         const neighbors: Edge[] = graph.get(current) ?? []
@@ -85,7 +71,7 @@ export function aStar(graph: Graph, start: string, goal: string, heuristic: Heur
             const cost = e.weight ?? edgeCost(current, e.to, e.dir)
             const tentativeG = (gScore.get(current) ?? Infinity) + cost
             if (tentativeG < (gScore.get(e.to) ?? Infinity)) {
-                cameFrom.set(e.to, { prev: current, viaDir: e.dir, viaKeys: e.keys })
+                cameFrom.set(e.to, { prev: current, viaDir: e.dir })
                 gScore.set(e.to, tentativeG)
                 fScore.set(e.to, tentativeG + heuristic(e.to, g))
                 if (!openSet.has(e.to)) openSet.add(e.to)

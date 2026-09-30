@@ -1,1 +1,0 @@
-export { Manual } from './Manual'

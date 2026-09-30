@@ -8,7 +8,7 @@ import { loadViewList } from '../macros/m8GraphLoader'
 import { M8KeyMask } from '../connection/keys'
 import { M8Body } from '../rendering/M8Body'
 import { style } from '../../app/style/style'
-import { defaultKeyMap } from '../virtualKeyboard/useVirtualKeyboard'
+import { defaultKeyMap } from '../virtualKeyboard/defaultKeyMap'
 import './keyboardSettings.css'
 
 const M8_BUTTONS = [

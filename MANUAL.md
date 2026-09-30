@@ -109,6 +109,7 @@ The default app list includes:
 | --- | --- |
 | M8 Shortcuts | Context-aware shortcut reference |
 | M8 SDK Test | Local SDK test page (`sdk-test.html`) |
+| Cont8xt Notes | Notes tool (`cont8xt.html`) |
 | M8 Groove Extractor | Groove extraction tool |
 | M8 Scale Divinator | Scale exploration tool |
 

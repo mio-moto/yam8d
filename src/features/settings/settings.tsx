@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react'
 import { defaultInputMap } from '../inputs/defaultInputMap'
 import { defaultMacroInputMap, type MacroInputMap } from '../macros/defaultMacroInputMap'
-import { defaultKeyMap } from '../virtualKeyboard/useVirtualKeyboard'
+import { defaultKeyMap } from '../virtualKeyboard/defaultKeyMap'
 import DefaultCustomBackgroundShaderSource from '../rendering/shader/default_spectrum.frag?raw'
 
 const SETTINGS = 'M8settings'
@@ -155,8 +155,6 @@ export type Settings = {
     displayExternalApps: boolean
     externalApps: ExternalAppConfig[]
     activeExternalAppId: string | null
-    displayShortcuts: boolean
-    displayTutorGame: boolean
     shortcutsHost: string
     sdkTestHost: string
     showM8Body: boolean
@@ -190,8 +188,6 @@ const defaultSettings: Settings = {
     displayExternalApps: false,
     externalApps: defaultExternalApps(DEFAULT_SHORTCUTS_URL, DEFAULT_SDK_TEST_URL),
     activeExternalAppId: 'm8-shortcuts',
-    displayShortcuts: false,
-    displayTutorGame: false,
     shortcutsHost: DEFAULT_SHORTCUTS_URL,
     sdkTestHost: DEFAULT_SDK_TEST_URL,
     showM8Body: true,

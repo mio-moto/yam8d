@@ -89,7 +89,6 @@ const commands = (writer: ReturnType<typeof usbWriter> | ReturnType<typeof seria
 
 const usbReader = (device: USBDevice) => async () => {
     const result = await device.transferIn(3, 512)
-    result.status
     return {
         terminated: result.status === 'stall',
         data: result.data,
@@ -160,19 +159,6 @@ const midiReader = (input: MIDIInput) => {
     // Pending buffer of raw MIDI bytes across events to safely reassemble SysEx
     let pending = new Uint8Array(0) as unknown as Uint8Array<ArrayBufferLike>
 
-    // Debug: keep last 1s of chunks and processed packets
-    type ChunkLogEntry = { t: number; len: number; firstBytes: number[] }
-    type PacketLogEntry = { t: number; encodedLen: number; decodedLen: number; firstBytes: number[] }
-    const chunkLog: ChunkLogEntry[] = []
-    const packetLog: PacketLogEntry[] = []
-    const DEBUG_WINDOW_MS = 1000
-
-    const pruneLogs = (now: number) => {
-        const cutoff = now - DEBUG_WINDOW_MS
-        while (chunkLog.length && chunkLog[0].t < cutoff) chunkLog.shift()
-        while (packetLog.length && packetLog[0].t < cutoff) packetLog.shift()
-    }
-
     let resolver:
         | ((
             value:
@@ -210,13 +196,6 @@ const midiReader = (input: MIDIInput) => {
     }
 
     const processChunk = (chunk: Uint8Array<ArrayBufferLike>) => {
-        // Debug: record incoming chunk snapshot
-        {
-            const now = typeof performance !== 'undefined' ? performance.now() : Date.now()
-            pruneLogs(now)
-            const first = Array.from(new Uint8Array(chunk).slice(0, 16))
-            chunkLog.push({ t: now, len: chunk.length, firstBytes: first })
-        }
         // Accumulate incoming bytes
         pending = appendBytes(pending, chunk)
 
@@ -251,14 +230,6 @@ const midiReader = (input: MIDIInput) => {
                 messages.push(new DataView(decoded.buffer, decoded.byteOffset, decoded.byteLength))
             }
 
-            // Debug: record processed packet snapshot (encoded/decoded)
-            {
-                const now = typeof performance !== 'undefined' ? performance.now() : Date.now()
-                pruneLogs(now)
-                const first = Array.from(new Uint8Array(oneMessage).slice(0, 16))
-                packetLog.push({ t: now, encodedLen: oneMessage.length, decodedLen: decoded?.length ?? 0, firstBytes: first })
-            }
-
             // Remove processed message and continue scanning in case of concatenated messages
             pending = pending.slice(endIdx + 1)
         }
@@ -283,15 +254,6 @@ const midiReader = (input: MIDIInput) => {
 
     input.addEventListener('midimessage', handler)
 
-    const getDebugLogs = () => {
-        const now = typeof performance !== 'undefined' ? performance.now() : Date.now()
-        pruneLogs(now)
-        return {
-            chunks: [...chunkLog],
-            packets: [...packetLog],
-        }
-    }
-
     const read = async () => {
         if (input.state === 'disconnected') {
             return { terminated: true }
@@ -303,13 +265,10 @@ const midiReader = (input: MIDIInput) => {
                 data: messages.shift(),
             }
         }
-        return new Promise<{ terminated: true } | { terminated: false; data: DataView }>((resolve, _reject) => {
+        return new Promise<{ terminated: true } | { terminated: false; data: DataView }>((resolve) => {
             resolver = resolve
         })
     }
-
-        // Attach debug getter to the reader function
-        ; (read as unknown as { getDebugLogs: () => { chunks: ChunkLogEntry[]; packets: PacketLogEntry[] } }).getDebugLogs = getDebugLogs
 
     return read
 }

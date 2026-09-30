@@ -187,7 +187,6 @@ const FullM8Player: FC<{
 
       const gx = Math.round(((ev.clientX - screenRect.left) / screenRect.width) * sw) + offX
       const gy = Math.round(((ev.clientY - screenRect.top) / screenRect.height) * sh) + offY
-      console.log('screen click → grid', { gx, gy })
       navigateTo({ x: gx, y: gy })
       ev.stopPropagation()
       ev.preventDefault()

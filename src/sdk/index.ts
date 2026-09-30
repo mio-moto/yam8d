@@ -8,9 +8,6 @@ export type {
     M8HostEvents,
     M8ClientEvents,
     M8SdkConfig,
-    ViewNavigationTarget,
-    CoordinateNavigationTarget,
-    NavigationTarget,
     CursorPos,
     CursorRect,
     RGB,
@@ -20,12 +17,4 @@ export type {
 // Host-side hook (for yam8d application)
 export { useM8SdkHost } from './useM8SdkHost'
 
-// Client-side library (for iframe applications)
-export {
-    createM8Client,
-    createM8ClientSync,
-    type M8Client,
-} from './client'
-
-// Default exports
-export { default } from './client'
+// Client-side library for iframe applications: see packages/m8-sdk (@yam8d/m8-sdk)

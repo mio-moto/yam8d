@@ -1,4 +1,4 @@
-import type { Edge } from './m8Graph'
+import type { Edge } from '../../utils/astar'
 
 type EdgeJson = { to: string; dir?: 'up' | 'down' | 'left' | 'right'; keys?: number[]; weight?: number }
 
