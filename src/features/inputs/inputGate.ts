@@ -1,5 +1,14 @@
 let installed = false
 
+// UI that temporarily owns the keyboard (e.g. the open menu), by name
+const blockers = new Set<string>()
+
+/** Suspends the app's keyboard shortcuts while `source` needs the keys for itself. */
+export function setAppInputBlocked(source: string, blocked: boolean): void {
+    if (blocked) blockers.add(source)
+    else blockers.delete(source)
+}
+
 export function shouldIgnoreAppKeyboardEvent(ev: KeyboardEvent): boolean {
     const tgt = ev.target as HTMLElement | null
     const codeMirrorTarget = !!tgt?.closest?.('.cm-editor')
@@ -7,8 +16,7 @@ export function shouldIgnoreAppKeyboardEvent(ev: KeyboardEvent): boolean {
     const typingTarget = !!(
         tgt && (tgt.tagName === 'INPUT' || tgt.tagName === 'TEXTAREA' || tgt.tagName === 'SELECT' || tgt.isContentEditable)
     )
-    const menuOpen = typeof document !== 'undefined' && (document.body.dataset.m8MenuOpen === 'true')
-    return codeMirrorTarget || typingTarget || menuOpen
+    return codeMirrorTarget || typingTarget || blockers.size > 0
 }
 
 function shouldCaptureBlock(ev: KeyboardEvent): boolean {
