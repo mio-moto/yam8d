@@ -140,7 +140,9 @@ const shaderCompletions = [...uniformCompletions, ...glslCompletions]
 
 const completeShader = (context: CompletionContext) => {
   const word = context.matchBefore(/[A-Za-z_][\w]*/)
-  if (!word && !context.explicit) return null
+  if (!word && !context.explicit) {
+    return null
+  }
 
   return {
     from: word?.from ?? context.pos,
@@ -150,9 +152,13 @@ const completeShader = (context: CompletionContext) => {
 }
 
 const createShaderDiagnostics = (source: string, validate?: (source: string) => string | null): Diagnostic[] => {
-  if (!validate) return []
+  if (!validate) {
+    return []
+  }
   const message = validate(source)
-  if (!message) return []
+  if (!message) {
+    return []
+  }
 
   return [{
     from: 0,

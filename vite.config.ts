@@ -1,12 +1,53 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import react from '@vitejs/plugin-react'
 import wyw from '@wyw-in-js/vite'
 import { defineConfig, type Plugin, searchForWorkspaceRoot } from 'vite'
 import checker from 'vite-plugin-checker'
 
+const configDir = path.dirname(fileURLToPath(import.meta.url))
+
+const withWywRetry = (plugin: Plugin): Plugin => {
+    const isRetryableWywRace = (error: unknown): boolean =>
+        error instanceof Error && (error.name === 'AbortError' || error.message.includes('superseded'))
+    const maxAttempts = 3
+    const originalTransform = plugin.transform
+    const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+    return {
+        ...plugin,
+        async transform(code: string, id: string, options?: unknown) {
+            if (typeof originalTransform !== 'function') return undefined
+            let attempt = 0
+            for (;;) {
+                attempt += 1
+                try {
+                    // `this` must stay bound to the Vite plugin context (this.warn/this.resolve).
+                    return (await (originalTransform as (...callArgs: unknown[]) => unknown).call(
+                        this,
+                        code,
+                        id,
+                        options,
+                    )) as Awaited<ReturnType<typeof originalTransform>>
+                } catch (error) {
+                    // Upstream wyw-in-js retries roots evicted/superseded by concurrent
+                    // transforms (wyw-in-js/wyw-in-js#442), but 2.5.1 still surfaces the
+                    // loser's AbortError to Vite. The retry is bounded and only applies
+                    // to that named race signal. A short backoff lets the winning
+                    // generation settle in the shared cache first.
+                    if (attempt >= maxAttempts || !isRetryableWywRace(error)) throw error
+                    console.warn(
+                        `[wyw-in-js] Retrying ${id} after a transient concurrent-transform abort (attempt ${attempt}/${maxAttempts}).`,
+                    )
+                    await sleep(100 * attempt)
+                }
+            }
+        },
+    }
+}
+
 const serveAndCopyM8Sdk = (): Plugin => {
-    const sdkDistPath = path.join(__dirname, 'packages', 'm8-sdk', 'dist')
+    const sdkDistPath = path.join(configDir, 'packages', 'm8-sdk', 'dist')
     return {
         name: 'serve-and-copy-m8-sdk',
         configureServer(server) {
@@ -46,7 +87,7 @@ const fixSourceMaps = (): Plugin => {
                 return
             }
             interval = setInterval(() => {
-                const nodeModulesPath = path.join(__dirname, 'node_modules', '.vite', 'deps')
+                const nodeModulesPath = path.join(configDir, 'node_modules', '.vite', 'deps')
                 if (fs.existsSync(nodeModulesPath)) {
                     clearInterval(interval ?? 0)
                     const files = fs.readdirSync(nodeModulesPath)
@@ -102,12 +143,16 @@ export default defineConfig({
         ],
     },
     plugins: [
-        wyw({
-            include: ['**/*.{ts,tsx}'],
-            babelOptions: {
-                presets: ['@babel/preset-typescript', '@babel/preset-react'],
-            },
-        }),
+        withWywRetry(
+            wyw({
+                include: ['src/**/*.ts', 'src/**/*.tsx'],
+                oxcOptions: {
+                    transform: {
+                        jsx: { runtime: 'automatic' },
+                    },
+                },
+            }),
+        ),
         react(),
         checker({ overlay: { initialIsOpen: false, position: 'br' }, typescript: true, biome: { command: 'lint' } }),
 
