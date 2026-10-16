@@ -471,7 +471,7 @@
           stop() {
             running = false
             clearInterval(watchdog)
-            video.srcObject?.getTracks().forEach((t) => t.stop())
+            for (const t of video.srcObject?.getTracks() ?? []) t.stop()
             video.srcObject = null
           },
         }
@@ -510,7 +510,7 @@
         const stopped = new Promise((resolve) => { recorder.onstop = resolve })
         recorder.stop()
         await stopped
-        stream.getTracks().forEach((tr) => tr.stop())
+        for (const tr of stream.getTracks()) tr.stop()
         app.encoderWarm = true
         log(`video encoder warm-up took ${Math.round(performance.now() - t)} ms`)
       }
