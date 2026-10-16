@@ -91,11 +91,11 @@ export const globalStyle = css`
       align-items: stretch;      
       min-height: 100%;
       max-height: 100%;
-      gap: 16px;
+      gap: 8px;
     }
 
     .M8-full-view {
-      max-height:88vh !important;
+      max-height: calc(var(--content-height) - 4vh) !important;
     }
 
   }

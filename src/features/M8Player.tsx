@@ -1,13 +1,12 @@
 import { css, cx } from '@linaria/core'
 import { type FC, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { style } from '../app/style/style'
-import type { ConnectedBus } from './connection/connection'
-import { pressKeys } from './connection/keys'
-import type { KeyCommand, SystemCommand } from './connection/protocol'
-import { useViewNavigator } from './macros/useViewNavigator'
+import type { ConnectedBus } from '../../packages/m8-sdk/src/engine/connection'
+import { pressKeys } from '../../packages/m8-sdk/src/engine/keys'
+import type { KeyCommand, SystemCommand } from '../../packages/m8-sdk/src/engine/protocol'
+import { useM8Engine } from './engine'
 import { M8Screen, canUseOffscreenCanvas } from './rendering/M8Screen'
 import { M8PreText } from './rendering/M8PreText'
-import { registerViewExtractor } from './state/viewExtractor'
 import { M8Body } from './rendering/M8Body'
 import { useBackgroundColor, useSystemInfo } from './state/viewStore'
 import { rgbToHex } from '../utils/colorTools'
@@ -98,7 +97,7 @@ const containerClass = css`
     }
 
     .M8-full-view {
-      max-height: 88vh;
+      max-height: calc(var(--content-height) - 4vh);
     }
     :not(.M8-full-view) {
       max-height: 300vh;
@@ -134,7 +133,7 @@ const FullM8Player: FC<{
   const screenColor = rgbToHex(bgColor ?? { r: 0, g: 0, b: 0 })
 
   const [keysPressed, setKeysPressed] = useState(0)
-  const { navigateTo } = useViewNavigator(bus)
+  const engine = useM8Engine(bus)
   const keysPressedRef = useRef(0)
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: <on model change to get correct refs>
@@ -187,11 +186,11 @@ const FullM8Player: FC<{
 
       const gx = Math.round(((ev.clientX - screenRect.left) / screenRect.width) * sw) + offX
       const gy = Math.round(((ev.clientY - screenRect.top) / screenRect.height) * sh) + offY
-      navigateTo({ x: gx, y: gy })
+      void engine?.navigateTo({ x: gx, y: gy })
       ev.stopPropagation()
       ev.preventDefault()
     },
-    [navigateTo, sys],
+    [engine, sys],
   )
 
   useEffect(() => {
@@ -222,18 +221,6 @@ const FullM8Player: FC<{
   useEffect(() => {
     keysPressedRef.current = keysPressed
   }, [keysPressed])
-
-  // Register global view/cursor extractor once when bus is present
-  useEffect(() => {
-    if (!bus) return
-    const unregisterVE = registerViewExtractor(bus)
-    //const unregisterRectLogger = rectLogger(bus)
-
-    return () => {
-      unregisterVE()
-      //unregisterRectLogger()
-    }
-  }, [bus])
 
   const onMouseDown = useCallback(
     (keys: Parameters<typeof pressKeys>[0]) => {
@@ -277,7 +264,7 @@ const FullM8Player: FC<{
           <div
             // When body is hidden, provide a placeholder element to anchor the screen overlay
             ref={screenEdgeRef as unknown as React.Ref<HTMLDivElement>}
-            style={{ width: '100%', height: '88vh' }}
+            style={{ width: '100%', height: 'var(--content-height)' }}
           />
         )}
 

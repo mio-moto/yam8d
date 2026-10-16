@@ -395,7 +395,7 @@ test('getSemanticContext: resetsRelative', () => {
 test('getSemanticContext: scaleNote', () => {
   expect(contextAt(SCALE, 6, 6).scaleNote).toEqual({ interval: 'E', semitone: 4, enabled: true, offset: -0.5 })
   expect(contextAt(SCALE, 3, 0, false).scaleNote).toEqual({ interval: 'C#', semitone: 1, enabled: false, offset: 0 })
-  expect(contextAt(SCALE, 12, 3).scaleNote?.enabled).toBeNull()
+  expect(contextAt(SCALE, 12, 3).scaleNote?.enabled).toBe(false)
   const key = contextAt(SCALE, 15, 6)
   expect(key.isParameterView).toBe(true)
   expect(key.scaleNote).toBeNull()

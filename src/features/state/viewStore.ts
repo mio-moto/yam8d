@@ -42,6 +42,9 @@ export const selectionModeAtom = atom<boolean>(false)
 // Last detected highlight color (theme-dependent)
 export const highlightColorAtom = atom<RGB | null>(null)
 
+// Colour of the cursor rectangle corners (the theme's CURSOR colour)
+export const cursorColorAtom = atom<RGB | null>(null)
+
 // Text under the cursor (character with same color as highlight)
 export const textUnderCursorAtom = atom<string | null>(null)
 

@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { expect, test } from 'bun:test'
-import { createSlipParser } from '../src/features/connection/queuedReaders'
+import { createSlipParser } from '../packages/m8-sdk/src/engine/queuedReaders'
 
 function feedAll(parser: ReturnType<typeof createSlipParser>, bytes: number[]) {
     const out: DataView[] = []

@@ -1,6 +1,6 @@
 import { css, cx } from '@linaria/core';
 import type { FC, Ref } from 'react'
-import { isDown, isEdit, isLeft, isOpt, isPlay, isRight, isShift, isUp } from '../connection/keys';
+import { isDown, isEdit, isLeft, isOpt, isPlay, isRight, isShift, isUp } from '../../../packages/m8-sdk/src/engine/keys';
 import { style } from '../../app/style/style'
 
 // Button color classes — shared by any context that renders M8Body

@@ -1,20 +1,80 @@
-import { css } from '@linaria/core'
-import type { FC } from 'react'
+import { css, cx } from '@linaria/core'
+import type { FC, PointerEvent as ReactPointerEvent } from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { YAM8D_FRAME_NAME } from '../../../packages/m8-sdk/src/client'
 import { useM8SdkHost } from '../../sdk'
-import { isEdit, isOpt, isPlay, isShift } from '../connection/keys'
-import type { ConnectedBus } from '../connection/connection'
-import type { KeyCommand } from '../connection/protocol'
+import { isEdit, isOpt, isPlay, isShift } from '../../../packages/m8-sdk/src/engine/keys'
+import type { ConnectedBus } from '../../../packages/m8-sdk/src/engine/connection'
+import type { KeyCommand } from '../../../packages/m8-sdk/src/engine/protocol'
 import { useSettingsContext } from '../settings/settings'
 import { useViewName } from '../state/viewStore'
 
+const MIN_PANE_WIDTH = 320
+// Width left to the M8 pane and the root padding when the External Apps pane is dragged wide
+const MIN_REMAINING_WIDTH = 300
+
 const externalAppsClass = css`
-  height: 93vh;
-  width: -webkit-fill-available;
-  min-width: 320px;
+  position: relative;
+  box-sizing: border-box;
+  height: var(--content-height);
+  flex: 1 1 0;
+  min-width: ${MIN_PANE_WIDTH}px;
+  max-width: calc(100vw - ${MIN_REMAINING_WIDTH}px);
   display: flex;
   flex-direction: column;
   background: #111;
+
+  &.sized {
+    flex: 0 0 auto;
+  }
+
+  &.fullscreen {
+    position: fixed;
+    inset: 0;
+    /* Below the menu (z-index 1000) so the menu stays reachable */
+    z-index: 999;
+    width: 100vw !important;
+    max-width: none;
+    height: 100vh;
+
+    > .external-apps-toolbar {
+      padding-left: 44px;
+    }
+  }
+
+  /* The iframe would swallow pointer events while the edge is dragged */
+  &.resizing > iframe {
+    pointer-events: none;
+  }
+
+  > .splitter {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -8px;
+    width: 8px;
+    cursor: col-resize;
+    touch-action: none;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 3px;
+      width: 2px;
+      height: 40px;
+      transform: translateY(-50%);
+      border-radius: 1px;
+      background: rgba(255, 255, 255, 0.18);
+      transition: background 150ms ease, height 150ms ease;
+    }
+
+    &:hover::after,
+    &.active::after {
+      height: 100%;
+      background: rgba(255, 255, 255, 0.4);
+    }
+  }
 
   > .external-apps-toolbar {
     min-height: 38px;
@@ -47,6 +107,21 @@ const externalAppsClass = css`
       font-size: 0.85rem;
       white-space: nowrap;
     }
+
+    > .fullscreen-toggle {
+      margin-left: auto;
+      display: inline-flex;
+      padding: 4px;
+      color: rgba(255, 255, 255, 0.68);
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 4px;
+
+      &:hover {
+        color: #fff;
+        border-color: rgba(255, 255, 255, 0.28);
+      }
+    }
   }
 
   > iframe {
@@ -73,6 +148,20 @@ const buildUrlFallback = (baseUrl: string, viewName: string | null, keyName: str
     return `${cleanBaseUrl}#/${viewPath}/?mode=min&key=${keyParam}`
 }
 
+const clampPaneWidth = (width: number): number =>
+    Math.round(Math.max(MIN_PANE_WIDTH, Math.min(width, window.innerWidth - MIN_REMAINING_WIDTH)))
+
+// Expand / collapse arrows, drawn with currentColor
+const FullscreenIcon: FC<{ exit: boolean }> = ({ exit }) => (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+        {exit ? (
+            <path d="M6 1v5H1M10 1v5h5M6 15v-5H1M10 15v-5h5" />
+        ) : (
+            <path d="M1 6V1h5M15 6V1h-5M1 10v5h5M15 10v5h-5" />
+        )}
+    </svg>
+)
+
 export const ExternalAppsDisplay: FC<{ bus?: ConnectedBus }> = ({ bus }) => {
     const { settings, updateSettingValue } = useSettingsContext()
     const [viewName] = useViewName()
@@ -85,6 +174,34 @@ export const ExternalAppsDisplay: FC<{ bus?: ConnectedBus }> = ({ bus }) => {
     )
     const { iframeRef, isReady } = useM8SdkHost(bus, { debug: false })
     const [iframeSrc, setIframeSrc] = useState(activeApp?.url ?? '')
+    const [fullscreen, setFullscreen] = useState(false)
+    // Width while the splitter is dragged; saved to settings on release
+    const [dragWidth, setDragWidth] = useState<number | null>(null)
+    const dragRightRef = useRef(0)
+    const paneRef = useRef<HTMLDivElement | null>(null)
+    const paneWidth = dragWidth ?? settings.externalAppsWidth
+
+    const onSplitterPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+        const pane = paneRef.current
+        if (!pane || event.button !== 0) return
+        event.preventDefault()
+        event.currentTarget.setPointerCapture(event.pointerId)
+        const box = pane.getBoundingClientRect()
+        dragRightRef.current = box.right
+        setDragWidth(clampPaneWidth(box.width))
+    }
+
+    const onSplitterPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+        if (dragWidth === null) return
+        setDragWidth(clampPaneWidth(dragRightRef.current - event.clientX))
+    }
+
+    const onSplitterPointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
+        if (dragWidth === null) return
+        event.currentTarget.releasePointerCapture(event.pointerId)
+        updateSettingValue('externalAppsWidth', dragWidth)
+        setDragWidth(null)
+    }
 
     useEffect(() => {
         setIframeSrc(activeApp?.url ?? '')
@@ -157,7 +274,22 @@ export const ExternalAppsDisplay: FC<{ bus?: ConnectedBus }> = ({ bus }) => {
     }, [bus])
 
     return (
-        <div className={externalAppsClass}>
+        <div
+            ref={paneRef}
+            className={cx(externalAppsClass, paneWidth > 0 && 'sized', fullscreen && 'fullscreen', dragWidth !== null && 'resizing')}
+            style={paneWidth > 0 ? { width: paneWidth } : undefined}
+        >
+            {!fullscreen && (
+                <div
+                    className={cx('splitter', dragWidth !== null && 'active')}
+                    title="Drag to resize, double-click to reset"
+                    onPointerDown={onSplitterPointerDown}
+                    onPointerMove={onSplitterPointerMove}
+                    onPointerUp={onSplitterPointerUp}
+                    onPointerCancel={onSplitterPointerUp}
+                    onDoubleClick={() => updateSettingValue('externalAppsWidth', 0)}
+                />
+            )}
             <div className="external-apps-toolbar">
                 <span className="title">External Apps</span>
                 <select
@@ -173,10 +305,20 @@ export const ExternalAppsDisplay: FC<{ bus?: ConnectedBus }> = ({ bus }) => {
                     ))}
                 </select>
                 <span className="status">{isReady ? 'Connected' : 'Waiting'}</span>
+                <button
+                    type="button"
+                    className="fullscreen-toggle"
+                    onClick={() => setFullscreen((value) => !value)}
+                    title={fullscreen ? 'Restore pane' : 'Fill the window'}
+                    aria-label={fullscreen ? 'Restore pane' : 'Fill the window'}
+                    aria-pressed={fullscreen}
+                >
+                    <FullscreenIcon exit={fullscreen} />
+                </button>
             </div>
 
             {iframeSrc ? (
-                <iframe ref={iframeRef} src={iframeSrc} title={activeApp?.name ?? 'External App'} />
+                <iframe ref={iframeRef} name={YAM8D_FRAME_NAME} src={iframeSrc} title={activeApp?.name ?? 'External App'} />
             ) : (
                 <div className="empty">No external app configured.</div>
             )}

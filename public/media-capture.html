@@ -1,0 +1,1319 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>M8 Media Capture</title>
+    <!-- Same import map as sdk-test.html: the built SDK imports "post-me" as a bare specifier. -->
+    <script type="importmap">
+      {
+        "imports": {
+          "post-me": "https://unpkg.com/post-me@0.4.5/dist/index.esnext.mjs"
+        }
+      }
+    </script>
+    <style>
+      :root {
+        --bg: #2e383c;
+        --panel: #3f4e52;
+        --panel-2: #4d6167;
+        --text: #e8eef0;
+        --muted: #97aab0;
+        --accent: #2ec5e6;
+        --ok: #00d585;
+        --warn: #ffbd59;
+        --bad: #ff5d38;
+        color-scheme: dark;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; padding: 12px 16px; background: var(--bg); color: var(--text); font: 13px/1.4 system-ui, sans-serif; }
+      h1 { font-size: 15px; margin: 0 0 8px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+      h2 { font-size: 12px; margin: 0 0 6px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+      button { background: var(--panel-2); color: var(--text); border: 1px solid #68858e; border-radius: 4px; padding: 5px 10px; cursor: pointer; font: inherit; }
+      button:hover:not(:disabled) { background: #68858e; }
+      button:disabled { opacity: 0.45; cursor: default; }
+      button.primary { background: #229fb7; border-color: var(--accent); }
+      button.on { outline: 2px solid var(--accent); }
+      input[type='number'], select { background: #2e383c; color: var(--text); border: 1px solid #68858e; border-radius: 4px; padding: 3px 6px; font: inherit; }
+      input[type='number'] { width: 72px; }
+      .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--bad); display: inline-block; }
+      .dot.on { background: var(--ok); }
+      .bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+      .bar label { display: inline-flex; gap: 4px; align-items: center; color: var(--muted); }
+      .cols { display: grid; grid-template-columns: minmax(300px, 1fr) minmax(360px, 1.2fr); gap: 12px; align-items: start; }
+      @media (max-width: 900px) { .cols { grid-template-columns: 1fr; } .cols > div:nth-child(2) { order: -1; } }
+      .panel { background: var(--panel); border-radius: 6px; padding: 10px; margin-bottom: 12px; }
+      table { border-collapse: collapse; width: 100%; font-size: 12px; }
+      th, td { text-align: left; padding: 2px 6px; white-space: nowrap; }
+      th { color: var(--muted); font-weight: 500; }
+      tr.job { cursor: pointer; }
+      tr.job:hover { background: var(--panel-2); }
+      tr.job.sel { background: #1d4b57; }
+      .list { max-height: 52vh; overflow: auto; }
+      .st-passed { color: var(--ok); } .st-rejected, .st-failed { color: var(--bad); }
+      .st-running, .st-waiting { color: var(--accent); } .st-exists { color: var(--muted); } .st-new { color: var(--ok); font-weight: 600; } .st-needs-transcode { color: var(--warn); }
+      .banner { background: #1d4b57; border: 1px solid var(--accent); border-radius: 6px; padding: 8px 10px; margin-bottom: 8px; }
+      .banner.warn { background: #5a4a1f; border-color: var(--warn); }
+      .banner.bad { background: #5a2a20; border-color: var(--bad); }
+      .dirs { display: inline-grid; grid-template-columns: repeat(3, 34px); grid-template-rows: repeat(2, 30px); gap: 3px; margin: 6px 0; }
+      .dirs button { padding: 0; }
+      .dirs .up { grid-column: 2; grid-row: 1; } .dirs .left { grid-column: 1; grid-row: 2; }
+      .dirs .down { grid-column: 2; grid-row: 2; } .dirs .right { grid-column: 3; grid-row: 2; }
+      pre { margin: 0; font: 11px/1.3 ui-monospace, Consolas, monospace; white-space: pre-wrap; }
+      #log { height: 180px; overflow: auto; background: #232b2e; border-radius: 4px; padding: 6px; }
+      #log .err { color: var(--bad); } #log .warn { color: var(--warn); } #log .ok { color: var(--ok); }
+      canvas#preview, video#clip { width: 240px; height: 160px; background: #000; border-radius: 4px; image-rendering: pixelated; display: block; }
+      .previews { display: flex; gap: 12px; flex-wrap: wrap; }
+      .previews figure { margin: 0; }
+      .previews figcaption { color: var(--muted); font-size: 11px; margin-bottom: 3px; }
+      .muted { color: var(--muted); }
+      .kv { display: grid; grid-template-columns: 110px 1fr; gap: 2px 8px; }
+    </style>
+  </head>
+  <body>
+    <h1>
+      <span class="dot" id="dot"></span>
+      <span>M8 Media Capture</span>
+      <span class="muted" id="conn">Connecting to yam8d...</span>
+      <span class="muted" id="vis"></span>
+    </h1>
+
+    <div class="bar">
+      <button id="pick" class="primary">1. Choose the m8-shortcuts folder</button>
+      <button id="echo" disabled>Echo test</button>
+      <button id="reload" disabled>Reload demo project</button>
+      <label>Timeline shift <input type="number" id="shift" value="0" step="1" /> ms</label>
+      <label>Expected device <input type="text" id="model" size="12" placeholder="from first run" /></label>
+      <label>Video quality <input type="number" id="bitrate" value="12" min="1" max="100" step="1" /> Mbps</label>
+      <label title="Chrome's encoder spends its bits on a fixed quantiser, so the size matters more than the bitrate: 4x keeps each screen pixel on whole chroma blocks, which is what sharpens red text">Output size <select id="outScale"><option value="1">480x320</option><option value="2">960x640 (2x)</option><option value="4" selected>1920x1280 (4x)</option></select></label>
+            <label><input type="checkbox" id="dry" /> Rehearse (no recording, no files)</label>
+      <label><input type="checkbox" id="overwrite" /> Overwrite existing files</label>
+      <label><input type="checkbox" id="autoReload" checked /> Reload project when a job leaves it changed</label>
+      <label><input type="checkbox" id="stopOnFail" checked /> Stop the batch on a failure</label>
+    </div>
+
+    <div class="cols">
+      <div>
+        <div class="panel">
+          <div class="bar">
+            <label>Pass
+              <select id="fPass"><option value="all">all</option><option value="0">0 golden</option><option value="1" selected>1</option><option value="2">2</option><option value="deferred">deferred</option></select>
+            </label>
+            <label>Status
+              <select id="fStatus"><option value="all">all</option><option value="todo" selected>to do</option><option value="done">done</option><option value="bad">rejected / failed</option></select>
+            </label>
+            <button id="runAuto" disabled>Run all auto jobs listed</button>
+            <button id="resume" hidden>Resume batch</button>
+            <button id="stop" disabled>Stop</button>
+          </div>
+          <div class="list">
+            <table>
+              <thead><tr><th>Job</th><th>Pass</th><th>Mode</th><th>Source</th><th>Status</th></tr></thead>
+              <tbody id="rows"></tbody>
+            </table>
+          </div>
+          <div class="muted" id="count"></div>
+        </div>
+        <div class="panel">
+          <h2>Log</h2>
+          <div id="log"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="panel" id="jobPanel">
+          <h2>Job</h2>
+          <div id="banner"></div>
+          <div id="detail" class="muted">Choose the folder, then select a job.</div>
+          <div id="dirBox" hidden>
+            <div>Direction (Shift + arrow, then the opposite one to come back):</div>
+            <div class="dirs">
+              <button class="up" data-dir="up">↑</button><button class="left" data-dir="left">←</button>
+              <button class="down" data-dir="down">↓</button><button class="right" data-dir="right">→</button>
+            </div>
+            <pre id="minimap" class="muted"></pre>
+          </div>
+          <div class="bar" style="margin-top: 8px">
+            <button id="go" class="primary" disabled>Run</button>
+            <button id="manual" disabled title="You play the shortcut on the M8 (or with yam8d's keys); the keys it reports become the timeline">Record manually</button>
+            <button id="skip" disabled>Skip</button>
+            <button id="promote" hidden>Move rejected files into activity/</button>
+          </div>
+          <div class="bar">
+            <label title="How much of the screen the clip shows before your first key">Manual: lead-in <input type="number" id="leadMs" value="1000" min="600" step="100" /> ms</label>
+            <label title="The clip ends once no key has been down for this long (keep it longer than your pauses)">ends <input type="number" id="idleMs" value="2500" min="1000" step="100" /> ms after the last key</label>
+          </div>
+        </div>
+        <div class="panel">
+          <h2>Preview</h2>
+          <div class="previews">
+            <figure>
+              <figcaption>Live copy of the M8 screen (what is being recorded)</figcaption>
+              <canvas id="preview" width="480" height="320"></canvas>
+            </figure>
+            <figure>
+              <figcaption id="clipCaption">Recorded clip (appears after a recording)</figcaption>
+              <video id="clip" muted loop controls playsinline></video>
+            </figure>
+          </div>
+          <pre id="report" class="muted"></pre>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { createM8Client } from './m8-sdk/index.js'
+      import * as core from './media-capture-core.js'
+      import { createJobRunner } from './media-capture-runner.js'
+
+      // ---------- small utilities ----------
+
+      const $ = (id) => document.getElementById(id)
+      const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+      const sleepUntil = async (t) => {
+        for (;;) {
+          const d = t - performance.now()
+          if (d <= 0) return
+          await (d > 15 ? sleep(d - 10) : sleep(0))
+        }
+      }
+      const stamp = () => new Date().toLocaleTimeString()
+      const log = (msg, cls = '') => {
+        const el = $('log')
+        const line = document.createElement('div')
+        if (cls) line.className = cls
+        line.textContent = `${stamp()}  ${msg}`
+        el.appendChild(line)
+        el.scrollTop = el.scrollHeight
+        console.log('[media-capture]', msg)
+      }
+      const store = {
+        get(key, fallback) { try { const v = localStorage.getItem(`media-capture.${key}`); return v === null ? fallback : v } catch { return fallback } },
+        set(key, value) { try { localStorage.setItem(`media-capture.${key}`, String(value)) } catch { /* private window: settings just do not persist */ } },
+      }
+      const query = new URLSearchParams(location.search)
+
+      // ---------- app state ----------
+
+      const app = {
+        client: null,
+        graph: null,
+        sink: null,
+        timing: { preRollMs: 600, postRollMs: 600, fps: 60, width: 480, height: 320, tapMs: 108, leadMs: 120, tailMs: 80 },
+        jobs: [],
+        results: {},
+        existing: new Set(),
+        selected: null,
+        direction: null,
+        busy: false,
+        stopRequested: false,
+        skipRequested: false,
+        waiter: null, // { resolve, reject } while the runner waits for the Run button
+        waiterLabel: null, // what the Run button says meanwhile
+        recording: false, // a manual clip is armed or recording: no position polling
+        batch: null, // the last batch: { startedAt, dry, overwrite, ids, outcomes }, see scripts/media-batch.json
+        pollTimer: null,
+        minimap: null,
+        forceMismatch: false,
+        batching: false,
+        encoderWarm: false,
+      }
+
+      // ---------- file sink (plan 3.1 item 5) ----------
+
+      const sink = {
+        root: null,
+        label: '',
+        async open() {
+          if (query.get('sink') === 'opfs') {
+            this.root = await navigator.storage.getDirectory()
+            this.label = 'browser storage (test)'
+          } else {
+            if (!window.showDirectoryPicker) throw new Error('showDirectoryPicker is not available: use Chrome or Edge')
+            this.root = await window.showDirectoryPicker({ mode: 'readwrite' })
+            this.label = this.root.name
+          }
+        },
+        async dir(path, create) {
+          let handle = this.root
+          for (const part of path.split('/').filter(Boolean)) handle = await handle.getDirectoryHandle(part, { create })
+          return handle
+        },
+        async split(path) {
+          const i = path.lastIndexOf('/')
+          return [path.slice(0, i), path.slice(i + 1)]
+        },
+        async exists(path) {
+          try {
+            const [d, f] = await this.split(path)
+            await (await this.dir(d, false)).getFileHandle(f)
+            return true
+          } catch { return false }
+        },
+        async read(path, as = 'text') {
+          const [d, f] = await this.split(path)
+          const file = await (await (await this.dir(d, false)).getFileHandle(f)).getFile()
+          return as === 'text' ? file.text() : file
+        },
+        async write(path, data) {
+          const [d, f] = await this.split(path)
+          const handle = await (await this.dir(d, true)).getFileHandle(f, { create: true })
+          const w = await handle.createWritable()
+          await w.write(data)
+          await w.close()
+        },
+      }
+      app.sink = sink
+
+      const isGolden = (job) => job.folder.startsWith('_golden/')
+      const finalPath = (job, ext) => (isGolden(job) ? `scripts/${job.folder}/${job.slug}.${ext}` : `public/assets/activity/${job.folder}/${job.slug}.${ext}`)
+      const rejectPath = (job, ext) => `scripts/_rejects/${job.folder}/${job.slug}.${ext}`
+      const webmPath = (job) => `scripts/_webm/${job.folder}/${job.slug}.webm`
+
+      // ---------- job table ----------
+
+      const statusOf = (job) => app.results[job.id]?.status ?? (app.existing.has(job.id) ? (job.recorded === 'new' ? 'new' : 'exists') : 'todo')
+      const isDone = (s) => s === 'passed' || s === 'exists' || s === 'new' || s === 'needs-transcode'
+
+      const visibleJobs = () => {
+        const pass = $('fPass').value
+        const st = $('fStatus').value
+        return app.jobs.filter((job) => {
+          if (pass === 'deferred' ? job.mode !== 'deferred' : pass !== 'all' && String(job.pass) !== pass) return false
+          const s = statusOf(job)
+          if (st === 'todo') return !isDone(s) && s !== 'rejected' && s !== 'failed'
+          if (st === 'done') return isDone(s)
+          if (st === 'bad') return s === 'rejected' || s === 'failed'
+          return true
+        })
+      }
+
+      const renderRows = () => {
+        const rows = $('rows')
+        rows.textContent = ''
+        const shown = visibleJobs()
+        for (const job of shown) {
+          const tr = document.createElement('tr')
+          tr.className = `job${app.selected === job ? ' sel' : ''}`
+          const s = statusOf(job)
+          const cells = [job.id + (job.needsReview ? ' *' : ''), job.pass ?? '-', job.mode, job.source, s]
+          cells.forEach((text, i) => {
+            const td = document.createElement('td')
+            td.textContent = text
+            if (i === 4) td.className = `st-${s}`
+            tr.appendChild(td)
+          })
+          tr.onclick = () => selectJob(job)
+          rows.appendChild(tr)
+        }
+        $('count').textContent = `${shown.length} of ${app.jobs.length} jobs listed (* = needs your review)`
+      }
+
+      // ---------- SDK ----------
+
+      const connect = async () => {
+        for (;;) {
+          try {
+            app.client = await createM8Client({ debug: false })
+            const state = await app.client.fetchState()
+            $('dot').classList.add('on')
+            $('conn').textContent = state.deviceModel ? `${state.deviceModel} connected` : 'yam8d connected, but no M8 (connect the device)'
+            log(`SDK connected. Device: ${state.deviceModel ?? 'none'}`, state.deviceModel ? 'ok' : 'warn')
+            app.runner = createJobRunner({ client: app.client, log, ask, sleep, isStopped: () => (app.stopRequested ? 'stopped' : app.skipRequested ? 'skipped' : false) })
+            app.client.onStateChange((s) => { if (s.deviceModel) $('conn').textContent = `${s.deviceModel} connected` })
+            updateControls()
+            return
+          } catch (e) {
+            $('conn').textContent = `Waiting for yam8d (${e.message}). Open this page from External Apps.`
+            await sleep(3000)
+          }
+        }
+      }
+
+      const sendMask = (mask) => (mask ? app.client.sendKeyDown(core.maskToNames(mask)) : app.client.sendKeyUp())
+
+      const snapshot = () => app.client.captureSnapshot()
+
+      // ---------- screen source, recorder (plan 3.1 items 3 and 4; t0 differs from the plan, see startEmitting) ----------
+
+      const findScreenCanvas = () => {
+        let doc
+        try { doc = window.parent.document } catch { return null }
+        if (!doc || doc === document) return null
+        const marked = doc.querySelector('canvas[data-m8-screen]')
+        if (marked) return marked
+        const canvases = [...doc.querySelectorAll('canvas')].filter((c) => c.width > 0 && c.height > 0)
+        const area = (c) => { const r = c.getBoundingClientRect(); return r.width * r.height }
+        const named = canvases.filter((c) => c.classList.contains('element'))
+        return (named.length ? named : canvases).sort((a, b) => area(b) - area(a))[0] ?? null
+      }
+
+      const firstFrame = (video, timeoutMs) =>
+        new Promise((resolve, reject) => {
+          const timer = setTimeout(() => reject(new Error('the screen stream produced no frame (is the M8 screen drawing?)')), timeoutMs)
+          const done = () => { clearTimeout(timer); resolve() }
+          if (video.requestVideoFrameCallback) video.requestVideoFrameCallback(done)
+          else video.addEventListener('loadeddata', done, { once: true })
+        })
+
+      /**
+       * Screen canvas -> hidden <video> -> 480x320 canvas -> MediaRecorder stream. Returns a handle to stop it.
+       * `delayMs`: the output canvas runs that far behind the screen (a ring of frames), so a manual clip can start
+       * before the key that starts the recorder. `shownAt()` is when the frame on the output canvas left the screen.
+       */
+      const startScreenPipeline = async ({ delayMs = 0 } = {}) => {
+        const source = findScreenCanvas()
+        if (!source) throw new Error('screen canvas not found in yam8d (add data-m8-screen to the <canvas> in M8Screen.tsx)')
+        const video = document.createElement('video')
+        video.muted = true
+        video.playsInline = true
+        // No rate argument: the stream then carries every frame the canvas draws. A cap here (it used to be 30)
+        // dropped every other frame of the 60 fps screen before the recorder ever saw it.
+        video.srcObject = source.captureStream()
+        await video.play()
+        await firstFrame(video, 4000)
+
+        const canvas = $('preview')
+        const scale = outputScale()
+        canvas.width = app.timing.width * scale
+        canvas.height = app.timing.height * scale
+        const ctx = canvas.getContext('2d', { alpha: false })
+        ctx.imageSmoothingQuality = 'high'
+        // Frames are pushed by hand (captureStream(0) + requestFrame) so none exist until the recorder is ready:
+        // MediaRecorder.onstart can fire seconds after start() while the encoder initialises, and the video's
+        // time zero is its first frame. t0 is therefore the moment startEmitting() sends that first frame.
+        const stream = canvas.captureStream(0)
+        const track = stream.getVideoTracks()[0]
+        if (typeof track.requestFrame !== 'function') throw new Error('canvas.captureStream().requestFrame() is missing: use Chrome or Edge')
+        let emitting = false
+
+        // A frame is copied the moment the screen produces one (requestVideoFrameCallback), so none is dropped or
+        // doubled by two free-running 30 Hz clocks beating against each other. The timer only repeats the last
+        // frame while the screen is idle, so the video keeps a steady minimum rate and ends at the right time.
+        const interval = 1000 / app.timing.fps
+        const minGapMs = interval * 0.75 // the M8 draws at 60 Hz at most; this only absorbs bursts
+        const hasFrameCallback = typeof video.requestVideoFrameCallback === 'function'
+        // The delayed copy keeps every frame of the last `delayMs`, at the screen's resolution (never above the
+        // output's, and shrunk when the whole ring would pass ~256 MB).
+        const ringLength = delayMs > 0 ? Math.ceil(delayMs / minGapMs) + 2 : 0
+        const fit = Math.min(1, Math.sqrt(64e6 / Math.max(1, ringLength * (video.videoWidth || canvas.width) * (video.videoHeight || canvas.height))))
+        const slotW = Math.round(Math.min((video.videoWidth || canvas.width) * fit, canvas.width))
+        const slotH = Math.round(Math.min((video.videoHeight || canvas.height) * fit, canvas.height))
+        const ring = Array.from({ length: ringLength }, () => {
+          const c = document.createElement('canvas')
+          c.width = slotW
+          c.height = slotH
+          const cx = c.getContext('2d', { alpha: false })
+          cx.imageSmoothingQuality = 'high'
+          return { c, cx, t: null }
+        })
+        let written = 0 // frames stored in the ring so far
+        let read = 0 // frames of the ring already shown; the output plays the ring in order, so none is skipped
+        let shownAt = null
+        let running = true
+        let lastRender = -Infinity
+        const render = () => {
+          if (!running) return
+          const now = performance.now()
+          if (now - lastRender < minGapMs) return
+          lastRender = now
+          if (!ring.length) {
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+            shownAt = now
+            if (emitting) track.requestFrame()
+            return
+          }
+          const slot = ring[written % ring.length]
+          slot.cx.drawImage(video, 0, 0, slot.c.width, slot.c.height)
+          slot.t = now
+          written++
+          if (written - read > ring.length) read = written - ring.length // overrun: the oldest frame is gone
+          // Show the oldest stored frame that is at least `delayMs` old: one per render, because the recorder keeps
+          // only the last canvas state per task, so two frames put out together would lose one. A render that finds
+          // none due simply leaves the previous frame; the next one catches up. Beyond two frames behind, skip ahead.
+          const due = ring[read % ring.length]
+          if (due.t <= now - delayMs) {
+            while (written - read > 2 && ring[(read + 1) % ring.length].t <= now - delayMs - 2 * interval) read++
+            const show = ring[read % ring.length]
+            ctx.drawImage(show.c, 0, 0, canvas.width, canvas.height)
+            shownAt = show.t
+            read++
+            if (emitting) track.requestFrame()
+          }
+        }
+        const onFrame = () => {
+          if (!running) return
+          render()
+          video.requestVideoFrameCallback(onFrame)
+        }
+        if (hasFrameCallback) video.requestVideoFrameCallback(onFrame)
+        const idleMs = hasFrameCallback ? interval * 1.5 : interval * 0.9
+        const watchdog = setInterval(() => { if (performance.now() - lastRender >= idleMs) render() }, interval / 2)
+        render()
+        await sleep(250)
+
+        // A black picture means the stream copy failed; better to know now than after 10 seconds of recording.
+        const latest = ring.length ? ring[(written - 1 + ring.length) % ring.length].cx : ctx
+        const probe = latest.getImageData(0, 0, latest.canvas.width, latest.canvas.height).data
+        let lit = 0
+        for (let i = 0; i < probe.length; i += 16) lit += probe[i] + probe[i + 1] + probe[i + 2]
+        if (lit === 0) {
+          running = false
+          clearInterval(watchdog)
+          throw new Error('the copied screen is black (the screen canvas stream is empty)')
+        }
+        while (shownAt === null) await sleep(30)
+        return {
+          stream,
+          /** Sends the first frame; returns when that frame left the screen (the video's time zero). */
+          startEmitting() { emitting = true; track.requestFrame(); return shownAt },
+          shownAt: () => shownAt,
+          stop() {
+            running = false
+            clearInterval(watchdog)
+            video.srcObject?.getTracks().forEach((t) => t.stop())
+            video.srcObject = null
+          },
+        }
+      }
+
+      const outputScale = () => Number($('outScale').value) || 1
+
+      const MAX_START_LAG_MS = 250
+
+      /**
+       * The first MediaRecorder of a page takes seconds to start (encoder cold start, measured 3.5 s in headless
+       * Chrome); later ones start in ~2 ms. A throwaway recording pays that cost before the first real job.
+       */
+      const warmUpEncoder = async (format) => {
+        if (app.encoderWarm) return
+        const t = performance.now()
+        const canvas = document.createElement('canvas')
+        canvas.width = 320
+        canvas.height = 240
+        const ctx = canvas.getContext('2d')
+        const stream = canvas.captureStream(0)
+        const track = stream.getVideoTracks()[0]
+        const recorder = new MediaRecorder(stream, { mimeType: format.mime })
+        const started = new Promise((resolve, reject) => {
+          recorder.onstart = resolve
+          setTimeout(() => reject(new Error('the video encoder did not start within 30 s')), 30000)
+        })
+        let n = 0
+        const pump = setInterval(() => { ctx.fillStyle = n++ % 2 ? '#fff' : '#000'; ctx.fillRect(0, 0, 320, 240); track.requestFrame() }, 40)
+        try {
+          recorder.start()
+          await started
+        } finally {
+          clearInterval(pump)
+        }
+        const stopped = new Promise((resolve) => { recorder.onstop = resolve })
+        recorder.stop()
+        await stopped
+        stream.getTracks().forEach((tr) => tr.stop())
+        app.encoderWarm = true
+        log(`video encoder warm-up took ${Math.round(performance.now() - t)} ms`)
+      }
+
+      const probeBlob = async (blob) => {
+        const url = URL.createObjectURL(blob)
+        const video = document.createElement('video')
+        video.muted = true
+        video.preload = 'metadata'
+        const once = (name, ms) => new Promise((resolve) => { const t = setTimeout(() => resolve(false), ms); video.addEventListener(name, () => { clearTimeout(t); resolve(true) }, { once: true }) })
+        try {
+          video.src = url
+          const loaded = await once('loadedmetadata', 5000)
+          if (!loaded) return { durationMs: null, width: 0, height: 0 }
+          if (!Number.isFinite(video.duration)) {
+            // Fragmented MP4 has no duration in its header: seeking far past the end makes the browser compute it.
+            const changed = once('durationchange', 3000)
+            video.currentTime = 1e9
+            await changed
+          }
+          return { durationMs: Number.isFinite(video.duration) ? video.duration * 1000 : null, width: video.videoWidth, height: video.videoHeight }
+        } finally {
+          URL.revokeObjectURL(url)
+        }
+      }
+
+      // ---------- recorded clip preview ----------
+
+      let clipUrl = null
+      const showClip = (blob, caption) => {
+        const video = $('clip')
+        if (clipUrl) URL.revokeObjectURL(clipUrl)
+        clipUrl = blob ? URL.createObjectURL(blob) : null
+        if (clipUrl) { video.src = clipUrl; video.play().catch(() => {}) } else video.removeAttribute('src')
+        $('clipCaption').textContent = caption
+      }
+
+      /** Shows the clip already on disk for a job (passed, existing or rejected), if there is one. */
+      const showStoredClip = async (job) => {
+        if (!app.sink.root) return
+        const status = statusOf(job)
+        const files = app.results[job.id]?.files ?? []
+        const candidates = status === 'rejected' ? [rejectPath(job, 'mp4'), rejectPath(job, 'webm')] : [finalPath(job, 'mp4'), ...files.filter((f) => /\.(mp4|webm)$/.test(f))]
+        for (const path of candidates) {
+          try {
+            const file = await app.sink.read(path, 'file')
+            if (app.selected !== job) return
+            showClip(file, `Stored clip: ${path} (${Math.round(file.size / 1024)} KB)`)
+            return
+          } catch { /* not there */ }
+        }
+        if (app.selected === job) showClip(null, 'Recorded clip (none stored for this job)')
+      }
+
+      // ---------- waiting for the Run button (attended mode) ----------
+
+      const waitForRun = (label = 'Run (continue)') =>
+        new Promise((resolve, reject) => {
+          app.waiter = { resolve, reject }
+          app.waiterLabel = label
+          updateControls()
+        })
+
+      const showBanner = (text, cls = '') => {
+        $('banner').innerHTML = ''
+        if (!text) return
+        const div = document.createElement('div')
+        div.className = `banner ${cls}`
+        div.textContent = text
+        $('banner').appendChild(div)
+      }
+
+      // ---------- job detail ----------
+
+      const describeSteps = (steps) => (steps && steps.length ? `${steps.length} steps over ${steps[steps.length - 1][0]} ms` : 'none')
+
+      const renderDetail = (job) => {
+        const d = $('detail')
+        if (!job) { d.textContent = 'Select a job.'; return }
+        const rows = [
+          ['Job', job.id],
+          ['Shortcut', `${job.name} (${job.activityId}) on ${job.screenName}`],
+          ['Mode / pass', `${job.mode} / ${job.pass ?? 'deferred'}`],
+          ['Navigation', job.route ? job.route.map((st) => st.view ?? (st.cursor ? `(${st.cursor})` : st.press ? st.press.join('+') : st.instrument ? `${st.instrument} instrument` : st.expect ? `-> ${st.expect.join('/')}` : '?')).join(', ') : 'manual'],
+          ['Context', describeContext(job)],
+          ['Keys', JSON.stringify(job.keypress)],
+          ['Recipe', job.recipeByDirection ? `Shift + arrow${job.loops ? ' and back' : ''}${app.direction ? ` (${app.direction})` : ''}` : `${describeSteps(job.recipe)} + ${job.tailMs ?? 0} ms look, ${job.source}${job.mirror ? `, mirrored on high values (${job.mirror})` : ''}`],
+          ['Restore', job.restore.kind + (job.loops === false ? ' (the clip does not loop)' : '')],
+          ['Notes', job.notes.join(' | ') || '-'],
+        ]
+        d.className = 'kv'
+        d.innerHTML = ''
+        for (const [k, v] of rows) {
+          const a = document.createElement('div'); a.className = 'muted'; a.textContent = k
+          const b = document.createElement('div'); b.textContent = v
+          d.append(a, b)
+        }
+        const result = app.results[job.id]
+        $('report').textContent = result ? JSON.stringify(result, null, 1) : ''
+        $('promote').hidden = !(result && result.status === 'rejected' && !isGolden(job) && !app.busy)
+      }
+
+      const renderDirections = () => {
+        const job = app.selected
+        const show = !!job?.recipeByDirection
+        $('dirBox').hidden = !show
+        if (!show) return
+        const dirs = app.minimap?.directions ?? core.DIRECTIONS
+        document.querySelectorAll('#dirBox button').forEach((b) => {
+          b.disabled = !dirs.includes(b.dataset.dir) || app.busy
+          b.classList.toggle('on', app.direction === b.dataset.dir)
+        })
+        const m = app.minimap
+        $('minimap').textContent = m
+          ? `minimap region (rows ${m.rowFrom}+, cols ${m.colFrom}+), current cell: ${m.current ? `${m.current.ch} at row ${m.current.r}, col ${m.current.c}` : 'unknown (all directions enabled)'}\n${m.raw.join('\n')}${m.cross ? `\ncross-check with the view graph: ${m.cross.status}${m.cross.status === 'mismatch' ? ` (map ${m.cross.mapDirections}, graph ${m.cross.graphDirs})` : ''}` : ''}`
+          : ''
+      }
+
+      function selectJob(job) {
+        if (app.busy) return
+        app.selected = job
+        app.direction = job.direction ?? null
+        app.minimap = null
+        showBanner('')
+        renderRows()
+        renderDetail(job)
+        renderDirections()
+        updateControls()
+        startPolling()
+        showStoredClip(job)
+      }
+
+      // While a job is selected and idle, show where the M8 is (attended jobs need this).
+      function startPolling() {
+        stopPolling()
+        const tick = async () => {
+          if ((app.busy && !app.waiter) || app.recording || !app.client?.isConnected || !app.selected) return
+          try { await refreshPosition(app.selected) } catch { /* the device may be mid-redraw */ }
+        }
+        tick()
+        app.pollTimer = setInterval(tick, 900)
+      }
+      function stopPolling() { clearInterval(app.pollTimer); app.pollTimer = null }
+
+      const inZone = (job, pos) => {
+        if (!job.cursor || !pos) return true
+        const z = job.zone
+        if (z && pos.x >= z.x && pos.x < z.x + z.w && pos.y >= z.y && pos.y < z.y + z.h) return true
+        return Math.abs(pos.x - job.cursor.x) <= 1 && Math.abs(pos.y - job.cursor.y) <= 1
+      }
+
+      async function refreshPosition(job) {
+        const snap = await snapshot()
+        if (job.recipeByDirection) {
+          const map = core.parseMinimap(snap.screen, snap.state.viewName)
+          map.cross = core.crossCheckMinimap(map.directions, core.graphDirections(app.graph, snap.state.viewName))
+          app.minimap = map
+          if (app.direction && map.directions && !map.directions.includes(app.direction)) app.direction = null
+          renderDirections()
+        }
+        if (app.waiter && job.mode === 'attended') {
+          const viewOk = !job.views?.length || job.views.includes(snap.state.viewName)
+          const cursorOk = inZone(job, snap.state.cursorPos)
+          $('conn').textContent = `${snap.state.deviceModel ?? 'no M8'} - now on "${snap.state.viewTitle ?? snap.state.viewName}" ${viewOk && cursorOk ? '(matches the job)' : '(not the job position yet)'}`
+        }
+      }
+
+      // ---------- context setup and restore: media-capture-runner.js ----------
+
+      /** Shows a question for the person at the M8 and waits for Run (the runner calls it for attended steps). */
+      async function ask(text, cls = '') {
+        showBanner(text, cls)
+        try { await waitForRun() } finally { showBanner('') }
+      }
+
+      /** One line about what the runner sets up before a job: play state, instrument, start cell. */
+      const describeContext = (job) => {
+        const c = job.context ?? {}
+        const parts = []
+        if (c.transport === 'playing') parts.push('song playing')
+        if (c.instrument) parts.push(`${c.instrument === 'filled' ? 'an' : `a ${c.instrument}`} instrument`)
+        if (c.target) parts.push(`cursor on ${c.target.want === 'any' ? 'a cell' : `a ${c.target.want} cell`}${c.target.cmd ? ` after ${c.target.cmd}` : ''} near (${c.target.near.x}, ${c.target.near.y})${job.zoneLabel ? ` in "${job.zoneLabel}"` : ''}`)
+        if (job.setup?.length) parts.push(job.setup.map((s) => s.label ?? s.op).join(', then '))
+        return parts.join('; ') || 'nothing special'
+      }
+
+      // ---------- the job (plan 3.5, 3.6) ----------
+
+      async function recordJob(job, recipe) {
+        const timing = app.timing
+        const dry = $('dry').checked
+        const shiftMs = Number($('shift').value) || 0
+        const clipMs = core.clipLengthMs(recipe, timing, job.tailMs ?? 0)
+        let pipeline = null
+        let recorder = null
+        const chunks = []
+        let t0 = null
+        let mime = null
+        let firstDataMs = null
+        let startLagMs = null
+        let recordedMs = null
+        const keyLog = []
+        const textChanges = []
+        const echoes = []
+        let hidden = false
+        const onVis = () => { if (document.visibilityState !== 'visible') hidden = true }
+        document.addEventListener('visibilitychange', onVis)
+        const offText = app.client.onTextUpdate(() => { if (t0 !== null) textChanges.push(performance.now() - t0) })
+        const offKeys = app.client.onKeyPress((keys) => echoes.push({ t: performance.now(), keys }))
+        const pending = []
+        try {
+          if (!dry) {
+            const format = core.pickRecorderFormat((m) => MediaRecorder.isTypeSupported(m))
+            if (!format) throw new Error('this browser cannot record MP4 or WebM')
+            pipeline = await startScreenPipeline()
+            mime = format
+            recorder = new MediaRecorder(pipeline.stream, { mimeType: format.mime, videoBitsPerSecond: Math.round((Number($('bitrate').value) || 6) * 1_000_000) })
+            recorder.ondataavailable = (e) => { if (e.data.size) { chunks.push(e.data); if (firstDataMs === null && t0 !== null) firstDataMs = Math.round(performance.now() - t0) } }
+            const started = new Promise((resolve, reject) => {
+              recorder.onstart = resolve
+              recorder.onerror = (e) => reject(new Error(`MediaRecorder error: ${e.error?.message ?? 'unknown'}`))
+              setTimeout(() => reject(new Error('MediaRecorder did not start within 15 s')), 15000)
+            })
+            const startCalled = performance.now()
+            recorder.start(250)
+            await started
+            t0 = performance.now()
+            startLagMs = Math.round(t0 - startCalled)
+            // Chrome hands a new recorder one stale frame, which becomes video time zero. When the encoder is warm
+            // that is ~2 ms before t0. A cold encoder would delay onstart by seconds and leave a hole in the video.
+            if (startLagMs > MAX_START_LAG_MS) throw new Error(`the recorder took ${startLagMs} ms to start, so the video would not line up with the timeline (encoder not warm); run the job again`)
+            pipeline.startEmitting()
+          } else {
+            t0 = performance.now()
+          }
+
+          // Key calls are timed against t0. The timeline records when each call was made, not when it was planned.
+          for (const [dt, mask] of recipe) {
+            await sleepUntil(t0 + timing.preRollMs + dt)
+            const t = performance.now()
+            keyLog.push({ t, mask })
+            pending.push(sendMask(mask))
+          }
+          await sleepUntil(t0 + clipMs)
+          await Promise.all(pending)
+        } finally {
+          document.removeEventListener('visibilitychange', onVis)
+          offText()
+          offKeys()
+          try { await app.client.sendKeyUp() } catch { /* already released or disconnected */ }
+        }
+
+        let blob = null
+        if (recorder) {
+          const stopped = new Promise((resolve) => { recorder.onstop = resolve })
+          recorder.stop()
+          await stopped
+          recordedMs = Math.round(performance.now() - t0)
+          pipeline.stop()
+          blob = new Blob(chunks, { type: mime.mime })
+        }
+        const events = core.buildTimeline(keyLog, t0, shiftMs)
+        return { events, blob, mime, clipMs, textChanges, echoes, hidden, t0, firstDataMs, recordedMs, startLagMs }
+      }
+
+      const MANUAL_MAX_MS = 60000
+      const describeKeys = (job) => (job.keypress ?? []).map((t) => (Array.isArray(t) ? t.join(' + ') : t)).join(', ')
+
+      /**
+       * A clip the person plays on the M8. The recorder waits for their first key; the clip starts the lead-in before
+       * it (the screen copy runs that far behind, see startScreenPipeline) and ends once no key has been down for the
+       * idle time, or on Finish. The timeline is the key state the M8 reports: it sends every change, its own keys
+       * included, so the times need no calibration shift.
+       */
+      async function recordManual(job) {
+        const timing = app.timing
+        const dry = $('dry').checked
+        const leadMs = Math.max(timing.preRollMs, Number($('leadMs').value) || 1000)
+        const idleMs = Math.max(1000, Number($('idleMs').value) || 2500)
+        // What the clip keeps after the last release. The output runs leadMs behind, so when the idle time is over
+        // only idleMs - leadMs of it has been recorded yet.
+        const tailMs = Math.max(timing.postRollMs, idleMs - leadMs)
+        let pipeline = null
+        let recorder = null
+        let mime = null
+        const chunks = []
+        const echoes = []
+        let c0 = null // when the video's first frame left the screen: the timeline's zero
+        let t0 = null
+        let startLagMs = null
+        let firstDataMs = null
+        let recordedMs = null
+        let endAt = null
+        let starting = null
+        let finished = false
+        let cancelled = null
+        let hidden = false
+        let done = false
+        const onVis = () => { if (document.visibilityState !== 'visible') hidden = true }
+        let offKeys = () => {}
+        app.recording = true
+        try {
+          if (!dry) {
+            mime = core.pickRecorderFormat((m) => MediaRecorder.isTypeSupported(m))
+            if (!mime) throw new Error('this browser cannot record MP4 or WebM')
+            pipeline = await startScreenPipeline({ delayMs: leadMs })
+            recorder = new MediaRecorder(pipeline.stream, { mimeType: mime.mime, videoBitsPerSecond: Math.round((Number($('bitrate').value) || 6) * 1_000_000) })
+            recorder.ondataavailable = (e) => { if (e.data.size) { chunks.push(e.data); if (firstDataMs === null && t0 !== null) firstDataMs = Math.round(performance.now() - t0) } }
+          }
+          // Started by the first key: a recorder started earlier would put a stale frame at video time zero.
+          const startRecorder = async () => {
+            if (!recorder) { c0 = echoes[0].t - leadMs; return }
+            const started = new Promise((resolve, reject) => {
+              recorder.onstart = resolve
+              recorder.onerror = (e) => reject(new Error(`MediaRecorder error: ${e.error?.message ?? 'unknown'}`))
+              setTimeout(() => reject(new Error('MediaRecorder did not start within 15 s')), 15000)
+            })
+            const startCalled = performance.now()
+            recorder.start(250)
+            await started
+            t0 = performance.now()
+            startLagMs = Math.round(t0 - startCalled)
+            if (startLagMs > MAX_START_LAG_MS) throw new Error(`the recorder took ${startLagMs} ms to start, so the video would not line up with the timeline (encoder not warm); record it again`)
+            c0 = pipeline.startEmitting()
+          }
+          document.addEventListener('visibilitychange', onVis)
+          offKeys = app.client.onKeyPress((keys) => {
+            if (!echoes.length && !keys) return // the release of a key pressed before Arm
+            echoes.push({ t: performance.now(), mask: keys })
+            if (!starting) {
+              starting = startRecorder()
+              starting.catch(() => {}) // awaited (and reported) by the loop below
+            }
+          })
+          showBanner(`Armed: play ${job.name} (${describeKeys(job)}) on the M8. The clip starts ${leadMs} ms before your first key and ends ${idleMs} ms after your last one. Finish ends it sooner, Skip drops it.`)
+          waitForRun('Finish').then(() => { finished = true }, (e) => { cancelled = e })
+          const armedAt = performance.now()
+          for (;;) {
+            await sleep(20)
+            if (cancelled) throw cancelled
+            const now = performance.now()
+            if (!starting) {
+              if (finished) throw new Error('Finish was clicked before any key was pressed on the M8')
+              if (now - armedAt > 120000) throw new Error('no key was pressed on the M8 within 2 minutes')
+              continue
+            }
+            await starting
+            const shown = pipeline ? pipeline.shownAt() : now
+            if (endAt === null) {
+              const last = echoes[echoes.length - 1]
+              // Finish keeps the last release: the output is still leadMs behind what the person just did.
+              if (finished) endAt = Math.max(shown, last.mask ? now : last.t + timing.postRollMs)
+              else if (!last.mask && now - last.t >= idleMs) endAt = last.t + tailMs
+              else if (now - echoes[0].t > MANUAL_MAX_MS) {
+                endAt = Math.max(shown, now)
+                log(`${job.id}: the clip reached ${MANUAL_MAX_MS / 1000} s, ending it`, 'warn')
+              }
+            }
+            if (endAt !== null && shown >= endAt) break
+          }
+          if (recorder) {
+            const stopped = new Promise((resolve) => { recorder.onstop = resolve })
+            recorder.stop()
+            await stopped
+            recordedMs = Math.round(performance.now() - t0)
+          }
+          done = true
+        } finally {
+          app.recording = false
+          document.removeEventListener('visibilitychange', onVis)
+          offKeys()
+          if (app.waiter) { app.waiter = null; updateControls() }
+          showBanner('')
+          if (!done && recorder?.state === 'recording') recorder.stop()
+          pipeline?.stop()
+        }
+
+        const blob = recorder ? new Blob(chunks, { type: mime.mime }) : null
+        const events = core.buildTimeline(echoes.filter((e) => e.t >= c0 && e.t <= endAt), c0, 0)
+        const clipMs = Math.round(endAt - c0)
+        log(`${job.id}: manual clip of ${clipMs} ms, ${events.length} key changes`)
+        return { events, blob, mime, clipMs, textChanges: [], echoes, hidden, t0, firstDataMs, recordedMs, startLagMs }
+      }
+
+      async function runJob(job, { manual = false } = {}) {
+        const timing = app.timing
+        const dry = $('dry').checked
+        const report = { status: 'running', at: new Date().toISOString(), mode: job.mode, ...(manual ? { manual: true } : {}) }
+        app.results[job.id] = report
+        renderRows()
+        try {
+          // 0. Preconditions
+          if (document.visibilityState !== 'visible') throw new Error('the tab is in the background: timers would be throttled')
+          if (!app.client?.isConnected) throw new Error('yam8d is not connected')
+          if (!dry && !app.sink.root) throw new Error('choose the m8-shortcuts folder first')
+          const state0 = await app.client.fetchState()
+          if (!state0.deviceModel) throw new Error('no M8 connected in yam8d')
+          const expected = $('model').value.trim()
+          if (!expected) { $('model').value = state0.deviceModel; store.set('model', state0.deviceModel); log(`device model set to ${state0.deviceModel}`) }
+          else if (expected !== state0.deviceModel) throw new Error(`device is "${state0.deviceModel}", expected "${expected}"`)
+          if (state0.macroRunning) throw new Error('a macro is running in yam8d')
+          if (!dry && !$('overwrite').checked && (await app.sink.exists(finalPath(job, 'mp4')))) throw new Error('the target .mp4 already exists (tick "Overwrite existing files")')
+          if (!dry) {
+            const format = core.pickRecorderFormat((m) => MediaRecorder.isTypeSupported(m))
+            if (!format) throw new Error('this browser cannot record MP4 or WebM')
+            if (!app.encoderWarm) showBanner('Warming up the video encoder (a few seconds, once per page load)...')
+            await warmUpEncoder(format)
+            showBanner('')
+          }
+          await app.client.sendKeyUp()
+
+          // 1. Context: a clean M8, then the job's play state, screen, instrument, cursor cell and setup steps
+          //    (media-capture-runner.js). When that fails, the person sets it up and clicks Run (attended). A manual
+          //    clip always waits for Arm.
+          let prepared = null
+          showBanner(`Setting up ${job.screenName}: ${describeContext(job)}`)
+          try {
+            prepared = await app.runner.prepare(job, app.direction, { manual })
+          } catch (e) {
+            if (e.message === 'stopped' || e.message === 'skipped') throw e
+            log(`${job.id}: automatic setup failed (${e.message}), ${manual ? 'set it up on the M8' : 'switching to attended'}`, 'warn')
+            report.setupError = e.message
+          }
+          showBanner('')
+          if (manual) {
+            // The person can adjust what the runner set up: keys pressed before Arm are not part of the clip.
+            const where = `${job.screenName} (${describeContext(job)})`
+            showBanner(
+              prepared
+                ? `${where} is set up. Adjust it on the M8 if needed, then click Arm: the recording starts with your next key.`
+                : `Set up ${where} on the M8, then click Arm: the recording starts with your next key.`,
+              prepared ? '' : 'warn',
+            )
+            report.status = 'waiting'
+            renderRows()
+            await waitForRun('Arm')
+            showBanner('')
+            prepared = { baseline: await snapshot(), recipe: null, mirrored: false }
+            report.status = 'running'
+            renderRows()
+          } else if (!prepared) {
+            const where = describeContext(job)
+            let text = `Set up ${job.screenName} on the M8 (${where}), then click Run.`
+            if (job.recipeByDirection) text += ' Check the direction below first.'
+            showBanner(text, 'warn')
+            report.status = 'waiting'
+            renderRows()
+            for (;;) {
+              await waitForRun()
+              if (job.recipeByDirection && !app.direction) { showBanner('Pick a direction first. ' + text, 'warn'); continue }
+              const snap = await snapshot()
+              const wrongView = job.views?.length && !job.views.includes(snap.state.viewName)
+              if (wrongView && !app.forceMismatch) {
+                app.forceMismatch = true
+                showBanner(`The M8 is on "${snap.state.viewName}", the job expects "${job.views.join(' / ')}". Click Run again to record anyway.`, 'warn')
+                continue
+              }
+              break
+            }
+            app.forceMismatch = false
+            showBanner('')
+            const baseline = await snapshot()
+            let recipe = core.resolveRecipe(job, app.direction)
+            if (recipe && job.mirror && core.shouldMirror(baseline.state.textUnderCursor)) recipe = core.mirrorSteps(recipe, job.mirror)
+            prepared = { baseline, recipe, mirrored: false }
+            report.status = 'running'
+            renderRows()
+          }
+
+          // 2. Recipe and loop baseline
+          const { baseline, recipe } = prepared
+          if (!recipe && !manual) throw new Error('no recipe (pick a direction)')
+          if (job.recipeByDirection && !manual) report.direction = app.direction
+          report.mirrored = prepared.mirrored
+          report.start = { view: baseline.state.viewName, title: baseline.state.viewTitle?.trim(), cursor: baseline.state.cursorPos, text: baseline.state.textUnderCursor?.trim() }
+          if (baseline.state.deviceModel !== state0.deviceModel) throw new Error('the device changed during setup')
+
+          // 4. Record
+          const start = `start "${report.start.title}" ${JSON.stringify(report.start.cursor)} "${report.start.text ?? ''}"`
+          if (manual) log(`${job.id}: armed for a manual clip${dry ? ' (rehearsal)' : ''}, ${start}`)
+          else log(`${job.id}: recording${dry ? ' (rehearsal)' : ''}, ${core.clipLengthMs(recipe, timing, job.tailMs ?? 0)} ms, ${start}`)
+          const rec = manual ? await recordManual(job) : await recordJob(job, recipe)
+          await sleep(300)
+          const after = await snapshot()
+
+          // 5. QA
+          const timeline = core.checkTimeline(rec.events, { clipMs: rec.clipMs })
+          const loop = core.loopCheck(baseline, after)
+          const firstPress = rec.events.length ? rec.events[0][0] : 0
+          const sync = core.syncCheck(firstPress, rec.textChanges.map((t) => Math.round(t)), { skip: manual || !job.syncCheck })
+          let media = { ok: true, errors: [], warnings: [] }
+          let probe = null
+          if (rec.blob) {
+            probe = await probeBlob(rec.blob)
+            media = core.checkMedia({ ...probe, expectedMs: rec.clipMs }, { size: { width: timing.width * outputScale(), height: timing.height * outputScale() } })
+          }
+          if (rec.blob) showClip(rec.blob, `Just recorded: ${job.id} (${Math.round(rec.blob.size / 1024)} KB, ${probe?.durationMs ? Math.round(probe.durationMs) : '?'} ms)`)
+          if (rec.hidden) timeline.errors.push('the tab was hidden during the recording')
+          Object.assign(report, {
+            direction: report.direction,
+            clipMs: rec.clipMs,
+            recordedMs: rec.recordedMs,
+            firstDataMs: rec.firstDataMs,
+            startLagMs: rec.startLagMs,
+            events: rec.events.length,
+            format: rec.mime?.ext ?? null,
+            bytes: rec.blob?.size ?? 0,
+            probe,
+            timeline,
+            loop: { looped: loop.looped, warnings: loop.warnings, valueChanged: loop.valueChanged, outsideRows: loop.outsideRows },
+            sync,
+            media,
+            keyEchoes: rec.echoes.length,
+            needsReview: job.needsReview,
+          })
+          const ok = timeline.ok && media.ok && !rec.hidden
+          report.status = dry ? 'rehearsed' : ok ? (rec.mime.ext === 'webm' ? 'needs-transcode' : 'passed') : 'rejected'
+
+          // 6. Files
+          if (!dry) {
+            const json = JSON.stringify(rec.events)
+            if (ok && rec.mime.ext === 'mp4') {
+              await app.sink.write(finalPath(job, 'mp4'), rec.blob)
+              await app.sink.write(finalPath(job, 'json'), json)
+              report.files = [finalPath(job, 'mp4'), finalPath(job, 'json')]
+            } else if (ok) {
+              await app.sink.write(webmPath(job), rec.blob)
+              await app.sink.write(finalPath(job, 'json'), json)
+              report.files = [webmPath(job), finalPath(job, 'json')]
+            } else {
+              await app.sink.write(rejectPath(job, rec.mime.ext), rec.blob)
+              await app.sink.write(rejectPath(job, 'json'), json)
+              report.files = [rejectPath(job, rec.mime.ext), rejectPath(job, 'json')]
+            }
+          }
+          const flags = [!loop.looped && job.loops !== false && 'not looping', loop.valueChanged && 'valueChanged', sync.status === 'warn' && 'sync-warning', job.needsReview && 'needs review'].filter(Boolean)
+          log(`${job.id}: ${report.status}${flags.length ? ` (${flags.join(', ')})` : ''}${[...timeline.errors, ...media.errors, ...loop.warnings].map((e) => `\n   - ${e}`).join('')}`, report.status === 'rejected' || (dry && !ok) ? 'err' : 'ok')
+
+          // 7. Put the M8 and the project back for the next job. A failure here does not undo the clip, but the batch
+          //    must stop.
+          try {
+            report.restore = await app.runner.cleanup(job, baseline, after)
+          } catch (e) {
+            report.restoreFailed = e.message
+            log(`${job.id}: restore failed (${e.message}). Fix the project on the M8 before the next job.`, 'err')
+          }
+        } catch (e) {
+          if (report.status !== 'rejected') report.status = e.message === 'skipped' ? 'todo' : 'failed'
+          report.error = e.message
+          log(`${job.id}: ${e.message}`, e.message === 'skipped' ? 'warn' : 'err')
+          // Failed, skipped or stopped: still leave the M8 neutral (no Select Mode, sub-view, playback, mute) for the
+          // next job. The project itself is not reloaded here; use "Reload demo project" if the job changed it.
+          try { await app.runner?.settle() } catch { /* best effort */ }
+          if (e.message === 'skipped') delete app.results[job.id]
+          throw e
+        } finally {
+          showBanner('')
+          await saveResults()
+          renderRows()
+          if (app.selected === job) renderDetail(job)
+        }
+      }
+
+      const saveResults = async () => {
+        if (!app.sink.root) return
+        try { await app.sink.write('scripts/media-results.json', JSON.stringify(app.results, null, 1)) } catch (e) { log(`could not save media-results.json: ${e.message}`, 'warn') }
+      }
+
+      async function runOne(job, options) {
+        if (app.busy) return
+        app.busy = true
+        app.stopRequested = false
+        app.skipRequested = false
+        updateControls()
+        try {
+          await runJob(job, options)
+        } catch { /* reported in runJob */ } finally {
+          app.busy = false
+          app.waiter = null
+          updateControls()
+          renderDirections()
+          if (app.selected) startPolling()
+        }
+        return statusOf(job)
+      }
+
+      // ---------- batch progress: scripts/media-batch.json, so a stopped or failed batch (or a reloaded page) resumes ----------
+
+      const BATCH_PATH = 'scripts/media-batch.json'
+
+      /** Is the job done as far as the batch goes: it passed (or was rehearsed, or skipped) in it, or since it began. */
+      const doneInBatch = (batch, id) => {
+        const good = (s) => (batch.dry ? s === 'rehearsed' : s === 'passed' || s === 'needs-transcode')
+        const outcome = batch.outcomes[id]
+        if (outcome === 'skipped' || good(outcome)) return true
+        // Run by hand or promoted from the rejects after the batch stopped.
+        const result = app.results[id]
+        return !!result && good(result.status) && result.at >= batch.startedAt
+      }
+      const batchLeft = (batch) => batch.ids.filter((id) => !doneInBatch(batch, id) && app.jobs.some((j) => j.id === id))
+
+      const saveBatch = async () => {
+        if (!app.sink.root || !app.batch) return
+        try { await app.sink.write(BATCH_PATH, JSON.stringify(app.batch, null, 1)) } catch (e) { log(`could not save ${BATCH_PATH}: ${e.message}`, 'warn') }
+      }
+
+      async function runBatch({ resume = false } = {}) {
+        let list
+        if (resume) {
+          const batch = app.batch
+          list = batchLeft(batch).map((id) => app.jobs.find((j) => j.id === id))
+          // The rest of the batch runs as it started: rehearsed or recorded, over existing files or not.
+          $('dry').checked = batch.dry
+          $('overwrite').checked = batch.overwrite
+          log(`resuming the batch started ${new Date(batch.startedAt).toLocaleString()}: ${list.length} of ${batch.ids.length} jobs left (rehearse ${batch.dry ? 'on' : 'off'}, overwrite ${batch.overwrite ? 'on' : 'off'}, as when it started)`)
+        } else {
+          list = visibleJobs().filter((j) => j.mode === 'auto' && (!isDone(statusOf(j)) || $('overwrite').checked))
+          if (!list.length) { log('no auto jobs to run in the list', 'warn'); return }
+          const left = app.batch ? batchLeft(app.batch).length : 0
+          if (left) log(`the earlier batch (${left} jobs left) is replaced by this one`, 'warn')
+          app.batch = { startedAt: new Date().toISOString(), dry: $('dry').checked, overwrite: $('overwrite').checked, ids: list.map((j) => j.id), outcomes: {} }
+          await saveBatch()
+          log(`batch: ${list.length} auto jobs`)
+        }
+        app.batching = true
+        updateControls()
+        for (const [i, job] of list.entries()) {
+          if (app.stopRequested) break
+          log(`batch ${i + 1}/${list.length}: ${job.id}`)
+          selectJob(job)
+          await runOne(job)
+          const result = app.results[job.id]
+          // Skip leaves no result: the next job runs. A stopped job is not done, so a resume runs it again.
+          const outcome = result ? (result.error === 'stopped' ? 'stopped' : result.status) : app.skipRequested ? 'skipped' : 'todo'
+          app.batch.outcomes[job.id] = outcome
+          await saveBatch()
+          if (((outcome === 'failed' || outcome === 'rejected') && $('stopOnFail').checked) || result?.restoreFailed) { log('batch stopped on the first problem', 'warn'); break }
+        }
+        app.batching = false
+        const left = batchLeft(app.batch).length
+        log(left ? `batch paused: ${left} of ${app.batch.ids.length} jobs left ("Resume batch" goes on with them)` : 'batch finished', left ? 'warn' : 'ok')
+        updateControls()
+      }
+
+      // ---------- calibration (plan section 4) ----------
+
+      async function echoTest() {
+        if (app.busy) return
+        app.busy = true
+        updateControls()
+        const calls = []
+        const echoes = []
+        const off = app.client.onKeyPress((keys) => echoes.push({ t: performance.now(), keys }))
+        try {
+          log('echo test: tapping Shift six times (harmless on every screen)')
+          for (let i = 0; i < 6; i++) {
+            calls.push({ t: performance.now(), mask: core.KEY.shift })
+            await app.client.sendKeyDown(['shift'])
+            await sleep(180)
+            calls.push({ t: performance.now(), mask: 0 })
+            await app.client.sendKeyUp()
+            await sleep(300)
+          }
+          await sleep(300)
+        } finally {
+          off()
+          app.busy = false
+          updateControls()
+        }
+        if (echoes.length === 0) { log('echo test: the M8 sent no key events back, so there is no device-side clock (plan section 1)', 'warn'); return }
+        const delays = []
+        for (const call of calls) {
+          const echo = echoes.find((e) => e.t >= call.t && e.keys === call.mask)
+          if (echo) delays.push(echo.t - call.t)
+        }
+        const med = core.median(delays)
+        log(`echo test: ${echoes.length} echoes for ${calls.length} key calls; SDK-to-echo delay median ${med === null ? 'n/a' : med.toFixed(1)} ms (min ${Math.min(...delays).toFixed(1)}, max ${Math.max(...delays).toFixed(1)})`, 'ok')
+        if (med !== null) log('echo test: this is an upper bound for the device delay; use it in "Timeline shift" only if you also measured the start offset (plan 4.2, 4.3)')
+      }
+
+      // ---------- promote a reviewed reject ----------
+
+      async function promoteReject(job) {
+        const result = app.results[job.id]
+        if (!result?.files) return
+        for (const rejected of result.files) {
+          const target = rejected.replace(/^scripts\/_rejects\//, 'public/assets/activity/')
+          if (target === rejected) continue
+          await app.sink.write(target, await app.sink.read(rejected, 'file'))
+        }
+        result.status = 'passed'
+        result.promoted = true
+        result.files = result.files.map((f) => f.replace(/^scripts\/_rejects\//, 'public/assets/activity/'))
+        await saveResults()
+        log(`${job.id}: moved into activity/ (rejected files left in _rejects/)`, 'ok')
+        renderRows(); renderDetail(job)
+      }
+
+      // ---------- loading ----------
+
+      async function loadJobs() {
+        let text
+        const url = query.get('jobs')
+        if (url) text = await (await fetch(url)).text()
+        else text = await app.sink.read('scripts/media-jobs.json')
+        const data = JSON.parse(text)
+        app.jobs = data.jobs
+        app.timing = { ...app.timing, ...data.timing }
+        app.results = {}
+        try { app.results = JSON.parse(await app.sink.read('scripts/media-results.json')) } catch { /* first run */ }
+        app.existing = new Set()
+        for (const job of app.jobs) if (!isGolden(job) && (await app.sink.exists(finalPath(job, 'mp4')))) app.existing.add(job.id)
+        log(`${app.jobs.length} jobs loaded from ${url ?? `${app.sink.label}/scripts/media-jobs.json`}; ${app.existing.size} already have a video`, 'ok')
+        app.batch = null
+        try { app.batch = JSON.parse(await app.sink.read(BATCH_PATH)) } catch { /* no batch run yet */ }
+        const left = app.batch ? batchLeft(app.batch).length : 0
+        if (left) log(`the batch started ${new Date(app.batch.startedAt).toLocaleString()} has ${left} of ${app.batch.ids.length} jobs left: "Resume batch" goes on with them`, 'warn')
+        renderRows()
+        updateControls()
+      }
+
+      function updateControls() {
+        const connected = !!app.client?.isConnected
+        const ready = connected && !app.busy
+        $('echo').disabled = !ready
+        $('reload').disabled = !ready
+        $('pick').disabled = app.busy
+        const job = app.selected
+        const canRun = !!job && connected && job.mode !== 'deferred'
+        // Run starts an idle job, or releases a wait.
+        $('go').disabled = app.waiter ? false : !(canRun && !app.busy)
+        $('go').textContent = app.waiter ? app.waiterLabel : 'Run'
+        $('manual').disabled = !(job && connected && !app.busy)
+        $('skip').disabled = !app.busy
+        $('stop').disabled = !(app.busy || app.batching)
+        $('runAuto').disabled = !(ready && app.jobs.length) || app.batching
+        const left = app.batch ? batchLeft(app.batch).length : 0
+        $('resume').hidden = !left || app.batching
+        $('resume').disabled = !ready
+        $('resume').textContent = `Resume batch (${left} of ${app.batch?.ids.length ?? 0} left)`
+        $('promote').hidden = !(job && app.results[job.id]?.status === 'rejected' && !isGolden(job) && !app.busy)
+        renderDirections()
+      }
+
+      // ---------- wiring ----------
+
+      $('pick').onclick = async () => {
+        try {
+          await sink.open()
+          await loadJobs()
+        } catch (e) { log(`folder: ${e.message}`, 'err') }
+      }
+      $('go').onclick = () => {
+        if (app.waiter) { const w = app.waiter; app.waiter = null; updateControls(); w.resolve() } else if (app.selected) runOne(app.selected)
+      }
+      $('manual').onclick = () => { if (app.selected) runOne(app.selected, { manual: true }) }
+      // Skip drops the current job only: a batch goes on with the next one.
+      $('skip').onclick = () => {
+        app.skipRequested = true
+        if (app.waiter) { const w = app.waiter; app.waiter = null; updateControls(); w.reject(new Error('skipped')) }
+      }
+      $('stop').onclick = () => {
+        app.stopRequested = true
+        if (app.waiter) { const w = app.waiter; app.waiter = null; w.reject(new Error('stopped')) }
+        log('stop requested: the current recording finishes first', 'warn')
+      }
+      $('runAuto').onclick = () => runBatch()
+      $('resume').onclick = () => runBatch({ resume: true })
+      $('echo').onclick = () => echoTest()
+      $('reload').onclick = async () => {
+        if (app.busy) return
+        app.busy = true; updateControls()
+        try { await app.runner.reloadProject() } catch (e) { log(`reload: ${e.message}`, 'err') } finally { app.busy = false; app.waiter = null; updateControls() }
+      }
+      $('promote').onclick = () => { if (app.selected) promoteReject(app.selected).catch((e) => log(e.message, 'err')) }
+      $('fPass').onchange = renderRows
+      $('fStatus').onchange = renderRows
+      document.querySelectorAll('#dirBox button').forEach((b) => {
+        b.onclick = () => { app.direction = b.dataset.dir; renderDirections(); if (app.selected) renderDetail(app.selected) }
+      })
+      $('shift').value = store.get('shift', '0')
+      $('model').value = store.get('model', '')
+      $('shift').onchange = () => store.set('shift', $('shift').value)
+      $('model').onchange = () => store.set('model', $('model').value)
+      $('bitrate').value = store.get('bitrate', '12')
+      $('bitrate').onchange = () => store.set('bitrate', $('bitrate').value)
+      $('outScale').value = store.get('outScale', '4')
+      $('outScale').onchange = () => store.set('outScale', $('outScale').value)
+      for (const id of ['leadMs', 'idleMs']) {
+        $(id).value = store.get(id, $(id).value)
+        $(id).onchange = () => store.set(id, $(id).value)
+      }
+      const showVisibility = () => { $('vis').textContent = document.visibilityState === 'visible' ? '' : 'TAB IS IN THE BACKGROUND: do not record' }
+      document.addEventListener('visibilitychange', showVisibility)
+      showVisibility()
+
+      fetch('./m8Graph.generated.json').then((r) => r.json()).then((g) => { app.graph = g }).catch(() => log('m8Graph.generated.json not loaded: the minimap cross-check is off', 'warn'))
+      window.__m8capture = { app, sink, core, runOne, runBatch, echoTest, selectJob, loadJobs, startScreenPipeline }
+      if (query.get('sink') === 'opfs') {
+        // Test mode: no folder picker, files go to the browser's private storage.
+        $('pick').textContent = 'Use browser storage (test)'
+      }
+      connect()
+    </script>
+  </body>
+</html>

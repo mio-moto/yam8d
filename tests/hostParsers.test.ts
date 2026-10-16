@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'bun:test'
-import { M8KeyMask } from '../src/features/connection/keys'
+import { M8KeyMask } from '../packages/m8-sdk/src/engine/keys'
 import {
     getFileEntrySearchTerms,
     isDirectoryEntry,
     isFileBrowserView,
     isM8FileEntry,
     isParentDirectoryEntry,
-} from '../src/sdk/host/fileBrowserHelpers'
-import { calculateKeySequence, calculateNoteKeySequence } from '../src/sdk/host/keySequences'
+} from '../packages/m8-sdk/src/engine/host/fileBrowserHelpers'
+import { calculateKeySequence, calculateNoteKeySequence } from '../packages/m8-sdk/src/engine/host/keySequences'
 import {
     detectFloatCursorFocus,
     formatFloatFromTicks,
@@ -17,7 +17,7 @@ import {
     parseIntValue,
     parseNoteValue,
     pickFloatTokenIndex,
-} from '../src/sdk/host/valueParsers'
+} from '../packages/m8-sdk/src/engine/host/valueParsers'
 
 describe('value parsers', () => {
     it('parses hex values, treating "--" as 00', () => {

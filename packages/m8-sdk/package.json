@@ -1,7 +1,7 @@
 {
   "name": "@yam8d/m8-sdk",
-  "version": "0.4.0",
-  "description": "Client SDK for iframe applications that communicate with yam8d M8 host.",
+  "version": "0.5.1",
+  "description": "Client SDK for apps that read and drive a Dirtywave M8, inside a yam8d External Apps iframe or standalone over Web Serial, WebUSB or Web MIDI.",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",

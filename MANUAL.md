@@ -13,6 +13,8 @@ You need a powered Dirtywave M8, a USB connection, and a Chromium-based browser 
 
 YAM8D prefers WebSerial when the browser supports it. If WebSerial is unavailable, it can use WebUSB or WebMIDI with SysEx support.
 
+Once connected, YAM8D plays the M8's USB audio through the computer. The browser asks for audio permission the first time.
+
 ![YAM8D connect screen](./manual-screenshots/connect-splash.png)
 
 ## Main Controls
@@ -113,7 +115,9 @@ The default app list includes:
 | M8 Groove Extractor | Groove extraction tool |
 | M8 Scale Divinator | Scale exploration tool |
 
-Open **Configure** to add, remove, rename, reorder by active selection, or edit external app URLs. Apps can optionally use the legacy URL fallback format before the SDK connection is ready.
+Open **Configure** to add, remove, rename, reorder by active selection, or edit external app URLs. You can add a local app, such as `http://localhost:5176/` for the M8 Song Explorer. Apps can optionally use the legacy URL fallback format before the SDK connection is ready.
+
+An SDK app opened in its own browser tab can also connect to the M8 itself (standalone mode). Only one page can hold the M8, so disconnect it in YAM8D first.
 
 ![External apps setup](./manual-screenshots/external-apps-setup.png)
 
@@ -127,6 +131,7 @@ Common client methods include:
 - `navigateTo(x, y)`
 - `setValueToHex(value)`
 - `setValueToInt(value)`
+- `setValueFloat(value)`
 - `setNote(note)`
 - `setValueToString(text, exact, searchInCurrentLine)`
 - `browseFile(text, exact)`
@@ -134,10 +139,15 @@ Common client methods include:
 - `sendKeyDown(keys)`
 - `sendKeyUp()`
 - `fetchState()`
+- `getScreen()` and `getScreenCells()`, which read the whole screen (text, and each cell's colours)
+- `describeContext()`, which explains what the cursor is on
+- `enableMidiTransport()` and `onTransport()`, for the M8's MIDI clock, start/stop and song position (needs SYNC OUT in the M8's MIDI Settings)
 
 The SDK state includes the current view, cursor position, cursor rectangle, selection mode, text under cursor, current line, colors, model information, system information, macro status, and key events.
 
-See `src/sdk/README.md` and `src/sdk/CREATING_APP.md` for implementation details.
+The first time an app enables MIDI transport, YAM8D asks for Web MIDI permission.
+
+See `src/sdk/README.md`, `src/sdk/CREATING_APP.md` and `packages/m8-sdk/README.md` for implementation details.
 
 ## Rendering Settings
 
@@ -211,6 +221,8 @@ Recording modes:
 | M8 Screen only | The rendered M8 canvas, including shader output |
 | Full tab/window | Browser display capture for the selected tab or window |
 
+Recordings include the M8's USB audio when the browser can reach the M8 audio input. YAM8D asks for audio permission the first time.
+
 Press `Escape` to stop the active recording at any time. This is especially useful during **Full tab/window** recording, where YAM8D hides its controls to keep them out of the capture.
 
 After stopping, YAM8D provides a WebM download action and a reset action to discard the captured result.
@@ -241,6 +253,7 @@ No project data or M8 content is uploaded by YAM8D.
 | WebM recording is unavailable | Check browser MediaRecorder support and permissions |
 | Audio-reactive shaders do not move | Allow microphone or audio capture permission and use a shader with audio uniforms |
 | External app stays Waiting | Check the app URL, iframe permissions, and whether the app uses the SDK |
+| Another page cannot connect to the M8 | YAM8D holds the M8's port while connected; disconnect it here first |
 
 ## Credits
 

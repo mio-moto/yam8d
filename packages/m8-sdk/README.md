@@ -1,6 +1,6 @@
 # @yam8d/m8-sdk
 
-Client SDK for iframe applications that communicate with an M8 tracker host via [yam8d](https://github.com/mio-moto/yam8d).
+Client SDK for apps that read and drive a Dirtywave M8 tracker. Inside a [yam8d](https://github.com/mio-moto/yam8d) External Apps iframe it talks to yam8d; anywhere else it connects to the M8 itself over Web Serial, WebUSB or Web MIDI ([standalone mode](#standalone-mode)). The API is the same in both modes.
 
 > **License:** MIT — © kronsilds
 
@@ -11,6 +11,7 @@ Client SDK for iframe applications that communicate with an M8 tracker host via 
 - [Install](#install)
 - [Quick start](#quick-start)
 - [Factory functions](#factory-functions)
+- [Standalone mode](#standalone-mode)
 - [M8Client](#m8client)
   - [Properties](#properties)
   - [Navigation](#navigation)
@@ -19,6 +20,7 @@ Client SDK for iframe applications that communicate with an M8 tracker host via 
   - [State](#state)
   - [Event subscriptions](#event-subscriptions)
   - [Semantic context](#semantic-context-on-the-client)
+  - [Device connection (standalone)](#device-connection-standalone)
   - [Lifecycle](#lifecycle)
 - [Standalone semantic context functions](#standalone-semantic-context-functions)
 - [Types reference](#types-reference)
@@ -49,7 +51,7 @@ For local development before publishing:
 npm install ../yam8d/packages/m8-sdk
 ```
 
-> The app **must run inside the yam8d host iframe**. Opening it directly in a standalone browser tab will fail the SDK handshake.
+> Inside yam8d the app uses yam8d's connection to the M8. Opened in its own tab, it runs in [standalone mode](#standalone-mode) and connects to the M8 itself.
 
 ---
 
@@ -101,6 +103,39 @@ useEffect(() => {
 
 ---
 
+## Standalone mode
+
+`createM8Client()` decides the mode when it connects (`client.mode`):
+
+- **`'host'`**: the page runs in an iframe that yam8d named `yam8d-external-app` (exported as `YAM8D_FRAME_NAME`). The client waits for yam8d's handshake, however long it takes.
+- **`'standalone'`**: the page is a top-level tab. The client runs the same engine yam8d uses, in the page itself: the Web Serial / WebUSB / Web MIDI SysEx connection, the display protocol (SLIP, draw rect/character commands), screen text extraction, cursor tracking, view navigation over the view graph, the value editors, file browsing and the MIDI clock.
+- In an iframe that yam8d did not name (an older yam8d, or another page embedding the app), the client tries the handshake for `handshakeTimeoutMs` (3 s) and then goes standalone.
+- Force a mode with `createM8Client({ mode: 'host' | 'standalone' })`.
+
+In standalone mode the M8 has to be connected before any call works:
+
+```ts
+const m8 = await createM8Client()
+if (m8.mode === 'standalone' && !m8.isConnected) {
+  // The browser's device picker only opens from a user gesture
+  connectButton.onclick = () => m8.connectDevice()   // or connectDevice({ transport: 'midi' })
+}
+m8.onConnectionChange((connected) => updateUi(connected))
+```
+
+- **Audio**: `connectDevice({ audio: true })` (or `connectAudio()` later) plays the M8's USB audio input through the page, as yam8d does. The browser asks for audio permission; only an input whose label contains "M8" is played, never another microphone. Without it the device stays connected and the warning goes to the console; `isAudioConnected` tells. `disconnectDevice()` stops it too.
+- **MIDI clock**: `enableMidiTransport()` / `onTransport()` work the same as in yam8d: the page opens the M8's MIDI input itself (Web MIDI permission). Enable it again after each new device connection.
+- At start, a standalone client reopens a device the page was granted before, without a prompt (`autoConnect: false` turns that off).
+- Only one page can hold the M8's serial port. Disconnect it in yam8d (or close that tab) before connecting from another page, and call `disconnectDevice()` to hand it back.
+- `getDevice()` gives standalone apps the raw protocol events (`text`, `rect`, `wave`, `key`, `system`) and device commands (`sendKeys`, `resetScreen`, `sendNoteOn`, `sendNoteOff`, `sendProgramChange`), e.g. to draw the screen themselves.
+- `getDeviceSupport()` tells which of the three browser APIs are available (Chromium browsers have all three; Firefox and Safari have none).
+- The engine is exported too, for apps that want to drive the device below the client:
+  - `createM8Connection` (open a device bus) and `createM8Engine` (the engine yam8d and standalone clients run on a bus);
+  - `M8KeyMask` (the bit of each key in a key mask) and `pressKeys({ left, up, shift, ... })`, which builds a mask from booleans;
+  - `createM8Audio()` (plays the M8's USB audio input through the page: `connect()`, `disconnect()`, `connected`, `getOutputCaptureStream()` for recording), `getM8InputStream({ requireM8 })` (the raw input stream; without `requireM8` it falls back to the default input) and `M8_AUDIO_CAPTURE_CONSTRAINTS` (no echo cancellation, noise suppression or gain control).
+
+---
+
 ## M8Client
 
 ### Properties
@@ -108,7 +143,9 @@ useEffect(() => {
 | Property | Type | Description |
 |---|---|---|
 | `state` | `M8State` | Last known full device state (updated on every host event). |
-| `isConnected` | `boolean` | Whether the SDK handshake has completed. |
+| `isConnected` | `boolean` | Whether calls reach an M8: host mode, after the yam8d handshake; standalone, while a device is connected. |
+| `mode` | `'host' \| 'standalone' \| null` | Chosen at connect; `null` before. |
+| `deviceTransport` | `'serial' \| 'usb' \| 'midi' \| null` | Standalone: the API the device is connected through. |
 
 ---
 
@@ -214,6 +251,29 @@ Requests a fresh state snapshot from the host and updates the internal cache.
 const state = await m8.fetchState()
 ```
 
+#### `getScreen(): Promise<M8Screen>`
+
+The whole screen as text rows (40 columns, column 0 is the margin where play markers are drawn), read from the character stream without moving the cursor.
+
+#### `getScreenCells(): Promise<M8ScreenCells>`
+
+The same screen plus the colour of every character cell, so an app can look like the device or learn which theme colour the M8 uses for what. `fg[row][col]` and `bg[row][col]` are `'#rrggbb'`, `null` where nothing was drawn. Needs a yam8d host with SDK 0.5 or later; older hosts reject the call.
+
+```ts
+const cells = await m8.getScreenCells()
+cells.fg[5][3] // colour of the first note of a phrase, e.g. '#ffffff'
+```
+
+#### `captureSnapshot(): Promise<M8Snapshot>`
+
+A fresh state, its semantic context, the description (as text and as parts) and the whole screen in one call. The result is plain JSON, safe to store.
+
+```ts
+const snap = await m8.captureSnapshot()
+snap.description // e.g. "Note (N): Note C-4 — Phrase View row 00"
+snap.screen.lines // the screen it was read from
+```
+
 ---
 
 ### Event subscriptions
@@ -264,7 +324,35 @@ m8.onTextUpdate((text, line) => {
 
 #### `onKeyPress(callback: (keys: number) => void): () => void`
 
-Fires when a physical key event occurs on the device. `keys` is a bitmask of active keys.
+Fires when a physical key event occurs on the device. `keys` is a bitmask of active keys (see `M8KeyMask`).
+
+#### `enableMidiTransport(): Promise<{ ok: boolean; error?: string }>`
+
+Starts forwarding the M8's MIDI clock and transport. The M8 only sends it with SYNC OUT set in its MIDI Settings (a setting stored in each song), and the page that owns the device needs Web MIDI permission: yam8d in host mode, the app itself in standalone mode. Hosts before SDK 0.5 reject the call. In standalone mode, call it again after each new device connection.
+
+#### `onTransport(callback: (event: M8TransportEvent) => void): () => void`
+
+MIDI start / stop / continue, the clock, and song positions, after `enableMidiTransport()`.
+
+```ts
+interface M8TransportEvent {
+  kind: 'start' | 'stop' | 'continue' | 'clock' | 'position'
+  ticks: number            // clock ticks since the host started listening (monotonic)
+  at: number               // epoch ms (performance.timeOrigin + timestamp), comparable across frames
+  msPerTick: number | null // measured tick length, null until known
+  spp?: number             // Song Position Pointer in sixteenths, on 'position' events
+}
+```
+
+`clock` events come once per sixteenth (6 ticks at 24 PPQ), not on every tick. The M8 can send clock while stopped.
+
+```ts
+const { ok, error } = await m8.enableMidiTransport()
+if (!ok) console.warn(error)
+m8.onTransport((e) => {
+  if (e.kind === 'position') console.log('play from sixteenth', e.spp)
+})
+```
 
 ---
 
@@ -323,11 +411,35 @@ See [`M8DescriptionPart`](#m8descriptionpart) for the kinds. Everything a part s
 
 ---
 
+### Device connection (standalone)
+
+#### `connectDevice(options?: { transport?: 'auto' | 'serial' | 'usb' | 'midi'; audio?: boolean }): Promise<void>`
+
+Connects to the M8 from this page. `'auto'` (default) uses Web Serial, then WebUSB, then Web MIDI SysEx, by browser support. Without a previously granted device the browser shows its picker, which needs a user gesture: call it from a click handler. Replaces the current device. No-op in host mode.
+
+#### `disconnectDevice(): Promise<void>`
+
+Releases the device (and stops its audio) so yam8d or another page can open it.
+
+#### `connectAudio(): Promise<void>` / `disconnectAudio(): Promise<void>`
+
+Standalone: plays the M8's USB audio through the page, or stops it. `connectAudio()` rejects when no audio input named M8 exists. No-ops in host mode (yam8d plays it). `isAudioConnected` reports the state.
+
+#### `onConnectionChange(callback: (connected: boolean) => void): () => void`
+
+Fires when `isConnected` changes: handshake done, device connected, unplugged or released.
+
+#### `getDevice(): M8DeviceBus | null`
+
+Standalone: raw protocol events and device commands. `null` in host mode or while disconnected.
+
+---
+
 ### Lifecycle
 
 #### `disconnect(): void`
 
-Closes the host connection and clears all event listeners and internal state.
+Closes the host connection (and the device, in standalone mode) and clears all event listeners and internal state.
 
 ---
 
@@ -407,6 +519,48 @@ getInstrumentFxCommands('hypersynth')
 
 The manual's rule for relative commands, for tooltips.
 
+### `parseGridScreen(viewName: string, screen: M8Screen): M8ScreenGridRow[]`
+
+Every content row of a grid view (`song`, `chain`, `phrase`, `table`, `groove`, `instrumentpool`) read off the whole screen, top to bottom, each with the `screenRow` it is drawn on. Use it to read a full page at once instead of only the cursor row. Rows whose index does not parse are skipped, so check `rowIndex` continuity when you need the whole page.
+
+```ts
+const steps = parseGridScreen('phrase', await m8.getScreen())
+steps[0].fields.note.rawValue // 'c-4' (the text stream is lower case)
+```
+
+### `parseViewTitle(rawTitle: string | null): { viewId: string | null; isUnsaved: boolean }`
+
+The item number of a title (`'PHRASE 1F*'` → `{ viewId: '1F', isUnsaved: true }`).
+
+### `readPlayPositions(viewName: string, screen: M8Screen): M8PlayPositions | null`
+
+Reads the play markers off a grid view. On the Song view the M8 draws a marker just left of each playing chain (`00>00>01>02`), so `tracks` holds the song row of each track's marker (`null` where it is not on screen). On the chain, phrase, table and groove views the marker follows the row index of the playing row (`F>--- -- --`), so `row` holds that row. Returns `null` for views without a grid, and all nulls when nothing plays. Seen on a Model:02, firmware 6.5.
+
+```ts
+interface M8PlayPositions {
+  tracks: (number | null)[] | null // song view only
+  row: number | null               // other grid views
+}
+```
+
+### `SCREEN_MARGIN: number`
+
+The one-column left margin of every screen row (`1`). `screen.lines[y].slice(SCREEN_MARGIN)` lines columns up with the schema's `x` positions.
+
+### Theme: `parseThemeScreen`, `observeThemeColors`, `M8_THEME_ROLES`, `M8_THEME_VIEW`
+
+The device theme has 13 colours, edited in System Settings › EDIT THEME (view name `themesettings`, exported as `M8_THEME_VIEW`).
+
+- `parseThemeScreen(screen)` reads them off the Theme View screen: `{ colors: { background, textEmpty, textInfo, textDefault, textValue, textTitles, playMarkers, cursor, selection, scopeSlider, meterLow, meterMid, meterPeak }, mode: 'rgb' | 'hsv', name }`, colours as `'#rrggbb'`. HSV rows are converted (each channel read as 00-FF). It returns `null` unless all 13 rows are on screen.
+- `observeThemeColors(state)` gives the colours any screen shows without opening the Theme View: `background` and `textTitles`. (`state.cursorColor` is the cursor rectangle as drawn; the M8 animates it, so it is not the theme's CURSOR colour.)
+- `M8_THEME_ROLES` lists the roles with the labels the device shows.
+
+```ts
+if (m8.state.viewName === M8_THEME_VIEW) {
+  const theme = parseThemeScreen(await m8.getScreen())
+}
+```
+
 ---
 
 ## Types reference
@@ -426,6 +580,7 @@ interface M8State {
   highlightColor: RGB | null       // cursor highlight colour
   titleColor: RGB | null           // view title text colour
   backgroundColor: RGB | null      // screen background colour
+  cursorColor?: RGB | null         // cursor rectangle as drawn (animated, not the theme CURSOR); SDK 0.5+
   textUnderCursor: string | null   // characters covered by the cursor rect
   currentLine: string | null       // full text of the row at cursorPos.y
   deviceModel: string | null       // e.g. 'Headless', 'Model:02'
@@ -582,7 +737,10 @@ type M8KeyName = 'left' | 'right' | 'up' | 'down' | 'shift' | 'play' | 'opt' | '
 
 ```ts
 interface M8SdkConfig {
-  debug?: boolean  // enables verbose postMessage logging via DebugMessenger
+  debug?: boolean                            // verbose logging (postMessage traffic, engine events)
+  mode?: 'auto' | 'host' | 'standalone'      // default 'auto', see Standalone mode
+  handshakeTimeoutMs?: number                // auto mode in an unmarked iframe; default 3000
+  autoConnect?: boolean                      // standalone: reopen a granted device at start; default true
 }
 ```
 
@@ -599,6 +757,7 @@ These events are emitted by the host and consumed internally by `M8Client`. They
 | `cursorMoved` | `{ pos, rect, selectionMode }` | Cursor position or selection mode changes |
 | `textUpdated` | `{ textUnderCursor, currentLine }` | Text under cursor or current line changes |
 | `keyPressed` | `{ keys: number }` | A physical key event fires on the device |
+| `transport` | `M8TransportEvent` | MIDI clock / start / stop / continue / song position, after `enableMidiTransport()` |
 
 ---
 
@@ -633,164 +792,7 @@ Grid views are read by column position (`src/m8-view-context.json`). Parameter v
 ## Notes
 
 - **Screen geometry** — The screen is 40 × 24 characters. Every row has a one-column left margin, so schema `x` positions count from column 1 and `cursorPos.x` is the schema `x` + 1 (the SDK accounts for this). Titles are on row 3 and content starts on row 5. The text stream is lower case (`tempo`, `b-4`, `ff`); the SDK matches case-insensitively and shows values upper case, except user-typed names and file names.
-- **Playback indicator** — When a row is actively playing the M8 draws `<` or `>` in the left margin, so it appears as the first character of `currentLine`. The SDK strips this automatically before parsing so column offsets remain consistent.
+- **Margin markers** — The M8 draws `<` in the left margin of the cursor row, so it can appear as the first character of `currentLine`. The SDK strips the margin before parsing so column offsets remain consistent. Play markers are drawn inside the row instead (see [`readPlayPositions`](#readplaypositionsviewname-string-screen-m8screen-m8playpositions--null)).
 - **Font mode** — All column offsets assume font mode 0 (Headless: 8×10 px cells; Model:02: 12×14 px cells). Font modes 1 (bold) and 2 (large) may shift positions.
 - **Schema file** — View and column definitions live in `src/m8-view-context.json` and are bundled into `dist/index.js` at build time.
-- **Requirement** — The app must run inside the yam8d host iframe. The `ChildHandshake` from `post-me` will never resolve in a standalone tab.
-
-
-Client SDK for iframe applications that communicate with an M8 host.
-
-## Install
-
-```bash
-npm install @yam8d/m8-sdk
-```
-
-For local development before the package is published:
-
-```bash
-npm install ../yam8d/packages/m8-sdk
-```
-
-## Usage
-
-```ts
-import { createM8Client } from '@yam8d/m8-sdk'
-
-const m8 = await createM8Client()
-
-console.log(m8.state.viewName)
-await m8.sendKeyPress(['play'])
-
-const unsubscribe = m8.onStateChange((state) => {
-  console.log(state.cursorPos)
-})
-
-unsubscribe()
-m8.disconnect()
-```
-
-For React or other environments where top-level `await` is not convenient:
-
-```ts
-import { createM8ClientSync } from '@yam8d/m8-sdk'
-
-const { client, connect } = createM8ClientSync()
-await connect()
-```
-
-The app must run inside the host iframe. Opening it directly in a standalone browser tab cannot establish the SDK handshake.
-
----
-
-## Semantic Context
-
-The SDK can interpret the current cursor position and row text as typed, labelled field values. This works for the five grid views (`song`, `chain`, `phrase`, `table`, `groove`) and the `instrumentpool` view.
-
-### Via the client
-
-```ts
-const ctx = m8.getSemanticContext()
-// or as a human-readable string:
-const description = m8.describeContext()
-// e.g. "Track 3: 0A — Track 3 — Song View row 01"
-// or as tagged parts to build your own:
-const parts = m8.describeContextParts()
-```
-
-### Standalone functions
-
-```ts
-import { getSemanticContext, describeContext, formatFieldValue, lookupFxCommand } from '@yam8d/m8-sdk'
-
-const ctx = getSemanticContext(state)
-
-if (ctx?.activeField) {
-  const field = ctx.activeField
-
-  console.log(field.key)      // e.g. 'track3', 'note', 'fx1cmd'
-  console.log(field.label)    // e.g. 'Track 3', 'Note (N)', 'FX1 Command'
-  console.log(field.type)     // e.g. 'chainRef', 'note', 'fxCommand'
-  console.log(field.rawValue) // raw text from the line, e.g. '0A', 'C-4', 'KIL'
-  console.log(field.hexValue) // parsed integer or null (null for empty cells and text types)
-  console.log(field.isEmpty)  // true when '--' / '---' / '---00'
-
-  // Song view: which track is the cursor on?
-  if (field.type === 'chainRef') {
-    console.log(field.meta?.trackIndex) // 1–8
-  }
-
-  // FX command: look up its description
-  if (field.type === 'fxCommand' && !field.isEmpty) {
-    const info = lookupFxCommand(field.rawValue)
-    console.log(info?.description)
-  }
-}
-
-// Row-level fields (all columns on the current line)
-if (ctx?.row) {
-  console.log(ctx.row.rowIndex)        // hex-parsed row index, e.g. 2
-  console.log(ctx.row.fields['note'])  // M8ParsedField for the note column
-}
-```
-
-### Returned types
-
-```ts
-interface M8SemanticContext {
-  viewName: string               // e.g. 'song', 'phrase'
-  viewTitle: string | null       // e.g. 'Song View'
-  viewDescription: string | null
-  isGridView: boolean
-  row: M8ParsedRow | null        // all columns on the cursor's line
-  activeField: M8ActiveField | null  // the column under the cursor
-}
-
-interface M8ParsedField {
-  key: string          // schema key, e.g. 'fx1cmd', 'track3'
-  label: string        // human label, e.g. 'FX1 Command', 'Track 3'
-  type: M8FieldType
-  rawValue: string     // trimmed text from currentLine
-  hexValue: number | null
-  isEmpty: boolean
-  meta?: Record<string, unknown>
-}
-```
-
-### Supported field types (`M8FieldType`)
-
-| Type | Description |
-|---|---|
-| `chainRef` | Chain number (hex). `--` = empty. |
-| `phraseRef` | Phrase number (hex). `--` = empty. |
-| `note` | Note name, e.g. `C-4`, `A#3`. `---` = empty. |
-| `velocity` | Note velocity 00–7F (hex). |
-| `instrumentRef` | Instrument slot 00–7F (hex). `--` = keep current. |
-| `fxCommand` | 3-char FX command name, e.g. `KIL`, `ARP`. `---` = none. |
-| `fxValue` | FX value 00–FF (hex). |
-| `transpose` | Relative transpose (hex): `00`=none, `01`–`7F`=+1–+127, `FF`–`80`=−1–−128. |
-| `ticks` | Groove ticks per step (hex). |
-| `volume` | Volume level 00–FF (hex). `--` = no override. |
-| `ppq` | Pulses Per Quarter note (decimal). Groove row 0 only. |
-| `instrumentName` | Instrument name text (up to 12 chars). No `hexValue`. |
-| `eqSlot` | EQ slot assignment (hex). `--` = none. |
-| `rowIndex` | Row/step index (hex). |
-| `noteInterval` | Scale View row label (`C`, `C#`, …). |
-| `onOff` | `ON` / `OFF` toggle. |
-| `semitoneOffset` | Scale View detune, e.g. `-00.50`. |
-| `swing` | Groove swing percentage. |
-| `instrumentType` | Instrument engine (`WAVSYNTH`, `SAMPLER`, …); `text` holds the name. |
-| `name` | Free-text name field; a row of dashes = unnamed. |
-| `parameter` | Named editable value (`CUTOFF`, `TEMPO`, `GAIN`); read `hexValue` / `numericValue` / `values`. |
-| `option` | Choice from a list (`00CHORUS`, `BELL`); `hexValue` is the index when shown, `text` the name. |
-| `action` | Button caption (`LOAD`, `SAVE`, `RENDER`, `SETTINGS`); `text` holds it. |
-| `fileEntry` | File browser row: `/folder`, `/..`, or a file name. |
-
-### Playback indicator
-
-When a row is actively playing, the M8 prepends a `<` or `>` character to `currentLine`. The SDK strips this automatically before parsing, so column offsets are always consistent.
-
-### Notes file
-
-View/column definitions live in `src/m8-view-context.json` and are bundled into `dist/index.js` at build time. All x/width values assume **font mode 0** (8×10 px cells on Headless, 12×14 px on Model:02). Font modes 1 and 2 may shift column positions.
+- **Modes** — Inside a yam8d iframe named `yam8d-external-app` the client waits for yam8d's `post-me` handshake; in a top-level tab it runs the engine in the page and connects to the M8 itself (see [Standalone mode](#standalone-mode)). In an unnamed iframe it goes standalone after `handshakeTimeoutMs`.

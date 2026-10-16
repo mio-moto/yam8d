@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { rgbToHex } from '../../utils/colorTools'
-import type { ConnectedBus } from '../connection/connection'
-import type { CharacterCommand } from '../connection/protocol'
+import type { ConnectedBus } from '../../../packages/m8-sdk/src/engine/connection'
+import type { CharacterCommand } from '../../../packages/m8-sdk/src/engine/protocol'
 
 // this rendering is pure html
 // it uses the CharacterCommand sent by the bus.text

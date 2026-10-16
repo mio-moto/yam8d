@@ -1,4 +1,4 @@
-import type { CharacterCommand, RectCommand, WaveCommand } from '../connection/protocol'
+import type { CharacterCommand, RectCommand, WaveCommand } from '../../../packages/m8-sdk/src/engine/protocol'
 import { renderer, type BackgroundShader, type ScreenLayout } from './renderer'
 
 export type DrawCommand =

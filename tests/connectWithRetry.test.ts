@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { connectWithRetry } from '../src/features/connection/connectWithRetry'
+import { connectWithRetry } from '../packages/m8-sdk/src/engine/connectWithRetry'
 
 const quiet = async <T>(fn: () => Promise<T>) => {
     const { warn, error } = console

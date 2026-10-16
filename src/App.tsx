@@ -1,4 +1,4 @@
-import { css } from '@linaria/core'
+import { css, cx } from '@linaria/core'
 import './App.css'
 import { type FC, lazy, Suspense } from 'react'
 import { style } from './app/style/style'
@@ -19,9 +19,15 @@ const BackgroundShaderEditor = lazy(async () => {
 })
 
 const appClass = css`
-    min-width: 38vw;
+    min-width: 240px;
     max-width: 69vw;
     width: -webkit-fill-available;
+    flex: 1 1 0;
+
+    /* Next to the External Apps pane, the splitter decides the width */
+    &.with-side-pane {
+        max-width: none;
+    }
   // display: flex;
   // flex-direction: column;
   // flex: 1;
@@ -57,7 +63,7 @@ export const App: FC = () => {
       {connectedBus && (
         <>
           <Menu />
-          <div className={appClass}>
+          <div className={cx(appClass, settings.displayExternalApps && 'with-side-pane')}>
             {settings.virtualKeyboard && <VirtualKeyboard bus={connectedBus} strokeColor={style.themeColors.text.default}></VirtualKeyboard>}
             <div className={playerRowClass}>
               <M8Player bus={connectedBus} fullView={settings.fullM8View} />

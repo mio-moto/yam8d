@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { expect, test } from 'bun:test'
-import { decode7BitPacked } from '../src/features/connection/connection'
-import { protocol, type RectCommand } from '../src/features/connection/protocol'
+import { decode7BitPacked } from '../packages/m8-sdk/src/engine/connection'
+import { protocol, type RectCommand } from '../packages/m8-sdk/src/engine/protocol'
 
 // Encode 8-bit data into M8's 7-bit SysEx packing (groups of up to 7 bytes)
 function encode7BitPacked(bytes: Uint8Array): Uint8Array {

@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'bun:test'
-import { createEventBus } from '../src/features/eventBus'
-import type { CharacterCommand, KeyCommand, RectCommand, SystemCommand, WaveCommand } from '../src/features/connection/protocol'
-import { registerViewExtractor } from '../src/features/state/viewExtractor'
-import { getDefaultStore } from 'jotai'
-import { viewNameAtom, viewTitleAtom, cellMetricsAtom, fontModeAtom, deviceModelAtom } from '../src/features/state/viewStore'
+import { createEventBus } from '../packages/m8-sdk/src/engine/eventBus'
+import type { CharacterCommand, KeyCommand, RectCommand, SystemCommand, WaveCommand } from '../packages/m8-sdk/src/engine/protocol'
+import { createM8Store } from '../packages/m8-sdk/src/engine/store'
+import { registerViewExtractor } from '../packages/m8-sdk/src/engine/viewExtractor'
 
 function makeBus() {
     const eventBus = createEventBus<{
@@ -35,7 +34,7 @@ function makeBus() {
     }
 
     // Return an object with a protocol property, matching ConnectedBus shape
-    return { protocol, commands, reader } as unknown as Parameters<typeof registerViewExtractor>[0]
+    return { protocol, commands, reader }
 }
 
 const emitChar = (bus: ReturnType<typeof makeBus>, ch: string, x: number, y: number) => {
@@ -45,19 +44,19 @@ const emitChar = (bus: ReturnType<typeof makeBus>, ch: string, x: number, y: num
         foreground: { r: 255, g: 255, b: 255 },
         background: { r: 0, g: 0, b: 0 },
     }
-    bus?.protocol.eventBus.emit('text', cmd)
+    bus.protocol.eventBus.emit('text', cmd)
 }
 
 describe('AssemblyViewNameExtractor', () => {
     it('early-accepts SONG from partial characters', async () => {
         const bus = makeBus()
-        const dispose = registerViewExtractor(bus)
-        const store = getDefaultStore()
+        const store = createM8Store()
+        const extractor = registerViewExtractor(bus.protocol.eventBus, store)
 
         // Ensure small font metrics (row 3)
-        store.set(fontModeAtom, 0)
-        store.set(deviceModelAtom, 'M8 Model:02')
-        store.set(cellMetricsAtom, { cellW: 12, cellH: 14, offX: 0, offY: 0 })
+        store.set('fontMode', 0)
+        store.set('deviceModel', 'M8 Model:02')
+        store.set('cellMetrics', { cellW: 12, cellH: 14, offX: 0, offY: 0 })
 
         // Emit S O N on row 3 at columns 0,1,2,3 (pixels = col*12, row*14)
         const row = 3
@@ -69,21 +68,21 @@ describe('AssemblyViewNameExtractor', () => {
         // Give a tiny time for setTimeout(50) stabilization
         await new Promise((r) => setTimeout(r, 60))
 
-        const name = store.get(viewNameAtom)
+        const name = store.get('viewName')
         expect(name).toBeDefined()
         // Accepts lowercase normalized title
         expect(name).toBe('song')
 
-        dispose()
+        extractor.dispose()
     })
 
     it('normalizes trailing hex tokens', async () => {
         const bus = makeBus()
-        const dispose = registerViewExtractor(bus)
-        const store = getDefaultStore()
-        store.set(fontModeAtom, 0)
-        store.set(deviceModelAtom, 'M8 Model:02')
-        store.set(cellMetricsAtom, { cellW: 12, cellH: 14, offX: 0, offY: 0 })
+        const store = createM8Store()
+        const extractor = registerViewExtractor(bus.protocol.eventBus, store)
+        store.set('fontMode', 0)
+        store.set('deviceModel', 'M8 Model:02')
+        store.set('cellMetrics', { cellW: 12, cellH: 14, offX: 0, offY: 0 })
 
         const row = 3
         const title = 'CHAIN 0B*'
@@ -93,9 +92,9 @@ describe('AssemblyViewNameExtractor', () => {
 
         await new Promise((r) => setTimeout(r, 60))
 
-        expect(store.get(viewTitleAtom)?.startsWith('CHAIN')).toBe(true)
-        expect(store.get(viewNameAtom)).toBe('chain')
+        expect(store.get('viewTitle')?.startsWith('CHAIN')).toBe(true)
+        expect(store.get('viewName')).toBe('chain')
 
-        dispose()
+        extractor.dispose()
     })
 })

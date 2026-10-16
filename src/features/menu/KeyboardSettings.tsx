@@ -4,8 +4,8 @@ import { Button } from '../../components/Button'
 import { DEFAULT_ZOOM_VIEW_KEY, useSettingsContext } from '../settings/settings'
 import { defaultInputMap } from '../inputs/defaultInputMap'
 import { defaultMacroInputMap, macroDigitKeys, macroFunctionKeys, type MacroInputMap } from '../macros/defaultMacroInputMap'
-import { loadViewList } from '../state/viewList'
-import { M8KeyMask } from '../connection/keys'
+import { getViewNames } from '../../../packages/m8-sdk/src/engine/viewGraph'
+import { M8KeyMask } from '../../../packages/m8-sdk/src/engine/keys'
 import { M8Body } from '../rendering/M8Body'
 import { style } from '../../app/style/style'
 import { defaultKeyMap } from '../virtualKeyboard/defaultKeyMap'
@@ -464,7 +464,10 @@ export const KeyboardSettings: FC = () => {
     const [hoveredZoomKey, setHoveredZoomKey] = useState(false)
     const [hoveredVKNote, setHoveredVKNote] = useState<number | null>(null)
     const [hoveredVKControl, setHoveredVKControl] = useState<VKControlValue | null>(null)
-    const [availableViews, setAvailableViews] = useState<string[]>(() => Array.from(new Set(Object.values(defaultMacroInputMap))))
+    const [availableViews] = useState<string[]>(() => {
+        const views = getViewNames()
+        return views.size ? Array.from(views).sort((a, b) => a.localeCompare(b)) : Array.from(new Set(Object.values(defaultMacroInputMap)))
+    })
     const containerRef = useRef<HTMLDivElement>(null)
     const svgRef = useRef<HTMLDivElement>(null)
     const screenEdgeRef = useRef<SVGRectElement>(null)
@@ -504,19 +507,6 @@ export const KeyboardSettings: FC = () => {
             setLocalZoomViewKey(settings.zoomViewKey ?? DEFAULT_ZOOM_VIEW_KEY)
         }
     }, [settings.inputMap, settings.keyMap, settings.macroInputMap, settings.zoomViewKey, hasChanges])
-
-    useEffect(() => {
-        let cancelled = false
-        loadViewList()
-            .then((views) => {
-                if (cancelled || !views.size) return
-                setAvailableViews(Array.from(views).sort((a, b) => a.localeCompare(b)))
-            })
-            .catch(() => void 0)
-        return () => {
-            cancelled = true
-        }
-    }, [])
 
     // Keyboard keydown: assign to whichever selection is active
     useEffect(() => {
