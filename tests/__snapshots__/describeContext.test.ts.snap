@@ -867,16 +867,16 @@ exports[`describeContext: scale 1`] = `
 ,
   "11:13 Scale View 00 — A- ON 00.00",
   
-"12: 0 Note Interval: A# — A# — a minor 7th (+10 semitones above C) — is not yet set in the scale — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row A#
-        no screen: Note Interval: A# — A# — a minor 7th (+10 semitones above C) — is not yet set in the scale — Scale View 00 row A#"
+"12: 0 Note Interval: A# — A# — a minor 7th (+10 semitones above C) — is not in the scale — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row A#
+        no screen: Note Interval: A# — A# — a minor 7th (+10 semitones above C) — is not in the scale — Scale View 00 row A#"
 ,
   
-"12: 3 Enabled (EN): -- — A# — a minor 7th (+10 semitones above C) — is not yet set in the scale — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row A#
-        no screen: Enabled (EN): -- — A# — a minor 7th (+10 semitones above C) — is not yet set in the scale — Scale View 00 row A#"
+"12: 3 Enabled (EN): -- — A# — a minor 7th (+10 semitones above C) — is not in the scale — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row A#
+        no screen: Enabled (EN): -- — A# — a minor 7th (+10 semitones above C) — is not in the scale — Scale View 00 row A#"
 ,
   
-"12: 6 Offset (OFFSET): 00.00 — A# is not detuned — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row A#
-        no screen: Offset (OFFSET): 00.00 — A# is not detuned — Scale View 00 row A#"
+"12: 6 Offset (OFFSET): 00.00 — A# is not detuned — (note is OFF) — Scale: C D E F G A B — Major (Ionian); detuned: E −0.50 st — Scale View 00 row A#
+        no screen: Offset (OFFSET): 00.00 — A# is not detuned — (note is OFF) — Scale View 00 row A#"
 ,
   "12:13 Scale View 00 — A# -- 00.00",
   

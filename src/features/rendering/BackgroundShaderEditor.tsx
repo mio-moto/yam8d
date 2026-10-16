@@ -24,7 +24,8 @@ const containerClass = css`
   width: min(800px, 45vw);
   min-width: 380px;
   display: grid;
-  height: 90vh;
+  height: var(--content-height);
+  box-sizing: border-box;
   grid-template-rows: auto 1fr auto auto auto auto auto;
   gap: 10px;
   align-self: stretch;

@@ -1,5 +1,5 @@
 import { audio } from './audio'
-import { connection } from './connection'
+import { connection } from '../../../packages/m8-sdk/src/engine/connection'
 
 export const device = () => {
     return {

@@ -531,6 +531,7 @@
             </div>
             <div class="status-actions">
               <button class="secondary" onclick="reconnect()">Reconnect</button>
+              <button id="device-button" class="secondary" onclick="toggleDevice()" hidden>Connect M8</button>
             </div>
           </div>
         </header>
@@ -936,6 +937,12 @@ if (ctx?.activeField) {
         try {
           m8Client = await createM8Client({ debug: false });
           window.m8Client = m8Client;
+          log(`SDK mode: ${m8Client.mode}${m8Client.mode === "standalone" ? " (not inside yam8d: this page talks to the M8 itself)" : ""}`);
+
+          m8Client.onConnectionChange((connected) => {
+            log(connected ? `M8 connected${m8Client.deviceTransport ? ` over ${m8Client.deviceTransport}` : ""}` : "M8 disconnected", connected ? "info" : "warn");
+            updateUI();
+          });
 
           m8Client.onStateChange((_state) => {
             log("Event: stateChanged received");
@@ -969,8 +976,12 @@ if (ctx?.activeField) {
           document.getElementById("status").classList.add("connected");
           document.getElementById("connection-state").textContent =
             `${state.deviceModel || "Unknown device"} connected`;
-          setCommandStatus("Connect", "SDK handshake complete.", "ok");
-          log("Connected to M8 host successfully!");
+          if (m8Client.mode === "host") {
+            setCommandStatus("Connect", "SDK handshake complete.", "ok");
+            log("Connected to M8 host successfully!");
+          } else {
+            setCommandStatus("Connect", m8Client.isConnected ? "Standalone, M8 reopened." : "Standalone: press Connect M8.", "ok");
+          }
           updateUI();
         } catch (error) {
           log(`Connection failed: ${error.message}`, "error");
@@ -1034,10 +1045,17 @@ if (ctx?.activeField) {
         document.getElementById("device-model").textContent =
           state.deviceModel || "-";
         document.getElementById("cursor-rect").textContent = cursorRectSummary;
+        const standalone = m8Client?.mode === "standalone";
+        document.getElementById("status").classList.toggle("connected", !!m8Client?.isConnected);
         document.getElementById("connection-state").textContent =
           m8Client?.isConnected
-            ? `${state.deviceModel || "Unknown device"} connected`
-            : "Connecting...";
+            ? `${state.deviceModel || "Unknown device"} connected${standalone ? ` (standalone, ${m8Client.deviceTransport})` : ""}`
+            : standalone
+              ? "Standalone: press Connect M8 (close the M8 in yam8d first)"
+              : "Connecting...";
+        const deviceButton = document.getElementById("device-button");
+        deviceButton.hidden = !standalone;
+        deviceButton.textContent = m8Client?.isConnected ? "Disconnect M8" : "Connect M8";
 
         // Semantic context (live, no round-trip)
         const ctx = m8Client?.getSemanticContext() ?? null;
@@ -1185,6 +1203,18 @@ if (ctx?.activeField) {
         } catch (error) {
           log(`Browse file failed: ${error.message}`, "error");
         }
+      };
+
+      // Standalone mode only: the browser's device picker needs this click
+      window.toggleDevice = async () => {
+        if (!m8Client) return;
+        try {
+          if (m8Client.isConnected) await m8Client.disconnectDevice();
+          else await m8Client.connectDevice();
+        } catch (error) {
+          log(`Device connection failed: ${error.message}`, "error");
+        }
+        updateUI();
       };
 
       window.reconnect = async () => {

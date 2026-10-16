@@ -1,104 +1,17 @@
-import type { CursorPos, CursorRect, RGB, SystemInfos } from '../features/state/viewStore'
-
-export type { CursorPos, CursorRect, RGB, SystemInfos }
-
-// M8 State exposed to SDK clients
-export interface M8State {
-    // View information
-    viewName: string | null
-    viewTitle: string | null
-    minimapKey: string | null
-
-    // Cursor information
-    cursorPos: CursorPos | null
-    cursorRect: CursorRect | null
-    selectionMode: boolean
-
-    // Colors
-    highlightColor: RGB | null
-    titleColor: RGB | null
-    backgroundColor: RGB | null
-
-    // Text content
-    textUnderCursor: string | null
-    currentLine: string | null
-
-    // Device info
-    deviceModel: string | null
-    fontMode: number | null
-    systemInfo: SystemInfos | null
-
-    // Macro status
-    macroRunning: boolean
-    macroCurrentStep?: number
-    macroSequenceLength?: number
-}
-
-// Whole-screen text capture: one string per screen row (columns preserved, trailing spaces trimmed)
-export interface M8Screen {
-    width: number
-    height: number
-    lines: string[]
-}
-
-// M8 Key names for sendKeyPress
-export type M8KeyName = 'left' | 'right' | 'up' | 'down' | 'shift' | 'play' | 'opt' | 'edit'
-
-// Methods exposed by the host (parent) to the client (iframe)
-export interface M8HostMethods {
-    // Navigation methods
-    /** Navigate to view by name - resolves when view is reached or max steps reached */
-    navigateToView(viewName: string): Promise<boolean>
-    /** Navigate to text grid coordinates (0-39 x, 0-23 y) - resolves when destination or best position is reached */
-    navigateTo(x: number, y: number): Promise<void>
-
-    // Value manipulation
-    setValueToHex(targetHex: number): Promise<boolean>
-    setValueToInt(targetInt: number): Promise<boolean>
-    /** Set a float parameter parsed from the current line (e.g. "TUNE 440.00 G",
-     * "GAIN 05.25 -19.75 -15.00"). Handles group-focused and whole-float cursors. */
-    setValueFloat(targetFloat: number): Promise<boolean>
-    setNote(noteString: string): Promise<boolean>
-    setValueToString(targetString: string, exact?: boolean, searchInCurrentLine?: boolean): Promise<boolean>
-    browseFile(targetText: string, exact?: boolean): Promise<boolean>
-
-    // Key press
-    /** Press and release a named key combination (automatic release after ~50ms) */
-    sendKeyPress(keys: M8KeyName[]): Promise<void>
-    /** Hold keys down without releasing — call sendKeyUp() to release */
-    sendKeyDown(keys: M8KeyName[]): Promise<void>
-    /** Release all keys */
-    sendKeyUp(): Promise<void>
-
-    // Get current state
-    getState(): Promise<M8State>
-    /** Whole screen as text rows, read straight from the character stream (no cursor movement) */
-    getScreen(): Promise<M8Screen>
-}
-
-// Methods exposed by the client (iframe) to the host (parent) - if needed
-export interface M8ClientMethods {
-    // Client can expose methods to parent if needed
-    ping(): Promise<string>
-}
-
-// Events emitted by host to client
-export interface M8HostEvents {
-    stateChanged: M8State
-    viewChanged: { viewName: string | null; viewTitle: string | null }
-    cursorMoved: { pos: CursorPos | null; rect: CursorRect | null; selectionMode: boolean }
-    textUpdated: { textUnderCursor: string | null; currentLine: string | null }
-    keyPressed: { keys: number }
-}
-
-// Events emitted by client to host
-export interface M8ClientEvents {
-    ready: undefined
-    error: { message: string }
-}
-
-// Connection configuration
-export interface M8SdkConfig {
-    // Enable debug logging
-    debug?: boolean
-}
+// The SDK protocol types. They are defined once, in the SDK package; yam8d hosts what it declares.
+export type {
+    CursorPos,
+    CursorRect,
+    M8ClientEvents,
+    M8ClientMethods,
+    M8HostEvents,
+    M8HostMethods,
+    M8KeyName,
+    M8Screen,
+    M8ScreenCells,
+    M8SdkConfig,
+    M8State,
+    M8TransportEvent,
+    RGB,
+    SystemInfos,
+} from '../../packages/m8-sdk/src/types'

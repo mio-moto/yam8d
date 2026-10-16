@@ -1,4 +1,4 @@
-import { M8KeyMask } from '../connection/keys'
+import { M8KeyMask } from '../../../packages/m8-sdk/src/engine/keys'
 
 export const defaultInputMap = Object.freeze({
     ArrowUp: M8KeyMask.Up,

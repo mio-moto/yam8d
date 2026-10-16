@@ -27,6 +27,10 @@ npm install @yam8d/m8-sdk
 └┘                           └┘
 ```
 
+The device side lives in the SDK package too, in [`packages/m8-sdk/src/engine`](../../packages/m8-sdk/src/engine): connection (Web Serial / WebUSB / Web MIDI), protocol, screen extraction, cursor and view navigation, value editors, file browsing and MIDI clock, without React. yam8d runs one engine per connected bus (`src/features/engine.ts`, whose jotai atoms mirror the engine store) and `useM8SdkHost` exposes its methods and forwards its events over post-me. A client opened outside yam8d runs the same engine in its own page (standalone mode, see the package README).
+
+Iframes must carry `name={YAM8D_FRAME_NAME}` so the client knows to wait for the host handshake instead of going standalone.
+
 ## Host-Side Usage (yam8d application)
 
 ```tsx
@@ -38,7 +42,7 @@ function MyComponent({ bus }) {
     debug: false, // Enable for verbose logging
   });
 
-  return <iframe ref={iframeRef} src="https://your-iframe-app.com" />;
+  return <iframe ref={iframeRef} name={YAM8D_FRAME_NAME} src="https://your-iframe-app.com" />;
 }
 ```
 
@@ -123,8 +127,15 @@ await connect();
 | `sendKeyDown(keys: M8KeyName[])`                                                    | Hold keys down (no automatic release)              | `Promise<void>`    |
 | `sendKeyUp()`                                                                       | Release all keys                                   | `Promise<void>`    |
 | `getState()`                                                                        | Get full M8 state snapshot                         | `Promise<M8State>` |
+| `getScreen()`                                                                       | Whole screen as text rows                          | `Promise<M8Screen>` |
+| `getScreenCells()`                                                                  | Whole screen plus each cell's fg/bg colour         | `Promise<M8ScreenCells>` |
+| `enableMidiTransport()`                                                             | Open the M8's MIDI input and start sending `transport` events | `Promise<{ ok: boolean; error?: string }>` |
+
+`enableMidiTransport` needs SYNC OUT set in the M8's MIDI Settings (stored per song) and Web MIDI permission in yam8d's page. It resolves `{ ok: false, error }` when Web MIDI is missing or there is no MIDI input named `M8`. Without SYNC OUT it still resolves `ok`, but no events arrive.
 
 For `browseFile`, the extension is optional: matching is done against both the full file name and the base name without the M8 extension (e.g. `.MBN`).
+
+The search reads the whole screen, so it does not walk the list row by row: a match anywhere on screen is reached directly, a directory is paged (Opt+Up/Down) before any sub-folder is opened, a listing that does not fill the screen is taken as complete, and a folder holding nothing but `/..` is left immediately. After coming back from a folder the cursor is already on it, so the next folder is a few rows away. The search stays inside the directory the browser was in (it never goes above it).
 
 #### `M8KeyName`
 
@@ -151,12 +162,20 @@ type M8KeyName = 'left' | 'right' | 'up' | 'down' | 'shift' | 'play' | 'opt' | '
 | `sendKeyUp()`                                                                    | Release all keys                                   | `Promise<void>`    |
 | `getState()`                                                                     | Return cached state synchronously                  | `M8State`          |
 | `fetchState()`                                                                   | Fetch a fresh state snapshot from the host (async) | `Promise<M8State>` |
+| `getScreen()` / `getScreenCells()`                                               | Whole screen as text (and colours, SDK 0.5+ hosts) | `Promise<M8Screen>` / `Promise<M8ScreenCells>` |
+| `captureSnapshot()`                                                              | State, semantic context, description and screen in one call | `Promise<M8Snapshot>` |
+| `enableMidiTransport()`                                                          | Start MIDI clock / transport events (SDK 0.5+ hosts) | `Promise<{ ok: boolean; error?: string }>` |
 | `onStateChange(cb)`                                                              | Subscribe to full state updates                    | `() => void`       |
 | `onViewChange(cb)`                                                               | Subscribe to view changes                          | `() => void`       |
 | `onCursorMove(cb)`                                                               | Subscribe to cursor movements                      | `() => void`       |
 | `onTextUpdate(cb)`                                                               | Subscribe to text changes under cursor             | `() => void`       |
 | `onKeyPress(cb)`                                                                 | Subscribe to key events from M8                    | `() => void`       |
-| `disconnect()`                                                                   | Disconnect from the host                           | `void`             |
+| `onTransport(cb)`                                                                | Subscribe to MIDI clock / transport events         | `() => void`       |
+| `getSemanticContext()` / `describeContext()` / `describeContextParts()`          | What the cursor is on, as data, text or tagged parts | see package README |
+| `onConnectionChange(cb)`                                                         | Subscribe to `isConnected` changes                 | `() => void`       |
+| `disconnect()`                                                                   | Disconnect from the host (and the device, standalone) | `void`          |
+
+Standalone-only members (`connectDevice`, `disconnectDevice`, `connectAudio`, `disconnectAudio`, `getDevice`, `isAudioConnected`, `deviceTransport`) do nothing in host mode, where yam8d owns the device. See the [package README](../../packages/m8-sdk/README.md#standalone-mode).
 
 ### Client State (`M8State`)
 
@@ -173,6 +192,7 @@ type M8KeyName = 'left' | 'right' | 'up' | 'down' | 'shift' | 'play' | 'opt' | '
 | `highlightColor`       | `RGB \| null`                      | Current highlight color              |
 | `titleColor`           | `RGB \| null`                      | Title bar color                      |
 | `backgroundColor`      | `RGB \| null`                      | Background color                     |
+| `cursorColor`          | `RGB \| null`                      | Cursor rectangle color (theme CURSOR) |
 | `deviceModel`          | `string \| null`                   | M8 device model identifier           |
 | `fontMode`             | `number \| null`                   | Current font mode                    |
 | `systemInfo`           | `SystemInfos \| null`              | M8 system information                |
@@ -189,6 +209,7 @@ type M8KeyName = 'left' | 'right' | 'up' | 'down' | 'shift' | 'play' | 'opt' | '
 | `cursorMoved`  | `{ pos, rect, selectionMode }`                       | Cursor moved               |
 | `textUpdated`  | `{ textUnderCursor, currentLine }`                   | Text changed               |
 | `keyPressed`   | `{ keys: number }`                                   | Key(s) pressed or released |
+| `transport`    | `M8TransportEvent` (`kind`, `ticks`, `at`, `msPerTick`, `spp?`) | MIDI start / stop / continue, clock once per sixteenth, song position (after `enableMidiTransport`) |
 
 ### Events (Client → Host)
 
@@ -233,13 +254,11 @@ If the exact note is unreachable (e.g. scale quantization), the method stops at 
 
 ## TypeScript Support
 
-All types are exported:
+The protocol types live in `packages/m8-sdk/src/types.ts`. Inside yam8d, `src/sdk` re-exports the ones the host needs:
 
 ```typescript
 import type {
   M8State,
-  M8Client,
-  M8KeyName,
   CursorPos,
   CursorRect,
   RGB,
@@ -249,9 +268,10 @@ import type {
   M8HostEvents,
   M8ClientEvents,
   M8SdkConfig,
-  NavigationTarget,
 } from "./sdk";
 ```
+
+Apps import everything else from `@yam8d/m8-sdk` (`M8Client`, `M8KeyName`, `M8Screen`, `M8ScreenCells`, `M8TransportEvent`, the semantic context types, ...).
 
 ## Security Considerations
 

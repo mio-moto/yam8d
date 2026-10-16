@@ -13,7 +13,7 @@ export interface M8ScaleNote {
   interval: string
   /** Semitones above the first row ('C'), 0-11. */
   semitone: number
-  /** true = ON, false = OFF, null = unset ('--'). */
+  /** true = ON, false = out of the scale ('--' on the device, 'OFF' if shown), null = not read. */
   enabled: boolean | null
   /** Detune in semitones (-24..+24), null when unreadable. */
   offset: number | null

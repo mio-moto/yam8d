@@ -15,7 +15,8 @@ The app communicates with the M8 through WebSerial when available, then falls ba
 - Virtual MIDI keyboard with configurable note, octave, and velocity keys.
 - External Apps panel for iframe tools that can talk to the live M8 through the YAM8D SDK.
 - Built-in presets for M8 Shortcuts, SDK Test, Cont8xt Notes, Groove Extractor and Scale Divinator.
-- Canvas or full-tab recording to WebM.
+- Plays the M8's USB audio through the computer.
+- Canvas or full-tab recording to WebM, with the M8's audio.
 - Smooth text rendering controls.
 - Custom background shader editor with CodeMirror, GLSL completions, compile feedback, saved shader library, audio-reactive uniforms, mouse uniforms, feedback frames, and optional M8 screen compositing.
 - VJ mode for assigning saved shaders to numpad keys and switching them live.
@@ -58,7 +59,13 @@ Lint:
 bun run lint
 ```
 
-Build the iframe SDK package:
+Run the tests (`bun:test`, files in `tests/`):
+
+```bash
+bun test
+```
+
+Build the SDK package (needed before `dev` on a fresh clone):
 
 ```bash
 bun run build:sdk
@@ -72,9 +79,11 @@ bun run pack:sdk
 
 ## SDK
 
-YAM8D includes an iframe SDK for external tools loaded in the External Apps panel. It exposes state updates, view navigation, cursor navigation, value editing helpers, file browsing helpers, and key press methods.
+YAM8D includes an SDK for external tools loaded in the External Apps panel. It exposes state updates, screen reads, a description of what the cursor is on, view navigation, cursor navigation, value editing helpers, file browsing helpers, key press methods and the M8's MIDI clock.
 
-The client package lives in `packages/m8-sdk` and can be installed as:
+The device engine (connection, protocol, screen extraction, navigation, value editors) lives in the SDK package too, and YAM8D runs on it. An app built on the SDK can therefore also run in its own tab and connect to the M8 itself (standalone mode).
+
+The package lives in `packages/m8-sdk` and can be installed as:
 
 ```bash
 npm install @yam8d/m8-sdk

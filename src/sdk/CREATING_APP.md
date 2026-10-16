@@ -1,13 +1,13 @@
 # Creating an Application with the M8 SDK
 
-This guide explains how to create an iframe application that connects to an M8 host through the M8 SDK.
+This guide explains how to create an application that reads and drives an M8 through the M8 SDK (`@yam8d/m8-sdk` 0.5).
 
-The SDK connection has two sides:
+The client runs in one of two modes, with the same API:
 
-- The host application owns the iframe and exposes the M8 API.
-- Your application uses `createM8Client` or `createM8ClientSync` from inside the iframe.
+- **Host mode**: the app runs in yam8d's External Apps iframe (named `yam8d-external-app`, exported as `YAM8D_FRAME_NAME`). yam8d owns the M8 and the client talks to it over `post-me`.
+- **Standalone mode**: the app runs in its own tab. The client runs the same engine yam8d uses inside the page and connects to the M8 itself over Web Serial, WebUSB or Web MIDI. The first connection needs a user gesture.
 
-The client application must run inside the host iframe. If you open it directly in a browser tab, the SDK handshake cannot connect because `window.parent` is not the host.
+`createM8Client()` picks the mode by itself (`client.mode`). In an iframe that yam8d did not name, it waits 3 s for a handshake, then goes standalone. Only one page can hold the M8, so disconnect it in yam8d before connecting from a standalone tab.
 
 ## 1. Create the Client App
 
@@ -27,15 +27,15 @@ Install the client package:
 npm install @yam8d/m8-sdk
 ```
 
-For local development before publishing, install it from this repository instead:
+For local development before publishing, build the SDK in yam8d (`bun run build:sdk`), then install it from this repository instead:
 
 ```bash
 npm install ../yam8d/packages/m8-sdk
 ```
 
-The package is client-only. Host-side integration is intentionally outside this guide.
+The link points at the built `dist`, so run `build:sdk` again after SDK changes. Host-side integration is outside this guide (see [README.md](./README.md)).
 
-## 3. Connect to the Host
+## 3. Connect
 
 Connect once when your app starts, then keep the client instance for state reads, event subscriptions, and commands.
 
@@ -107,7 +107,18 @@ export function App() {
   }
 
   if (connectionState === 'failed') {
-    return <main>Open this app inside the host iframe to enable SDK features.</main>
+    return <main>Could not start the M8 SDK.</main>
+  }
+
+  // Standalone: the browser's device picker only opens from a click
+  if (client?.mode === 'standalone' && !client.isConnected) {
+    return (
+      <main>
+        <button type="button" onClick={() => void client.connectDevice()}>
+          Connect M8
+        </button>
+      </main>
+    )
   }
 
   return (
@@ -152,9 +163,44 @@ offKey()
 
 Always call the returned unsubscribe functions when the component unmounts.
 
-## 5. Send Commands to the Host
+`onConnectionChange((connected) => ...)` tells when calls start or stop reaching an M8. That happens when the handshake completes, or in standalone mode when the device is connected, lost or released. Use it to re-render the hook above when the user connects a device.
 
-The client can ask the host to navigate, press keys, or edit values.
+## 5. Read the Screen and What the Cursor Is On
+
+The client reads the screen without moving the cursor:
+
+```ts
+const screen = await client.getScreen()      // 24 text rows of 40 columns (column 0 is a margin)
+const cells = await client.getScreenCells()  // the same, plus each cell's fg/bg colour
+const snap = await client.captureSnapshot()  // state + semantic context + description + screen
+```
+
+It also explains the cell under the cursor:
+
+```ts
+client.describeContext()        // e.g. "Note (N): Note C-4 — Phrase View row 00"
+client.describeContextParts()   // the same as tagged parts, to style yourself
+client.getSemanticContext()     // the typed field, its row and its surroundings, as data
+```
+
+The pure parsers (`getSemanticContext`, `parseGridScreen`, `readPlayPositions`, `parseThemeScreen`, ...) are exported too, for screens you stored. See the [package README](../../packages/m8-sdk/README.md).
+
+## 6. Follow Playback with MIDI Clock
+
+With SYNC OUT set in the M8's MIDI Settings (stored per song), the client can receive its clock and transport:
+
+```ts
+const { ok, error } = await client.enableMidiTransport()
+const off = client.onTransport((e) => {
+  // e.kind: 'start' | 'stop' | 'continue' | 'clock' (once per sixteenth) | 'position' (e.spp)
+})
+```
+
+The page that owns the device asks for Web MIDI permission: yam8d in host mode, your app in standalone mode. In standalone mode, enable it again after each new device connection.
+
+## 7. Send Commands
+
+The client can navigate, press keys, or edit values (through yam8d in host mode, directly in standalone mode).
 
 ```ts
 await client.navigateToView('phrase')
@@ -174,7 +220,7 @@ await client.browseFile('bassline')
 
 Prefer high-level methods such as `setValueToHex`, `setNote`, and `browseFile` when they match the workflow. Use raw key presses for custom interactions.
 
-## 6. Optional URL Fallback
+## 8. Optional URL Fallback
 
 Some hosts can provide a URL fallback for apps that do not connect with the SDK. This is useful for simple iframe apps that only need the current M8 view and the last highlighted modifier key.
 
@@ -212,28 +258,28 @@ const key = params.get('key')
 
 Treat this fallback as a compatibility layer, not as a replacement for the SDK. The SDK provides richer state, events, and commands without iframe reloads.
 
-## 7. Run and Test
+## 9. Run and Test
 
-Start your iframe app:
+Start your app:
 
 ```bash
 npm run dev
 ```
 
-Then open the app through the host iframe. The app should move from `connecting` to `connected` once the iframe handshake finishes.
+In yam8d, add its URL under External Apps. The app should move from `connecting` to `connected` once the iframe handshake finishes. Opened in its own tab, it starts in standalone mode and shows the Connect M8 button. Disconnect the M8 in yam8d first.
 
 When testing locally, check these points:
 
-- The host iframe `src` matches the URL where your app is running.
-- `post-me` is installed in the iframe app.
-- The SDK code is loaded by the iframe app, not by a standalone browser tab.
+- The External App URL matches the URL where your app is running.
+- `post-me` is installed in the app.
 - The iframe `src` is not repeatedly changed after the SDK connects.
+- Standalone: the browser is Chromium-based (`getDeviceSupport()` tells which device APIs exist), and no other page holds the M8.
 - If URL fallback is enabled, the app can parse `#/<view-name>/?mode=min&key=<key-name>`.
 
 ## Production Checklist
 
-- Build and deploy the iframe app.
-- Use HTTPS for both the host and the iframe app when deployed.
+- Build and deploy the app.
+- Use HTTPS for both the host and the app when deployed. Web Serial, WebUSB and Web MIDI also need a secure context.
 - Disable debug logging unless you are troubleshooting.
 - Clean up SDK subscriptions and call `disconnect()` on unmount.
-- Provide a fallback UI for standalone mode or connection failure.
+- Handle both modes: a Connect M8 button for standalone mode, and a message when no device is available.

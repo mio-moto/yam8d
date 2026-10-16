@@ -1,5 +1,15 @@
+:root {
+    /* Space around the panes; the left side leaves room for the menu toggle */
+    --root-padding: 8px;
+    --root-padding-left: 40px;
+    /* Height available to a pane inside #root */
+    --content-height: calc(100vh - 2 * var(--root-padding));
+}
+
 #root {
+    box-sizing: border-box;
+    height: 100vh;
     margin: 0 auto;
-    padding: 2rem;
+    padding: var(--root-padding) var(--root-padding) var(--root-padding) var(--root-padding-left);
     text-align: center;
 }

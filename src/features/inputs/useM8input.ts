@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react'
-import type { ConnectedBus } from '../connection/connection.ts'
+import type { ConnectedBus } from '../../../packages/m8-sdk/src/engine/connection'
 import { useSettingsContext } from '../settings/settings.tsx'
 import { defaultInputMap } from './defaultInputMap'
 import { shouldIgnoreAppKeyboardEvent } from './inputGate'

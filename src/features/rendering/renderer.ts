@@ -1,4 +1,4 @@
-﻿import type { RectCommand, WaveCommand } from '../connection/protocol'
+﻿import type { RectCommand, WaveCommand } from '../../../packages/m8-sdk/src/engine/protocol'
 import Font1 from './fonts/font1.png?url'
 import Font2 from './fonts/font2.png?url'
 import Font3 from './fonts/font3.png?url'

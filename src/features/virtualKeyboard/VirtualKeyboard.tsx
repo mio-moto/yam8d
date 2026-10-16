@@ -1,6 +1,6 @@
 import type { FC } from 'react'
 import { dimHexColor } from '../../utils/colorTools'
-import type { ConnectedBus } from '../connection/connection'
+import type { ConnectedBus } from '../../../packages/m8-sdk/src/engine/connection'
 import { Piano } from './piano.svg'
 import { useVirtualKeyboard } from './useVirtualKeyboard'
 import './virtualKeyboard.css'

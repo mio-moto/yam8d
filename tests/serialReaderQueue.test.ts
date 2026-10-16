@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { expect, test } from 'bun:test'
-import { queuedSerialReader } from '../src/features/connection/queuedReaders'
+import { queuedSerialReader } from '../packages/m8-sdk/src/engine/queuedReaders'
 
 class FakeReader {
     private chunks: Uint8Array[]

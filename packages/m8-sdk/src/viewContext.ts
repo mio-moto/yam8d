@@ -327,31 +327,37 @@ function extractFromLine(line: string, x: number, width: number): string {
   return line.slice(x, Math.min(x + width, line.length))
 }
 
+/** The item number of a screen title and the marker after it ('PHRASE 1F*', 'PHRASE 27^'). */
+export function parseViewTitle(rawTitle: string | null): { viewId: string | null; isUnsaved: boolean; marker: '*' | '^' | null } {
+  return extractViewId(rawTitle)
+}
+
+/**
+ * Extracts the item ID and the marker after it from a raw M8 screen title.
+ * Titles follow the pattern ' VIEWNAME ID*  ' where ID is 1–2 hex chars, followed by
+ * an optional '*' (used elsewhere / unsaved) or '^' (seen on phrases on a Model:02,
+ * firmware 6.5). Returns { viewId: null, ... } for views without an item number.
+ */
+function extractViewId(rawTitle: string | null): { viewId: string | null; isUnsaved: boolean; marker: '*' | '^' | null } {
+  if (!rawTitle) return { viewId: null, isUnsaved: false, marker: null }
+  // The M8 font draws a slashed zero as '{' / '}' in some titles (e.g. 'PHRASE {2').
+  const trimmed = rawTitle.replace(/[{}]/g, '0').trim()
+  const markerMatch = /\s*([*^])$/.exec(trimmed)
+  const marker = (markerMatch?.[1] as '*' | '^' | undefined) ?? null
+  const withoutMarker = markerMatch ? trimmed.slice(0, markerMatch.index) : trimmed
+  const parts = withoutMarker.split(/\s+/)
+  const last = parts[parts.length - 1] ?? ''
+  // Accept 1–2 uppercase hex digits as a view ID
+  const viewId = /^[0-9A-Fa-f]{1,2}$/.test(last) ? last.toUpperCase() : null
+  return { viewId, isUnsaved: marker === '*', marker }
+}
+
 /**
  * When a row is currently playing, the M8 prepends a single non-alphanumeric
  * indicator character (e.g. '<' or '>') to currentLine, shifting all data
  * positions right by 1. Strip it so column offsets remain consistent.
  * Returns the clean line and the number of stripped characters (0 or 1).
  */
-/**
- * Extracts the item ID and unsaved flag from a raw M8 screen title.
- * Titles follow the pattern ' VIEWNAME ID*  ' where ID is 1–2 hex chars
- * and '*' is an optional unsaved-changes marker.
- * Returns { viewId: null, isUnsaved: false } for views without an item number.
- */
-function extractViewId(rawTitle: string | null): { viewId: string | null; isUnsaved: boolean } {
-  if (!rawTitle) return { viewId: null, isUnsaved: false }
-  // The M8 font draws a slashed zero as '{' / '}' in some titles (e.g. 'PHRASE {2').
-  const trimmed = rawTitle.replace(/[{}]/g, '0').trim()
-  const isUnsaved = trimmed.endsWith('*')
-  const withoutStar = isUnsaved ? trimmed.slice(0, -1).trimEnd() : trimmed
-  const parts = withoutStar.split(/\s+/)
-  const last = parts[parts.length - 1] ?? ''
-  // Accept 1–2 uppercase hex digits as a view ID
-  const viewId = /^[0-9A-Fa-f]{1,2}$/.test(last) ? last.toUpperCase() : null
-  return { viewId, isUnsaved }
-}
-
 function stripPlaybackIndicator(line: string): { line: string; offset: number } {
   if (line.length > 0 && /^[^a-zA-Z0-9 ]/.test(line[0])) {
     return { line: line.slice(1), offset: 1 }
@@ -506,6 +512,80 @@ function screenMatchesCursor(state: M8State, screen: M8Screen | null | undefined
 
 const PHRASE_STEPS = 16
 
+/** Screen rows that can hold grid content (titles are on row 3, content starts on row 5). */
+const GRID_FIRST_ROW = 4
+const GRID_LAST_ROW = 21
+
+/** A grid row read off the whole screen, with the screen row it was found on. */
+export interface M8ScreenGridRow extends M8ParsedRow {
+  screenRow: number
+}
+
+/**
+ * Every content row of a grid view (song, chain, phrase, table, groove, instrument pool)
+ * read off the whole screen, top to bottom. Rows whose index column does not parse are
+ * skipped, so check `rowIndex` continuity when you need a full page.
+ *
+ * @example
+ * ```ts
+ * const rows = parseGridScreen('phrase', await m8.getScreen())
+ * rows[0].fields.note.rawValue // 'C-4'
+ * ```
+ */
+export function parseGridScreen(viewName: string, screen: M8Screen): M8ScreenGridRow[] {
+  const viewDef = (schema.views as Record<string, ViewDef>)[viewName]
+  if (viewDef?.type !== 'grid' || !viewDef.rowField) return []
+  const rows: M8ScreenGridRow[] = []
+  const last = Math.min(GRID_LAST_ROW, screen.lines.length - 1)
+  for (let y = GRID_FIRST_ROW; y <= last; y += 1) {
+    const line = screenDataLine(screen.lines[y] ?? '')
+    const rf = viewDef.rowField
+    // The index must stand alone: a label such as 'FE' in a longer word is not a row. While
+    // the song plays, a play marker ('>') can take the blank after it (Song view).
+    if (line.length <= rf.x + rf.width || !isSeparator(line[rf.x + rf.width])) continue
+    const row = parseRow(viewDef, line)
+    if (row.rowIndex == null) continue
+    rows.push({ ...row, screenRow: y })
+  }
+  return rows
+}
+
+const isSeparator = (ch: string): boolean => ch === ' ' || /^[^a-zA-Z0-9-]$/.test(ch)
+
+/** Where the song is playing, as far as the screen shows it. */
+export interface M8PlayPositions {
+  /** Song view: the song row each track's play marker is on (null when its marker is not on screen). */
+  tracks: (number | null)[] | null
+  /** Chain, phrase, table, groove views: the row with the play marker after its index. */
+  row: number | null
+}
+
+/**
+ * Reads the play markers off a grid view. On the Song view the M8 draws a marker in the
+ * blank just left of each playing chain (`00>00>01>02`); on the other grid views in the
+ * blank after the row index of the playing row (`F>--- -- --`), both seen on a Model:02,
+ * firmware 6.5. The '<' drawn in the margin marks the cursor row, not playback. Returns
+ * null for views without a grid; all nulls when nothing is playing.
+ */
+export function readPlayPositions(viewName: string, screen: M8Screen): M8PlayPositions | null {
+  const viewDef = (schema.views as Record<string, ViewDef>)[viewName]
+  if (viewDef?.type !== 'grid') return null
+  const rows = parseGridScreen(viewName, screen)
+  const isMarker = (ch: string | undefined) => !!ch && ch !== ' ' && isSeparator(ch)
+  if (viewName === 'song') {
+    const cells = (viewDef.columns ?? []).filter((c) => c.type === 'chainRef')
+    const tracks = cells.map((cell) => {
+      const hit = rows.find((r) => isMarker(screenDataLine(screen.lines[r.screenRow] ?? '')[cell.x - 1]))
+      return hit?.rowIndex ?? null
+    })
+    return { tracks, row: null }
+  }
+  const rf = viewDef.rowField
+  if (!rf) return { tracks: null, row: null }
+  const hit = rows.find((r) => isMarker(screenDataLine(screen.lines[r.screenRow] ?? '')[rf.x + rf.width]))
+  return { tracks: null, row: hit?.rowIndex ?? null }
+}
+
 /**
  * All 16 steps of the phrase on screen, plus the FX lane showing the '^^' marker
  * (a REP carried over from a previous phrase). Null when any step does not line up.
@@ -564,7 +644,8 @@ function parseScaleNote(row: M8ParsedRow): M8ScaleNote | null {
   return {
     interval,
     semitone: (SCALE_INTERVALS as readonly string[]).indexOf(interval),
-    enabled: en === 'ON' ? true : en === 'OFF' ? false : null,
+    // The device (fw 6.5) draws a note out of the scale as '-- -- --'.
+    enabled: en === 'ON' ? true : en === 'OFF' || en === '--' ? false : null,
     offset: Number.isNaN(offset) ? null : offset,
   }
 }

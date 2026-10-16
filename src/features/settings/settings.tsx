@@ -52,6 +52,8 @@ export type Settings = {
     fullM8View: boolean
     virtualKeyboard: boolean
     displayExternalApps: boolean
+    /** Width in px of the External Apps pane, set by dragging its edge (0 = automatic) */
+    externalAppsWidth: number
     externalApps: ExternalAppConfig[]
     activeExternalAppId: string | null
     shortcutsHost: string
@@ -85,6 +87,7 @@ const defaultSettings: Settings = {
     fullM8View: true,
     virtualKeyboard: true,
     displayExternalApps: false,
+    externalAppsWidth: 0,
     externalApps: defaultExternalApps(DEFAULT_SHORTCUTS_URL, DEFAULT_SDK_TEST_URL),
     activeExternalAppId: 'm8-shortcuts',
     shortcutsHost: DEFAULT_SHORTCUTS_URL,
