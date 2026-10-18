@@ -318,7 +318,7 @@ export const ExternalAppsDisplay: FC<{ bus?: ConnectedBus }> = ({ bus }) => {
             </div>
 
             {iframeSrc ? (
-                <iframe ref={iframeRef} name={YAM8D_FRAME_NAME} src={iframeSrc} title={activeApp?.name ?? 'External App'} />
+                <iframe ref={iframeRef} name={YAM8D_FRAME_NAME} src={iframeSrc} title={activeApp?.name ?? 'External App'} allow="midi" />
             ) : (
                 <div className="empty">No external app configured.</div>
             )}
