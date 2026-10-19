@@ -21,12 +21,62 @@
     {
       "to": "song",
       "dir": "down",
-      "keys": [48, 0]
+      "keys": [48, 0],
+      "back": true
     },
     {
       "to": "chain",
       "dir": "down",
-      "keys": [48, 0]
+      "keys": [48, 0],
+      "back": true
+    },
+    {
+      "to": "midisettings",
+      "via": "button",
+      "cursor": [14, 11],
+      "label": "SETTINGS",
+      "keys": [1, 0],
+      "weight": 2
+    },
+    {
+      "to": "midimapping",
+      "via": "button",
+      "cursor": [23, 11],
+      "label": "MAPPINGS",
+      "keys": [1, 0],
+      "weight": 2
+    },
+    {
+      "to": "renderaudio",
+      "via": "button",
+      "cursor": [14, 15],
+      "label": "RENDER",
+      "keys": [1, 0],
+      "weight": 2
+    },
+    {
+      "to": "instrumentpool",
+      "via": "button",
+      "cursor": [14, 17],
+      "label": "VIEW INST. POOL",
+      "keys": [1, 0],
+      "weight": 2
+    },
+    {
+      "to": "timestats",
+      "via": "button",
+      "cursor": [14, 19],
+      "label": "VIEW TIME STATS",
+      "keys": [1, 0],
+      "weight": 2
+    },
+    {
+      "to": "systemsettings",
+      "via": "button",
+      "cursor": [14, 20],
+      "label": "SETTINGS",
+      "keys": [1, 0],
+      "weight": 2
     }
   ],
   "mixer": [
@@ -39,31 +89,57 @@
       "to": "song",
       "dir": "up",
       "keys": [80, 0],
-      "weight": 10
+      "weight": 10,
+      "back": true
     },
     {
       "to": "chain",
       "dir": "up",
       "keys": [80, 0],
-      "weight": 10
+      "weight": 10,
+      "back": true
     },
     {
       "to": "phrase",
       "dir": "up",
       "keys": [80, 0],
-      "weight": 10
+      "weight": 10,
+      "back": true
     },
     {
       "to": "inst",
       "dir": "up",
       "keys": [80, 0],
-      "weight": 10
+      "weight": 10,
+      "back": true
     },
     {
       "to": "table",
       "dir": "up",
       "keys": [80, 0],
-      "weight": 10
+      "weight": 10,
+      "back": true
+    },
+    {
+      "to": "mixeq",
+      "via": "button",
+      "cursor": [28, 17],
+      "keys": [64, 0, 20, 0],
+      "weight": 2
+    },
+    {
+      "to": "mixscope",
+      "via": "button",
+      "cursor": [28, 17],
+      "keys": [20, 0],
+      "weight": 2
+    },
+    {
+      "to": "limiterscope",
+      "via": "button",
+      "cursor": [28, 18],
+      "keys": [20, 0],
+      "weight": 2
     }
   ],
   "effectsettings": [
@@ -71,6 +147,30 @@
       "to": "mixer",
       "dir": "up",
       "keys": [80, 0]
+    },
+    {
+      "to": "modfxeq",
+      "via": "button",
+      "cursor": [22, 6],
+      "label": "EQ",
+      "keys": [1, 0],
+      "weight": 2
+    },
+    {
+      "to": "delayeq",
+      "via": "button",
+      "cursor": [22, 11],
+      "label": "EQ",
+      "keys": [1, 0],
+      "weight": 2
+    },
+    {
+      "to": "reverbeq",
+      "via": "button",
+      "cursor": [22, 17],
+      "label": "EQ",
+      "keys": [1, 0],
+      "weight": 2
     }
   ],
   "inst": [
@@ -94,6 +194,20 @@
       "dir": "down",
       "keys": [48, 0],
       "weight": 10
+    },
+    {
+      "to": "loadinstrument",
+      "via": "button",
+      "cursor": [23, 5],
+      "label": "LOAD",
+      "keys": [1, 0],
+      "weight": 2
+    },
+    {
+      "to": "instrumentpool",
+      "dir": "left",
+      "keys": [144, 0],
+      "back": true
     }
   ],
   "table": [
@@ -188,12 +302,14 @@
     {
       "to": "inst",
       "dir": "down",
-      "keys": [48, 0]
+      "keys": [48, 0],
+      "back": true
     },
     {
       "to": "table",
       "dir": "down",
-      "keys": [48, 0]
+      "keys": [48, 0],
+      "back": true
     }
   ],
   "instrumentpool": [
@@ -201,6 +317,171 @@
       "to": "instmods",
       "dir": "down",
       "keys": [48, 0]
+    },
+    {
+      "to": "inst",
+      "dir": "right",
+      "keys": [20, 0]
+    },
+    {
+      "to": "phrase",
+      "dir": "left",
+      "keys": [144, 0],
+      "weight": 4
+    }
+  ],
+  "systemsettings": [
+    {
+      "to": "themesettings",
+      "via": "button",
+      "cursor": [16, 7],
+      "label": "EDIT THEME",
+      "keys": [1, 0],
+      "weight": 2
+    },
+    {
+      "to": "project",
+      "via": "exit",
+      "keys": [2, 0]
+    },
+    {
+      "to": "project",
+      "dir": "up",
+      "keys": [80, 0],
+      "weight": 2
+    }
+  ],
+  "midisettings": [
+    {
+      "to": "project",
+      "via": "exit",
+      "keys": [2, 0]
+    },
+    {
+      "to": "project",
+      "dir": "up",
+      "keys": [80, 0],
+      "weight": 3
+    }
+  ],
+  "midimapping": [
+    {
+      "to": "project",
+      "via": "exit",
+      "keys": [2, 0]
+    },
+    {
+      "to": "project",
+      "dir": "up",
+      "keys": [80, 0],
+      "weight": 3
+    }
+  ],
+  "renderaudio": [
+    {
+      "to": "project",
+      "via": "exit",
+      "keys": [2, 0]
+    },
+    {
+      "to": "project",
+      "dir": "up",
+      "keys": [80, 0],
+      "weight": 3
+    }
+  ],
+  "timestats": [
+    {
+      "to": "project",
+      "via": "exit",
+      "keys": [2, 0]
+    },
+    {
+      "to": "project",
+      "dir": "up",
+      "keys": [80, 0],
+      "weight": 3
+    }
+  ],
+  "loadproject": [
+    {
+      "to": "project",
+      "via": "exit",
+      "keys": [2, 0]
+    }
+  ],
+  "themesettings": [
+    {
+      "to": "systemsettings",
+      "via": "exit",
+      "keys": [2, 0]
+    }
+  ],
+  "mixeq": [
+    {
+      "to": "mixer",
+      "via": "exit",
+      "keys": [2, 0]
+    },
+    {
+      "to": "mixer",
+      "dir": "left",
+      "keys": [144, 0],
+      "weight": 3
+    }
+  ],
+  "mixscope": [
+    {
+      "to": "mixer",
+      "via": "exit",
+      "keys": [2, 0]
+    },
+    {
+      "to": "mixer",
+      "dir": "left",
+      "keys": [144, 0],
+      "weight": 3
+    }
+  ],
+  "limiterscope": [
+    {
+      "to": "mixer",
+      "via": "exit",
+      "keys": [2, 0]
+    },
+    {
+      "to": "mixer",
+      "dir": "left",
+      "keys": [144, 0],
+      "weight": 3
+    }
+  ],
+  "modfxeq": [
+    {
+      "to": "effectsettings",
+      "via": "exit",
+      "keys": [2, 0]
+    }
+  ],
+  "delayeq": [
+    {
+      "to": "effectsettings",
+      "via": "exit",
+      "keys": [2, 0]
+    }
+  ],
+  "reverbeq": [
+    {
+      "to": "effectsettings",
+      "via": "exit",
+      "keys": [2, 0]
+    }
+  ],
+  "loadinstrument": [
+    {
+      "to": "inst",
+      "via": "exit",
+      "keys": [2, 0]
     }
   ]
 }

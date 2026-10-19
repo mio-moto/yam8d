@@ -10,7 +10,7 @@ import { createFileBrowserSearch } from './host/fileBrowserSearch'
 import { createFloatEditor } from './host/floatEditor'
 import { createHostIO } from './host/hostIO'
 import { createHostMethods } from './host/hostMethods'
-import { getCurrentState } from './host/hostState'
+import { getCurrentState, textGridToPixel } from './host/hostState'
 import { createMidiTransport } from './host/midiTransport'
 import { createValueEditors } from './host/valueEditors'
 import { createMacroRunner, type MacroRunner } from './macroRunner'
@@ -35,7 +35,8 @@ export interface M8Engine {
   readonly macro: MacroRunner
   /** Moves the cursor towards a point in M8 pixel coordinates. */
   navigateTo(point: Point): Promise<void>
-  navigateToView(viewName: string): Promise<void>
+  /** Resolves true when the view is reached. */
+  navigateToView(viewName: string): Promise<boolean>
   getState(): M8State
   getScreenLines(): string[]
   getScreenCellColors(): ScreenCellColors
@@ -61,7 +62,12 @@ export const createM8Engine = (bus: EngineBus, options: M8EngineOptions = {}): M
   const extractor = registerViewExtractor(bus.protocol.eventBus, store)
   const macro = createMacroRunner({ bus, store, cancelOnKeydown: options.cancelMacroOnKeydown })
   const cursorNavigator: CursorNavigator = createCursorNavigator({ bus, store })
-  const viewNavigation = createViewNavigation({ store, runner: macro })
+  const viewNavigation = createViewNavigation({
+    store,
+    runner: macro,
+    getScreenLines: extractor.getScreenLines,
+    moveCursor: (x, y) => cursorNavigator.navigateTo(textGridToPixel(store, x, y)),
+  })
   const midiTransport = createMidiTransport((event) => emit('transport', event))
 
   const io = createHostIO({ getKeySink: () => bus.commands, store, debugLog, getScreenLines: extractor.getScreenLines })

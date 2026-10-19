@@ -22,7 +22,7 @@ export type HostMethodsDeps = {
   editors: ReturnType<typeof createValueEditors>
   setValueFloat: (targetFloat: number) => Promise<boolean>
   browseFile: (targetText: string, exact: boolean) => Promise<boolean>
-  navigateToView: (viewName: string) => Promise<void>
+  navigateToView: (viewName: string) => Promise<boolean>
   navigateTo: (point: { x: number; y: number }) => Promise<void>
   enableMidiTransport: () => Promise<{ ok: boolean; error?: string }>
   getScreenCellColors: () => ScreenCellColors
@@ -55,8 +55,7 @@ export const createHostMethods = ({
   return {
     navigateToView: guarded('navigateToView', false, async (viewName: string): Promise<boolean> => {
       debugLog('[M8SDK] Executing navigateToView:', viewName)
-      await navigateToView(viewName)
-      return true
+      return navigateToView(viewName)
     }),
     navigateTo: guarded('navigateTo', undefined, async (gridX: number, gridY: number): Promise<void> => {
       // Convert text grid coordinates (0-39, 0-23) to pixel coordinates

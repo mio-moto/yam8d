@@ -1,10 +1,13 @@
+// A* shortest path over a directed graph of views. Edges carry their own data (direction,
+// key frames...), which the path returns step by step.
+
 export type Direction = 'up' | 'down' | 'left' | 'right'
 
-export type Edge = { to: string; dir: Direction; weight?: number }
-export type Graph = Map<string, Edge[]>
+export type Edge = { to: string; dir?: Direction; weight?: number }
+export type Graph<E extends Edge = Edge> = Map<string, E[]>
 
 export type Heuristic = (a: string, b: string) => number
-export type EdgeCostFn = (from: string, to: string, dir: Direction) => number
+export type EdgeCostFn = (from: string, to: string, dir?: Direction) => number
 
 const zeroHeuristic: Heuristic = () => 0
 
@@ -12,25 +15,26 @@ const zeroHeuristic: Heuristic = () => 0
 // Edge-specific weights should be defined in the graph JSON file
 const defaultEdgeCost: EdgeCostFn = () => 1
 
-export interface PathResult {
+export interface PathResult<E extends Edge = Edge> {
   pages: string[] // includes start and goal
-  directions: Direction[] // one per step
-  cost: number // number of steps
+  directions: (Direction | undefined)[] // one per step
+  edges: E[] // one per step
+  cost: number // sum of the edge costs
 }
 
-export function aStar(
-  graph: Graph,
+export function aStar<E extends Edge = Edge>(
+  graph: Graph<E>,
   start: string,
   goal: string,
   heuristic: Heuristic = zeroHeuristic,
   edgeCost: EdgeCostFn = defaultEdgeCost,
-): PathResult | null {
+): PathResult<E> | null {
   const s = start.trim()
   const g = goal.trim()
   if (!graph.has(s) || !graph.has(g)) return null
 
   const openSet = new Set<string>([s])
-  const cameFrom = new Map<string, { prev: string; viaDir: Direction }>()
+  const cameFrom = new Map<string, { prev: string; via: E }>()
   const gScore = new Map<string, number>()
   const fScore = new Map<string, number>()
 
@@ -60,24 +64,24 @@ export function aStar(
     if (current === g) {
       // reconstruct
       const pages: string[] = [g]
-      const dirs: Direction[] = []
+      const edges: E[] = []
       let cur = g
       while (cur !== s) {
         const link = cameFrom.get(cur)
         if (!link) break // safety
-        dirs.unshift(link.viaDir)
+        edges.unshift(link.via)
         pages.unshift(link.prev)
         cur = link.prev
       }
-      return { pages, directions: dirs, cost: dirs.length }
+      return { pages, directions: edges.map((e) => e.dir), edges, cost: gScore.get(g) ?? edges.length }
     }
     openSet.delete(current)
-    const neighbors: Edge[] = graph.get(current) ?? []
+    const neighbors: E[] = graph.get(current) ?? []
     for (const e of neighbors) {
       const cost = e.weight ?? edgeCost(current, e.to, e.dir)
       const tentativeG = (gScore.get(current) ?? Infinity) + cost
       if (tentativeG < (gScore.get(e.to) ?? Infinity)) {
-        cameFrom.set(e.to, { prev: current, viaDir: e.dir })
+        cameFrom.set(e.to, { prev: current, via: e })
         gScore.set(e.to, tentativeG)
         fScore.set(e.to, tentativeG + heuristic(e.to, g))
         if (!openSet.has(e.to)) openSet.add(e.to)

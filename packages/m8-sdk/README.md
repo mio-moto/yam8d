@@ -153,7 +153,9 @@ m8.onConnectionChange((connected) => updateUi(connected))
 
 #### `navigateToView(viewName: string): Promise<boolean>`
 
-Asks the host to navigate to a named view (e.g. `'song'`, `'phrase'`). Returns `true` on success.
+Asks the host to navigate to a named view (e.g. `'song'`, `'phrase'`, `'systemsettings'`, `'mixeq'`). Returns `true` when the view is reached, `false` when no way is left or a newer navigation took over.
+
+The views and the moves between them are in `m8Graph.generated.json`: Shift+arrows between the main views, buttons that open sub-views (the cursor goes to the button, found by its label, then Edit or Shift+Right), and Option to leave a sub-view. The path is recomputed after every step from the view the M8 actually shows, and what each move did is remembered for the rest of the navigation: a move that changed nothing (Shift+Right on an empty chain) is avoided, so the Instrument view is then reached through Project > View Inst. Pool. Some keys go back to the previous view (the Mixer's Shift+Up; the Instrument's Shift+Left after the Instrument Pool), so the planner keeps track of where the M8 came from. On a view the graph does not know, Option is tried first, then Shift+Up. A button is pressed only when the cursor is on it. The project file browser has no way in (on a changed song, LOAD asks to lose the changes with OK selected); navigation can only leave it.
 
 ```ts
 await m8.navigateToView('phrase')
