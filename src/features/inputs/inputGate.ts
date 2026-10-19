@@ -28,7 +28,7 @@ function shouldCaptureBlock(ev: KeyboardEvent): boolean {
 }
 
 function captureHandler(ev: KeyboardEvent) {
-    if (!ev || !ev.type) return
+    if (!ev?.type) return
     if (shouldCaptureBlock(ev)) {
         // Block app hooks by preventing further propagation.
         // Do NOT preventDefault so native input behavior still works.

@@ -13,7 +13,7 @@ export const useMacroInput = (connection?: ConnectedBus) => {
 
     const handleInput = useCallback(
         (ev: KeyboardEvent) => {
-            if (!ev || !ev.code) return
+            if (!ev?.code) return
             if (shouldIgnoreAppKeyboardEvent(ev)) return
             if (ev.repeat) return
 

@@ -585,7 +585,7 @@
 
       // ---------- job detail ----------
 
-      const describeSteps = (steps) => (steps && steps.length ? `${steps.length} steps over ${steps[steps.length - 1][0]} ms` : 'none')
+      const describeSteps = (steps) => (steps?.length ? `${steps.length} steps over ${steps[steps.length - 1][0]} ms` : 'none')
 
       const renderDetail = (job) => {
         const d = $('detail')
@@ -960,7 +960,7 @@
             renderRows()
             for (;;) {
               await waitForRun()
-              if (job.recipeByDirection && !app.direction) { showBanner('Pick a direction first. ' + text, 'warn'); continue }
+              if (job.recipeByDirection && !app.direction) { showBanner(`Pick a direction first. ${text}`, 'warn'); continue }
               const snap = await snapshot()
               const wrongView = job.views?.length && !job.views.includes(snap.state.viewName)
               if (wrongView && !app.forceMismatch) {
