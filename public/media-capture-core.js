@@ -192,7 +192,7 @@ export const parseMinimap = (screen, viewName, region = MINIMAP_REGION) => {
 
 /** Directions that have at least one edge from `view` in m8Graph.generated.json. */
 export const graphDirections = (graph, view) => {
-    if (!graph || !graph[view]) return null
+    if (!graph?.[view]) return null
     return DIRECTIONS.filter((dir) => graph[view].some((edge) => edge.dir === dir))
 }
 

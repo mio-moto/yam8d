@@ -103,7 +103,7 @@ export const useM8Input = (connection?: ConnectedBus) => {
             let somethingPresent = false
 
             for (const gamepad of navigator.getGamepads()) {
-                if (!gamepad || !gamepad.connected) continue
+                if (!gamepad?.connected) continue
 
                 somethingPresent = true
 

@@ -19,7 +19,7 @@ export const useVirtualKeyboard = (connection?: ConnectedBus) => {
 
     const handleKey = useCallback(
         (ev: KeyboardEvent, isDown: boolean) => {
-            if (!ev || !ev.code) return
+            if (!ev?.code) return
             if (shouldIgnoreAppKeyboardEvent(ev)) return
 
             const mapped = keyMap[ev.code]
