@@ -21,6 +21,12 @@
         "loadinstrument",
         "selectsavedirectory",
         "createdirectory",
-        "systemsettings"
+        "systemsettings",
+        "midisettings",
+        "midimapping",
+        "renderaudio",
+        "timestats",
+        "themesettings",
+        "loadproject"
     ]
 }

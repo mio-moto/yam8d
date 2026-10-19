@@ -22,8 +22,8 @@ const CONFIRM_RE = /^(yes|ok|load|continue|confirm|discard)$/i
 const EXIT_UNSAVED_RE = /EXIT WITHOUT SAVING/i
 const FILE_BROWSER_VIEWS = new Set(['loadproject', 'loadinstrument', 'loadsample', 'selectsavedirectory', 'createdirectory'])
 
-// How long each SDK call may take. yam8d's navigateToView only resolves when the view changes, so it never answers
-// once a dialog or the name keyboard shows (no view name): without a limit the whole batch would hang there.
+// How long each SDK call may take. Older yam8d builds' navigateToView only resolved when the view changed, so it never
+// answered once a dialog or the name keyboard showed (no view name): without a limit the whole batch would hang there.
 const SDK_TIMEOUT_MS = {
     navigateToView: 20000,
     navigateTo: 12000,

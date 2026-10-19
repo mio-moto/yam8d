@@ -99,7 +99,8 @@ describe('M8 engine', () => {
         engine.macro.start([M8KeyMask.Up, 0])
         echo(M8KeyMask.Edit) // someone pressed Edit on the device
         expect(engine.macro.running).toBe(false)
-        expect(sent).toEqual([M8KeyMask.Up])
+        // Up was down: the cancel releases it
+        expect(sent).toEqual([M8KeyMask.Up, 0])
         engine.dispose()
     })
 

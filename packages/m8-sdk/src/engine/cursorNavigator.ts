@@ -25,6 +25,9 @@ const keyMap: Record<KeyType, number> = {
   right: M8KeyMask.Right,
 }
 const DIRECTION_MASK = M8KeyMask.Up | M8KeyMask.Down | M8KeyMask.Left | M8KeyMask.Right
+// Never kept down during a move: Edit+arrow edits the value, Option+arrow pages, Shift+arrow changes view. The
+// M8 does not always echo a release (an Edit that opens another view), so the last echo can still show one.
+const NOT_HELD_MASK = DIRECTION_MASK | M8KeyMask.Edit | M8KeyMask.Opt | M8KeyMask.Shift
 
 const MAX_STEPS = 24
 const MOVE_TIMEOUT_MS = 150
@@ -133,7 +136,7 @@ export const createCursorNavigator = ({ bus, store }: { bus: EngineBus; store: M
     samples = []
     recentRects = []
     waitingForKeyAck = false
-    holdMask = currentKeysMask & ~DIRECTION_MASK
+    holdMask = currentKeysMask & ~NOT_HELD_MASK
     clearMoveTimeout()
   }
 
@@ -336,7 +339,7 @@ export const createCursorNavigator = ({ bus, store }: { bus: EngineBus; store: M
   const onKey = (data: KeyCommand) => {
     currentKeysMask = data.keys ?? 0
     if (!target) {
-      holdMask = currentKeysMask & ~DIRECTION_MASK
+      holdMask = currentKeysMask & ~NOT_HELD_MASK
     }
     if (target && waitingForKeyAck) {
       waitingForKeyAck = false

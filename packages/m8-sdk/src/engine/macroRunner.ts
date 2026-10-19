@@ -69,6 +69,8 @@ export const createMacroRunner = ({
 
   function cancel(_reason?: string) {
     if (!active && queue.length === 0 && !store.get('macroStatus').running) return
+    // Never leave a key down: the release frame was still queued
+    if (lastSent) bus.commands.sendKeys(0)
     queue = []
     lastSent = null
     deactivate()

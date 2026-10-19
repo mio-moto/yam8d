@@ -209,7 +209,7 @@ export const DIRECTIONS_ALL = DIRECTIONS
 // screen.lines are the 24 text rows; a string index is a grid column (12x14 px cells on a Model:02), the same
 // units as cursorPos and navigateTo. Checked on firmware 6.5.
 
-/** The 12 views yam8d's navigateToView knows; every other view is a sub-view left with Option. */
+/** The 12 main views (Shift+arrow nodes of yam8d's view graph); every other view is a sub-view left with Option. */
 export const GRAPH_VIEWS = new Set(['project', 'song', 'chain', 'phrase', 'table', 'groove', 'scale', 'inst', 'instrumentpool', 'instmods', 'effectsettings', 'mixer'])
 
 export const EMPTY_RE = /^-+$/
