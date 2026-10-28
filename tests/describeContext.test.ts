@@ -156,8 +156,12 @@ const TABLE: Fixture = {
     tableRow(1, [[2, 'F4'], [8, 'HOP'], [11, '23']]),
     tableRow(2, [[8, 'PIT'], [11, '81'], [14, 'REP'], [17, '02']]),
     tableRow(3),
+    tableRow(4, [[8, 'CUT'], [11, '02'], [14, 'DEL'], [17, '03'], [20, 'MTT'], [23, '04']]),
+    tableRow(5, [[8, 'REP'], [11, '05'], [14, 'TIC'], [17, '06']]),
+    tableRow(6, [[8, 'RTO'], [11, '20'], [14, 'HOP'], [17, '06']]),
+    tableRow(7, [[8, 'HOP'], [11, '04'], [14, 'THO'], [17, '02']]),
   ],
-  rows: range(2, 5),
+  rows: range(2, 9),
 }
 
 const SONG: Fixture = {

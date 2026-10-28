@@ -871,7 +871,7 @@ export function describeContextParts(ctx: M8SemanticContext): M8DescriptionPart[
 
   // What the FX does here, read against its surroundings (value meaning, running REP…)
   const isFx = f.type === 'fxCommand' || f.type === 'fxValue'
-  const meaning = isFx && row ? describeFxCell(ctx, f, row) : describeInstrumentCell(ctx, f)
+  const meaning = isFx && row ? describeFxCell(ctx, f, row) : [...describeInstrumentCell(ctx, f), ...describeTableVolume(ctx, f)]
   // The generic REP/RTO blurb only repeats what the specific explanation already says.
   const explained = meaning.length > 0
 
@@ -947,8 +947,9 @@ function describeFxCell(ctx: M8SemanticContext, f: M8ActiveField, row: M8ParsedR
 
   const name = cmd.rawValue.toUpperCase()
   const laneText = ctx.fxLane && ctx.fxLane.event !== 'none' && ctx.fxLane.event !== 'set' ? describeFxLane(ctx.fxLane) : null
-  // REP / RTO are explained entirely by the lane; other commands add their value meaning.
-  if (name === 'REP' || name === 'RTO') {
+  // In a phrase REP / RTO are explained entirely by the lane; other commands, and REP / RTO
+  // in a table (a repeat count there), add their value meaning.
+  if ((name === 'REP' || name === 'RTO') && ctx.viewName !== 'table') {
     const repeated = ctx.fxLane?.source?.cmd
     const relative = name === 'REP' && ctx.fxLane?.active && repeated && isRelativeFx(repeated) ? describeRelativeFx(ctx.relativeFx?.[repeated]) : null
     return partsOf(['fxLane', laneText], ['relative', relative])
@@ -959,6 +960,7 @@ function describeFxCell(ctx: M8SemanticContext, f: M8ActiveField, row: M8ParsedR
   const described = describeFxValue(name, val.hexValue, {
     note: row.fields.note?.isEmpty ? null : row.fields.note?.rawValue,
     inTable: ctx.viewName === 'table',
+    row: row.rowIndex,
   })
   // Relative commands stay applied until a note with an instrument number or a RET resets them.
   let relative: string | null = null
@@ -991,6 +993,12 @@ const INSTRUMENT_TYPE_LABELS: Record<string, string> = {
 function describeInstrumentCell(ctx: M8SemanticContext, f: M8ActiveField): M8DescriptionPart[] {
   if (f.type !== 'instrumentRef' || f.isEmpty || !ctx.resetsRelative) return []
   return partsOf(['relative', describeRelativeReset(ctx.resetsRelative)])
+}
+
+/** Table V column: a share of the velocity of the phrase step that plays the table (7F = all of it). */
+function describeTableVolume(ctx: M8SemanticContext, f: M8ActiveField): M8DescriptionPart[] {
+  if (ctx.viewName !== 'table' || f.key !== 'volume' || f.isEmpty || f.hexValue == null || f.hexValue > 0x7f) return []
+  return partsOf(['meaning', `plays at ${Math.round((f.hexValue / 0x7f) * 100)}% of the step's velocity`])
 }
 
 const SECTION_NAMES: Record<string, string> = { MODFX: 'ModFX', DELAY: 'Delay', REVERB: 'Reverb' }

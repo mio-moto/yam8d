@@ -71,6 +71,8 @@ export interface M8FxLaneTrace {
 //  formatting helpers 
 
 export const hex2 = (n: number): string => n.toString(16).toUpperCase().padStart(2, '0')
+const hex1 = (n: number): string => n.toString(16).toUpperCase()
+const times = (n: number): string => (n === 1 ? 'once' : n === 2 ? 'twice' : `${n} times`)
 const signed8 = (n: number): number => (n > 0x7f ? n - 0x100 : n)
 const fmtSigned = (n: number): string => `${n > 0 ? '+' : n < 0 ? '−' : '±'}${Math.abs(n)}`
 
@@ -105,11 +107,41 @@ function indexToNote(i: number): string {
 export interface FxValueContext {
   /** Note on the same step (used by ARP to spell out the notes). */
   note?: string | null
-  /** Table view: HOP and CHA mean something different there. */
+  /** Table view: HOP, CHA, DEL, TIC, REP, RTO and MTT mean something different there. */
   inTable?: boolean
+  /** Row (phrase step or table row) the command is on: a HOP onto its own row, MTT on the first step. */
+  row?: number | null
 }
 
 const KEY_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+
+/** Ticks in a step with the default groove. */
+const TICKS_PER_STEP = 6
+
+/** How a table rate of `ticks` per row reads in steps: "2 rows per step", "one row every 2 steps", or ''. */
+function rowsPerStep(ticks: number): string {
+  if (ticks === TICKS_PER_STEP) return 'one row per step'
+  if (TICKS_PER_STEP % ticks === 0) return `${TICKS_PER_STEP / ticks} rows per step`
+  if (ticks % TICKS_PER_STEP === 0) return `one row every ${ticks / TICKS_PER_STEP} steps`
+  return ''
+}
+
+/** TIC value meaning; `where` is 'this column' in a table, "the instrument's table" in a phrase. */
+function describeTic(value: number, where: string): string | null {
+  if (value === 0) return `${where} moves one row each time the instrument is triggered`
+  if (value <= 0xfb) {
+    const steps = rowsPerStep(value)
+    return `${where} moves one row every ${value} tick${value === 1 ? '' : 's'}${steps ? ` (${steps})` : ''}`
+  }
+  // FC to FF
+  const modes = [
+    'octave map: the octave played picks the table row (instrument tables only)',
+    'velocity map: the velocity played picks the table row (instrument tables only)',
+    'note map: the note played picks the table row (instrument tables only)',
+    `${where} moves one row every 5 ms (200 Hz)`,
+  ]
+  return modes[value - 0xfc] ?? null
+}
 
 /**
  * Short explanation of what `value` does for `cmd` (phrase view), or null when
@@ -134,6 +166,7 @@ export function describeFxValue(cmd: string, value: number, ctx: FxValueContext 
       if (ctx.inTable) return `everything left of it plays with probability ${value}/255 (00 never, FF always)`
       return `${x}/15 chance for what is left of it, ${y}/15 for what is right (0 never, F always)`
     case 'DEL':
+      if (ctx.inTable) return `holds the table's playhead for ${ticks(value)}`
       return `delays this row by ${ticks(value)}`
     case 'KIL':
       return `stops the note after ${ticks(value)}`
@@ -152,10 +185,26 @@ export function describeFxValue(cmd: string, value: number, ctx: FxValueContext 
     case 'TBX':
       return value === 0 ? 'stops the auxiliary table' : `plays table ${hex2(value)} alongside the instrument table`
     case 'THO':
-      return `table jumps to position ${y.toString(16).toUpperCase()}`
+      if (ctx.inTable) return `every column of the table jumps to row ${hex1(y)}`
+      return `the instrument's table jumps to row ${hex1(y)} (the aux table when a TBX is on this step)`
     case 'HOP':
-      if (ctx.inTable) return `jumps to row ${y.toString(16).toUpperCase()}, ${x} time${x === 1 ? '' : 's'}`
-      return value === 0xff ? 'stops this track' : `jumps to row ${y.toString(16).toUpperCase()} of the next phrase`
+      if (ctx.inTable) {
+        // A HOP that lands on its own row keeps landing there: the column stops.
+        if (y === ctx.row) return x === 0 ? `this column stops on row ${hex1(y)}` : `holds this column on row ${hex1(y)} ${times(x)}`
+        if (x === 0) return `always jumps back to row ${hex1(y)}: the rows in between loop`
+        return `jumps to row ${hex1(y)} ${times(x)}, then the column runs on past it`
+      }
+      return value === 0xff ? 'stops this track' : `jumps to row ${hex1(y)} of the next phrase`
+    case 'REP':
+      if (!ctx.inTable || value === 0) return null
+      return `plays the command above it ${value} more time${value === 1 ? '' : 's'}, one row each`
+    case 'RTO': {
+      if (!ctx.inTable) return null
+      const total = value > 0x7f ? `${hex2(value)} (${signed8(value)})` : hex2(value)
+      return `repeats the relative command above it until it has added ${total} in total`
+    }
+    case 'RMX':
+      return `tracks to its left (selection ${hex1(x)}) jump to phrase row ${hex1(y)}`
     case 'RND':
       return `randomises the previous FX: left range ${x}, right range ${y} (0 none, F full)`
     case 'RNL':
@@ -180,7 +229,9 @@ export function describeFxValue(cmd: string, value: number, ctx: FxValueContext 
     case 'NXT':
       return `plays instrument ${hex2(value)} on the next track`
     case 'MTT': {
+      if (ctx.inTable) return 'no effect in a table'
       const eighths = signed8(value)
+      if (eighths < 0 && ctx.row === 0) return 'no effect: a row cannot be moved earlier on the first step'
       return eighths === 0 ? 'no timing shift' : `shifts the row by ${fmtSigned(eighths)}/8 tick`
     }
     case 'TPO':
@@ -188,14 +239,7 @@ export function describeFxValue(cmd: string, value: number, ctx: FxValueContext 
     case 'TSP':
       return `transposes the song by ${fmtSigned(signed8(value))} semitones`
     case 'TIC':
-      if (value === 0) return 'table advances on each instrument trigger'
-      if (value <= 0xfb) return `table advances every ${ticks(value)}`
-      return (
-        { 252: 'octave map: playing octave picks the table row', 253: 'velocity map', 254: 'note map', 255: 'table advances at 200 Hz' } as Record<
-          number,
-          string
-        >
-      )[value] ?? null
+      return describeTic(value, ctx.inTable ? 'this column' : "the instrument's table")
     case 'XRZ':
       return value > 0 ? 'reverb freeze on' : 'reverb freeze off'
     default:
