@@ -1159,17 +1159,17 @@ exports[`describeContext: instrument 1`] = `
   " 2: 7 Instrument Type (TYPE): WAVSYNTH — Kind of instrument in this slot: Wavsynth, Macrosynth, Sampler, FM Synth, Hypersynth, External Instrument, MIDI Out (or NONE for an unused slot). Changing it changes the parameters below. — Wavsynth instrument — Instrument View 00",
   
 " 2:21 Instrument Type (TYPE): WAVSYNTH — Kind of instrument in this slot: Wavsynth, Macrosynth, Sampler, FM Synth, Hypersynth, External Instrument, MIDI Out (or NONE for an unused slot). Changing it changes the parameters below. — Wavsynth instrument — Instrument View 00
-        no screen: TYPE: WAVSYNTH      LOAD — Wavsynth instrument — Instrument View 00"
+        no screen: TYPE: WAVSYNTH      LOAD SAVE — Wavsynth instrument — Instrument View 00"
 ,
   " 2:22 Load Preset (LOAD): LOAD — Load an instrument preset from the SD card. — Wavsynth instrument — Instrument View 00",
   
 " 2:26 Load Preset (LOAD): LOAD — Load an instrument preset from the SD card. — Wavsynth instrument — Instrument View 00
-        no screen: TYPE: WAVSYNTH      LOAD — Wavsynth instrument — Instrument View 00"
+        no screen: TYPE: WAVSYNTH      LOAD SAVE — Wavsynth instrument — Instrument View 00"
 ,
   " 2:27 Save Preset (SAVE): SAVE — Save this instrument as a preset on the SD card. — Wavsynth instrument — Instrument View 00",
   
 " 2:31 Save Preset (SAVE): SAVE — Save this instrument as a preset on the SD card. — Wavsynth instrument — Instrument View 00
-        no screen: H: LOAD SAV — Wavsynth instrument — Instrument View 00"
+        no screen: TYPE: WAVSYNTH      LOAD SAVE — Wavsynth instrument — Instrument View 00"
 ,
   
 " 2:32 Instrument View 00 — TYPE    WAVSYNTH      LOAD SAVE
@@ -1190,7 +1190,7 @@ exports[`describeContext: instrument 1`] = `
         no screen: NAME: LEAD — Instrument View 00"
 ,
   
-" 3:28 Instrument View 00 — NAME    Lead
+" 3:32 Instrument View 00 — NAME    Lead
         no screen: LEA: D — Instrument View 00"
 ,
   " 3:33 Instrument View 00 — NAME    Lead",
@@ -1201,15 +1201,15 @@ exports[`describeContext: instrument 1`] = `
 ,
   
 " 4:11 Transpose Enabled (TRANSP.): ON — Enable or disable note transposition from scales, chain transpose columns and the project transpose for this instrument (turn off for percussive or effect instruments). — Wavsynth instrument — Instrument View 00
-        no screen: TRANSP.: ON   TBL. TIC01   E — Instrument View 00"
+        no screen: TRANSP.: ON   TBL. TIC01   EQ 00 — Instrument View 00"
 ,
   
 " 4:12 Instrument View 00 — TRANSP. ON   TBL. TIC01   EQ 00
-        no screen: TRANSP.: ON   TBL. TIC01   E — Instrument View 00"
+        no screen: TRANSP.: ON   TBL. TIC01   EQ 00 — Instrument View 00"
 ,
   
 " 4:20 Table Tick (TBL. TIC): 01h (dec 1) — Default speed at which this instrument's table advances: 01 is one tick per step, 02 two ticks per step. Can be overridden by the TIC command. — Wavsynth instrument — Instrument View 00
-        no screen: TRANSP.: ON   TBL. TIC01   E — Instrument View 00"
+        no screen: TRANSP.: ON   TBL. TIC01   EQ 00 — Instrument View 00"
 ,
   
 " 4:21 Table Tick (TBL. TIC): 01h (dec 1) — Default speed at which this instrument's table advances: 01 is one tick per step, 02 two ticks per step. Can be overridden by the TIC command. — Wavsynth instrument — Instrument View 00
@@ -1217,15 +1217,15 @@ exports[`describeContext: instrument 1`] = `
 ,
   
 " 4:23 Table Tick (TBL. TIC): 01h (dec 1) — Default speed at which this instrument's table advances: 01 is one tick per step, 02 two ticks per step. Can be overridden by the TIC command. — Wavsynth instrument — Instrument View 00
-        no screen: TRANSP.: ON   TBL. TIC01   E — Instrument View 00"
+        no screen: TRANSP.: ON   TBL. TIC01   EQ 00 — Instrument View 00"
 ,
   
 " 4:24 Instrument View 00 — TRANSP. ON   TBL. TIC01   EQ 00
-        no screen: TRANSP.: ON   TBL. TIC01   E — Instrument View 00"
+        no screen: TRANSP.: ON   TBL. TIC01   EQ 00 — Instrument View 00"
 ,
   
 " 4:28 EQ Slot (EQ): 00 — EQ bank assigned to this instrument (-- for none). [EDIT] or [SHIFT]+[RIGHT] opens the EQ editor. — Wavsynth instrument — Instrument View 00
-        no screen: TIC: 01   EQ 00 — Instrument View 00"
+        no screen: TRANSP.: ON   TBL. TIC01   EQ 00 — Instrument View 00"
 ,
   
 " 4:29 EQ Slot (EQ): 00 — EQ bank assigned to this instrument (-- for none). [EDIT] or [SHIFT]+[RIGHT] opens the EQ editor. — Wavsynth instrument — Instrument View 00
@@ -1233,7 +1233,7 @@ exports[`describeContext: instrument 1`] = `
 ,
   
 " 4:31 EQ Slot (EQ): 00 — EQ bank assigned to this instrument (-- for none). [EDIT] or [SHIFT]+[RIGHT] opens the EQ editor. — Wavsynth instrument — Instrument View 00
-        no screen: TIC: 01   EQ 00 — Instrument View 00"
+        no screen: TRANSP.: ON   TBL. TIC01   EQ 00 — Instrument View 00"
 ,
   
 " 4:32 Instrument View 00 — TRANSP. ON   TBL. TIC01   EQ 00

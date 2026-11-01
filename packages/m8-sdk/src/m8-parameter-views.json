@@ -4,7 +4,7 @@
   "notes": {
     "rows": "A row is recognised by 'match' conditions on the line text (x = column, text = exact text, regex = pattern on the value.width chars). The first matching row wins; its cells give the field columns.",
     "zones": "Views whose labels change (instrument parameters depend on the instrument type, modulation slots on the modulation type) use two label/value zones instead: the label text is read at labelX and the value at x. The label is then looked up in the vocabulary.",
-    "formats": "hex = 2 hex digits; hexOption = 2 hex digits followed by the option name ('00CHORUS'); hexPair = 'XX:YY'; decimal / decimalPair = base-10 numbers ('120', '150:45'); float = decimal with a fraction ('-05.00'); text = free text or option name; auto = detect from the text.",
+    "formats": "hex = 2 hex digits; hexOption = 2 hex digits followed by the option name ('00CHORUS'); hexPair = 'XX:YY' (or 'XX/YY'); decimal / decimalPair = base-10 numbers ('120', '150:45'); float = decimal with a fraction ('-05.00'); text = free text or option name; auto = detect from the text.",
     "unverified": "Positions are read off the manual's screenshots, not from a device capture. Instrument-type specific layouts other than the Wavsynth header/parameter grid (Sampler SAMPLE row, FM operators, Hypersynth chord, MIDI CC rows) are only reached through the generic label/value zones."
   },
   "views": {
@@ -304,9 +304,10 @@
         ] }
       ],
       "zones": [
-        { "id": "left",  "labelX": 0,  "labelWidth": 8, "x": 8,  "width": 20 },
+        { "id": "left",  "labelX": 0,  "labelWidth": 8, "x": 8,  "width": 24 },
         { "id": "right", "labelX": 18, "labelWidth": 4, "x": 22, "width": 11 }
       ],
+      "operators": { "instrument": "fmsynth", "x": 8, "step": 6, "width": 5, "letters": ["A", "B", "C", "D"] },
       "vocabularyFrom": "instrumentTypes"
     },
 
@@ -414,7 +415,9 @@
           "options": { "FWD": "Forward, no loop.", "REV": "Reverse, no loop.", "FWDLOOP": "Looping forward.", "REVLOOP": "Looping reverse.", "FWD PP": "Ping-pong looping, forward first.", "REV PP": "Ping-pong looping, reverse first.", "OSC": "Oscillator mode: ignores the start position and doesn't restart on retrigger.", "OSC REV": "Oscillator mode, reverse.", "OSC PP": "Oscillator mode, ping-pong.", "REPITCH": "Pitches the sample from the song tempo (adjust with STEPS/BPM)." } },
         "START": { "type": "parameter", "format": "hex", "label": "Start (START)", "description": "Sample start position (ignored in OSC play modes)." },
         "LOOP ST.": { "type": "parameter", "format": "hex", "label": "Loop Start (LOOP ST.)", "description": "Where the sample loops back to when it reaches the end in a looping play mode." },
+        "LOOP ST": { "type": "parameter", "format": "hex", "label": "Loop Start (LOOP ST)", "description": "Where the sample loops back to when it reaches the end in a looping play mode." },
         "LEN": { "type": "parameter", "format": "hex", "label": "Length (LEN)", "description": "Sample length." },
+        "LENGTH": { "type": "parameter", "format": "hex", "label": "Length (LENGTH)", "description": "Sample length." },
         "DETUNE": { "type": "parameter", "format": "hex", "label": "Detune (DETUNE)", "description": "Detune with 80 as the centre frequency: first digit steps semitones, second digit 1/16 semitone." },
         "DEGRADE": { "type": "parameter", "format": "hex", "label": "Degrade (DEGRADE)", "description": "Sample rate reduction; any value above 00 disables sample interpolation." }
       }
@@ -422,14 +425,20 @@
     "fmsynth": {
       "name": "FM Synth",
       "description": "Four-operator, 12-algorithm FM synthesizer. Each operator has a base shape, ratio, level, feedback and two modulation slots.",
+      "operatorDestinations": {
+        "LEV": "controls the level from 00 to the currently set level.",
+        "RAT": "adds 0.00 to +16.00 to the current ratio.",
+        "PIT": "adds to the note pitch, in semitones, for this operator.",
+        "FBK": "controls the feedback from 00 to the currently set feedback."
+      },
       "params": {
         "ALGO": { "type": "option", "format": "hexOption", "label": "Algorithm (ALGO)", "description": "One of 12 algorithms (oscillator routing); the last one is additive mode." },
         "A": { "type": "option", "format": "hexOption", "label": "Operator A (A)", "description": "Operator letter with optional shape (SIN, SW2-SW6, SAW, SQU, PUL, IMP, TRI, NOISE, then wave tables)." },
-        "B": { "type": "option", "format": "hexOption", "label": "Operator B (B)", "description": "Operator letter with optional shape." },
-        "C": { "type": "option", "format": "hexOption", "label": "Operator C (C)", "description": "Operator letter with optional shape." },
-        "D": { "type": "option", "format": "hexOption", "label": "Operator D (D)", "description": "Operator letter with optional shape." },
+        "B": { "type": "option", "format": "hexOption", "label": "Operator B (B)", "description": "Operator letter with optional shape (SIN, SW2-SW6, SAW, SQU, PUL, IMP, TRI, NOISE, then wave tables)." },
+        "C": { "type": "option", "format": "hexOption", "label": "Operator C (C)", "description": "Operator letter with optional shape (SIN, SW2-SW6, SAW, SQU, PUL, IMP, TRI, NOISE, then wave tables)." },
+        "D": { "type": "option", "format": "hexOption", "label": "Operator D (D)", "description": "Operator letter with optional shape (SIN, SW2-SW6, SAW, SQU, PUL, IMP, TRI, NOISE, then wave tables)." },
         "RATIO": { "type": "parameter", "format": "float", "label": "Ratio (RATIO)", "description": "Operator frequency ratio relative to the played note (2.00 is an octave up, 0.50 an octave down)." },
-        "LEV/FB": { "type": "parameter", "format": "hex", "label": "Level / Feedback (LEV/FB)", "description": "Operator volume and feedback." },
+        "LEV/FB": { "type": "parameter", "format": "hexPair", "parts": ["level", "feedback"], "label": "Level / Feedback (LEV/FB)", "description": "Operator volume and feedback." },
         "MOD": { "type": "option", "format": "hexOption", "label": "Modulation Slot (MOD)", "description": "Assigns one of MOD1-MOD4 to control a destination on the operator." },
         "LEV": { "type": "parameter", "format": "hex", "label": "Level Mod (LEV)", "description": "Controls the level from 00 to the currently set level." },
         "RAT": { "type": "parameter", "format": "hex", "label": "Ratio Mod (RAT)", "description": "Adds 0.00 to +16.00 to the current ratio." },
@@ -445,6 +454,7 @@
         "SCALE": { "type": "option", "format": "hexOption", "label": "Scale (SCALE)", "description": "One of the song's scales, or 00 to use the song/track scale settings." },
         "CHORD": { "type": "option", "format": "hexOption", "label": "Chord (CHORD)", "description": "Chord bank and its intervals (copy with [SHIFT]+[OPTION], paste with [SHIFT]+[EDIT])." },
         "SHIFT": { "type": "parameter", "format": "hex", "label": "Shift (SHIFT)", "description": "Cross-fades volume between the first 3 intervals and the second 3." },
+        "SHAPE": { "type": "option", "format": "hexOption", "label": "Shape (SHAPE)", "description": "Waveform of the chord oscillators (SAW by default; not in the manual, seen on a Model:02, firmware 6.5)." },
         "SWARM": { "type": "parameter", "format": "hex", "label": "Swarm (SWARM)", "description": "Detunes the oscillators relative to their interval." },
         "WIDTH": { "type": "parameter", "format": "hex", "label": "Stereo Width (WIDTH)", "description": "Stereo width of the oscillators, from mono 00 to full stereo FF." },
         "SUBOSC": { "type": "parameter", "format": "hex", "label": "Sub Oscillator (SUBOSC)", "description": "Mixes in a sub-oscillator 2 octaves below the root (below 80) or 1 octave below (above 80)." }
@@ -458,7 +468,7 @@
         "PORT": { "type": "option", "format": "hexOption", "label": "MIDI Port (PORT)", "description": "MIDI output port: MIDI and USB, MIDI only, USB only, or Internal (track MIDI input / global MIDI CCs from the MIDI Settings View)." },
         "CHANNEL": { "type": "parameter", "format": "hex", "label": "MIDI Channel (CHANNEL)", "description": "MIDI channel, 1 to 16." },
         "BANK:PG": { "type": "parameter", "format": "hexPair", "parts": ["bank", "program"], "label": "Bank / Program (BANK:PG)", "description": "Optional MIDI bank select and program change (program change can also be sent as an FX command)." },
-        "CC#": { "type": "parameter", "format": "hexPair", "parts": ["CC number", "value"], "label": "Custom CC (CC:VAL)", "description": "A custom MIDI CC number with an optional default value, sent with the note-on after program change messages." }
+        "CC#": { "type": "parameter", "format": "text", "label": "Custom CC (CC:VAL)", "description": "A custom MIDI CC number, then an optional default value (-- for none), sent with the note-on after program change messages." }
       }
     },
     "midiout": {
@@ -468,7 +478,7 @@
         "PORT": { "type": "option", "format": "hexOption", "label": "MIDI Port (PORT)", "description": "MIDI output port: MIDI and USB, MIDI only, USB only, or Internal (track MIDI input / global MIDI CCs from the MIDI Settings View)." },
         "CHANNEL": { "type": "parameter", "format": "hex", "label": "MIDI Channel (CHANNEL)", "description": "MIDI channel, 1 to 16." },
         "BANK:PG": { "type": "parameter", "format": "hexPair", "parts": ["bank", "program"], "label": "Bank / Program (BANK:PG)", "description": "Optional MIDI bank select and program change (program change can also be sent as an FX command)." },
-        "CC#": { "type": "parameter", "format": "hexPair", "parts": ["CC number", "value"], "label": "Custom CC (CC:VAL)", "description": "One of up to 10 custom MIDI CC numbers per instrument with an optional default value, sent with the note-on after program change messages." }
+        "CC#": { "type": "parameter", "format": "text", "label": "Custom CC (CC:VAL)", "description": "One of up to 10 custom MIDI CC numbers per instrument, then an optional default value (-- for none), sent with the note-on after program change messages." }
       }
     }
   },

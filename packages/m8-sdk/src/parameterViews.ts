@@ -46,6 +46,17 @@ interface InstrumentTypeDef {
   name: string
   description: string
   params: Record<string, VocabEntry>
+  /** FM: what each destination of an operator's MOD slot does ('LEV', 'RAT'...). */
+  operatorDestinations?: Record<string, string>
+}
+
+/** Rows with one value per operator (FM): the columns of the values. */
+interface OperatorsDef {
+  instrument: string
+  x: number
+  step: number
+  width: number
+  letters: string[]
 }
 
 interface LayoutDef {
@@ -59,6 +70,7 @@ interface LayoutDef {
   sections?: string[]
   rows?: RowDef[]
   zones?: ZoneDef[]
+  operators?: OperatorsDef
   vocabulary?: Record<string, VocabEntry>
   vocabularyFrom?: 'instrumentTypes'
 }
@@ -176,6 +188,69 @@ const LABEL_SHAPE = /^[A-Z][A-Z0-9.:#/ -]*$/
 
 //  reading a line 
 
+/** Operator rows of the Instrument view: label to the vocabulary key and key prefix of its cells. */
+const OPERATOR_ROWS: Record<string, string> = { RATIO: 'ratio', 'LEV/FB': 'levFb', MOD: 'mod' }
+const OPERATOR_MOD_VALUE = /^(?:-----|[1-4]>[A-Z]{3})$/i
+
+/**
+ * The cells of an FM row with one value per operator (RATIO, LEV/FB, the two MOD rows, the
+ * shapes under ALGO), or null when the line is none of them. Each cell names its operator, so
+ * the four columns of a row are described alike.
+ */
+function operatorCells(def: OperatorsDef, line: string, vocab: InstrumentTypeDef): ColumnDef[] | null {
+  const label = slice(line, 0, def.x).trim().toUpperCase()
+  const columns = def.letters.map((letter, i) => ({ letter, x: def.x + i * def.step }))
+  const cellOf = (key: string, x: number, width: number, entry: Pick<ColumnDef, 'type' | 'format' | 'label' | 'description'> & Partial<ColumnDef>, letter: string): ColumnDef => ({
+    ...entry,
+    x,
+    width,
+    key: `${key}${letter}`,
+    label: `${entry.label} · operator ${letter}`,
+    meta: { paramLabel: label || key, operator: letter },
+  })
+
+  const rowKey = OPERATOR_ROWS[label]
+  if (rowKey) {
+    const entry = vocab.params[label]
+    if (!entry) return null
+    return columns.map(({ letter, x }) => cellOf(rowKey, x, def.width, label === 'MOD' ? modSlotEntry(entry, 1, vocab) : entry, letter))
+  }
+  if (label) return null
+
+  // The shapes under ALGO: 'A SW4 B W0F C SIN D SIN', each as wide as its name.
+  if (/^\s+[A-D] \S/i.test(line)) {
+    const cells: ColumnDef[] = []
+    for (const match of line.matchAll(/([A-D]) (\S+)/gi)) {
+      const letter = match[1].toUpperCase()
+      const entry = vocab.params[letter]
+      if (!entry || !def.letters.includes(letter)) continue
+      cells.push({ ...entry, type: 'option', format: 'text', x: (match.index ?? 0) + 2, width: match[2].length, key: `shape${letter}`, label: `Shape · operator ${letter}`, meta: { paramLabel: 'SHAPE', operator: letter } })
+    }
+    return cells.length ? cells : null
+  }
+
+  // The second MOD row has no label: four slots, each '-----' or 'n>DEST'.
+  const values = columns.map(({ x }) => slice(line, x, def.width).trim())
+  const entry = vocab.params.MOD
+  if (entry && values.every((value) => OPERATOR_MOD_VALUE.test(value)) && !slice(line, 0, def.x).trim()) {
+    return columns.map(({ letter, x }) => cellOf('mod2', x, def.width, modSlotEntry(entry, 2, vocab), letter))
+  }
+  return null
+}
+
+/** The vocabulary entry of an operator's MOD slot `slot` (1 or 2), with what each 'n>DEST' value does. */
+function modSlotEntry(entry: VocabEntry, slot: number, vocab: InstrumentTypeDef): VocabEntry {
+  const options: Record<string, string> = {}
+  for (const [dest, text] of Object.entries(vocab.operatorDestinations ?? {})) {
+    for (let source = 1; source <= 4; source += 1) options[`${source}>${dest}`] = `MOD${source} ${dest}: ${text}`
+  }
+  return { ...entry, type: 'option', format: 'text', label: `Modulation Slot ${slot} (MOD)`, options }
+}
+
+/** The custom CC row of MIDI OUT ('CCA CC:VAL  074:7F') or EXTERNAL ('CCA 074:7F'): its label and where its value starts. */
+const CC_LABEL = /^(CC[A-J])(?: CC:VAL)? +(?=\S)/i
+const CC_VALUE_WIDTH = 6
+
 export interface ParameterLineOptions {
   section: string | null
   instrumentKey: string | null
@@ -215,10 +290,24 @@ export function readParameterCells(
     if (row.match.every((m) => matches(m, line))) return { rowId: row.id, cells: row.cells }
   }
 
+  if (layout.operators && opts.instrumentKey === layout.operators.instrument) {
+    const found = operatorCells(layout.operators, line, instrumentTypes[layout.operators.instrument])
+    if (found) return { rowId: 'operators', cells: found }
+  }
+
   const zones = layout.zones ?? []
   const cells: ColumnDef[] = []
   zones.forEach((zone, i) => {
-    const label = slice(line, zone.labelX, zone.labelWidth).trim().toUpperCase()
+    let label = slice(line, zone.labelX, zone.labelWidth).trim().toUpperCase()
+    let valueX = zone.x
+    let valueWidth: number | null = null
+    // Custom CC rows have a longer label and their own value column.
+    const cc = i === 0 ? CC_LABEL.exec(line) : null
+    if (cc) {
+      label = cc[1].toUpperCase()
+      valueX = cc[0].length
+      valueWidth = CC_VALUE_WIDTH
+    }
     if (!LABEL_SHAPE.test(label)) return
     // The value ends where the next zone's label begins, when that label is present.
     const next = zones[i + 1]
@@ -228,14 +317,14 @@ export function readParameterCells(
       next != null &&
       slice(line, next.labelX - 1, 1).trim() === '' &&
       LABEL_SHAPE.test(slice(line, next.labelX, next.labelWidth).trim().toUpperCase())
-    const width = next && nextIsLabel ? Math.max(1, next.labelX - 1 - zone.x) : zone.width
-    if (!slice(line, zone.x, width).trim()) return
+    const width = valueWidth ?? (next && nextIsLabel ? Math.max(1, next.labelX - 1 - valueX) : zone.width)
+    if (!slice(line, valueX, width).trim()) return
     const vocab = lookupVocabulary(layout, label, opts.instrumentKey)
     // The same label can sit in both zones (two modulators side by side): keep keys unique.
     const base = camel(label) || zone.id
     const key = cells.some((c) => c.key === base) ? `${base}${zone.id[0].toUpperCase()}${zone.id.slice(1)}` : base
     cells.push({
-      x: zone.x,
+      x: valueX,
       width,
       key,
       type: vocab?.type ?? 'parameter',
@@ -292,7 +381,7 @@ export function parseValue(raw: string, format: ValueFormat): ParsedValue {
       return { hexValue: n, numericValue: n, values: null, text: m[2].trim() || null }
     }
     case 'hexPair': {
-      const m = /^([0-9A-F]{2}):([0-9A-F]{2})/i.exec(s)
+      const m = /^([0-9A-F]{2})[:/]([0-9A-F]{2})/i.exec(s)
       if (!m) return { ...NONE, text: s }
       const values = [parseInt(m[1], 16), parseInt(m[2], 16)]
       return { hexValue: values[0], numericValue: values[0], values, text: null }

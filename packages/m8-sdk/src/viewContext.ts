@@ -1075,7 +1075,7 @@ function formatParameterValue(field: M8ParsedField): string {
     const hex = field.hexValue != null
     const shown = field.values.map((v) => (hex ? v.toString(16).toUpperCase().padStart(2, '0') : String(v)))
     const named = field.parts.map((p, i) => `${p} ${shown[i] ?? '?'}${unit}`).join(', ')
-    return `${shown.join(':')} (${named})`
+    return `${shown.join(field.rawValue.includes('/') ? '/' : ':')} (${named})`
   }
   if (field.hexValue != null) {
     return `${field.rawValue.slice(0, 2)}h (dec ${field.hexValue})${field.text ? ` ${field.text}` : ''}`
