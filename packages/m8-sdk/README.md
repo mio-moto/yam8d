@@ -167,6 +167,8 @@ Moves the cursor to the cell at the given character-grid position, or to the nea
 no cursor cell is there (a label, a gap between cells). Resolves `true` when the cursor reached
 that cell, `false` when it stopped on the closest cell it could reach. Arrow keys only; what each
 press does is learned per layout (view, model, font mode), so later moves take the shortest way.
+The Song, Chain and Phrase grids are known in advance: there the cursor takes the shortest way from
+the first move, and nothing is learned.
 
 ```ts
 await m8.navigateTo(3, 5)

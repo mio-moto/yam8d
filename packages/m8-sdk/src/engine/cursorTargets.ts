@@ -5,7 +5,7 @@
 // the nearest one on the screen. Pure functions.
 
 import viewSchema from '../m8-view-context.json'
-import { type CellRect, type CursorLayout, cellId } from './cursorMap'
+import { type CellRect, type CursorDir, type CursorLayout, cellId } from './cursorMap'
 import type { M8CellMetrics } from './store'
 
 export type Point = { x: number; y: number }
@@ -59,6 +59,52 @@ export const gridRows = (viewName: string | null, lines: readonly string[]): Gri
     }
   })
   return first < 0 ? null : { first, last, numberWidth: width }
+}
+
+// Grid views whose cursor cells are their schema columns on every numbered row, one character right of
+// the schema's x (measured on Model:02 fw 6.5, small and large font). The navigator plans over this
+// grid instead of learning it: learned moves there went wrong, as the M8 draws the new view's cursor
+// before its title, so cells of one view were learned in another's layout.
+const FIXED_GRID_VIEWS = ['song', 'chain', 'phrase']
+const GRID_COLUMNS: Record<string, { x: number; width: number }[]> = Object.fromEntries(
+  Object.entries(viewSchema.views as Record<string, { columns?: { x: number; width: number }[] }>).flatMap(([name, view]) =>
+    FIXED_GRID_VIEWS.includes(name) && view.columns ? [[name, view.columns]] : [],
+  ),
+)
+
+/** Whether the navigator knows this view's grid and learns nothing there. */
+export const hasFixedGrid = (viewName: string | null) => !!viewName && viewName in GRID_COLUMNS
+
+/**
+ * The cells and moves of a fixed grid view's numbered rows (Up/Down keep the column, Left/Right keep the
+ * row); null on other views. Moves past the grid's edges are left out.
+ */
+export const fixedGridLayout = (viewName: string | null, grid: GridRows | null, metrics: M8CellMetrics): CursorLayout | null => {
+  const columns = viewName ? GRID_COLUMNS[viewName] : undefined
+  if (!columns || !grid) return null
+  const layout: CursorLayout = { cells: new Map(), moves: new Map(), unreachable: new Set(), suspects: new Set() }
+  const idAt = (row: number, column: { x: number; width: number }) => {
+    const rect = {
+      x: (column.x + 1) * metrics.cellW + metrics.offX,
+      y: row * metrics.cellH + metrics.offY,
+      w: column.width * metrics.cellW,
+      h: metrics.cellH,
+    }
+    const id = cellId(rect)
+    layout.cells.set(id, rect)
+    return id
+  }
+  for (let row = grid.first; row <= grid.last; row++) {
+    columns.forEach((column, i) => {
+      const moves: Partial<Record<CursorDir, string>> = {}
+      if (row > grid.first) moves.up = idAt(row - 1, column)
+      if (row < grid.last) moves.down = idAt(row + 1, column)
+      if (i > 0) moves.left = idAt(row, columns[i - 1])
+      if (i < columns.length - 1) moves.right = idAt(row, columns[i + 1])
+      layout.moves.set(idAt(row, column), moves)
+    })
+  }
+  return layout
 }
 
 /** A cursor rectangle as the character cells it covers (column, row, width in characters). */
@@ -213,7 +259,9 @@ export const pickGoal = (
   const { cells, runs } = candidates(layout, lines, metrics, panelColumn, grid)
   const goals: { goal: CursorGoal; area: CellRect }[] = cells.map((cell) => ({ goal: { kind: 'cell', ...cell }, area: cell.rect }))
   for (const run of runs) {
-    if (layout?.unreachable.has(run.key) || skip.has(run.key)) continue
+    // On grid views the text is song data (it differs per song) and every cell is reachable by arrows: a failure there was
+    // a slow or missed press, so nothing is ever remembered as unreachable
+    if ((!grid && layout?.unreachable.has(run.key)) || skip.has(run.key)) continue
     // Aim at the clicked character of the run, or its end nearest the click
     const col = Math.min(run.col + run.text.length - 1, Math.max(run.col, Math.floor((point.x - metrics.offX) / metrics.cellW)))
     goals.push({ goal: { kind: 'text', key: run.key, rect: charRect(run.row, col, metrics), run: run.rect, row: run.row }, area: run.rect })

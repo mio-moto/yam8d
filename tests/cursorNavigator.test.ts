@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test'
 import type { EngineBus } from '../packages/m8-sdk/src/engine/bus'
 import { cellId, createCursorMap, findPath } from '../packages/m8-sdk/src/engine/cursorMap'
 import { createCursorNavigator } from '../packages/m8-sdk/src/engine/cursorNavigator'
-import { layoutSignature, pickGoal, snapToGrid, textRuns } from '../packages/m8-sdk/src/engine/cursorTargets'
+import { fixedGridLayout, gridRows, layoutSignature, pickGoal, snapToGrid, textRuns } from '../packages/m8-sdk/src/engine/cursorTargets'
 import { createEventBus } from '../packages/m8-sdk/src/engine/eventBus'
 import { M8KeyMask } from '../packages/m8-sdk/src/engine/keys'
 import type { ProtocolEvents } from '../packages/m8-sdk/src/engine/protocol'
@@ -37,6 +37,8 @@ const simulate = (
         viewName?: string
         wraps?: boolean
         delay?: (from: Cell, dir: Dir) => number
+        /** True for a press the M8 never answers (it drops keys sent right after a view change). */
+        drop?: (from: Cell, dir: Dir) => boolean
         jitter?: boolean
     } = {},
 ) => {
@@ -105,7 +107,7 @@ const simulate = (
                 const dir = dirOf(keys)
                 const from = current
                 setTimeout(() => events.emit('key', { keys }), 1)
-                if (dir) {
+                if (dir && !options.drop?.(from, dir)) {
                     // The M8 redraws the cursor a little later (a busy M8: much later)
                     setTimeout(
                         () => {
@@ -518,6 +520,94 @@ describe('cursor navigator', () => {
         expect(await sim.click(6, 8)).toBe(true)
         expect(sim.at()).toMatchObject({ col: 6, row: 8 })
         expect(sim.cursorMap.toJSON().layouts).toEqual([])
+    })
+})
+
+// Song rows: a row number and eight track cells, as on the M8 (cells at columns 4, 7, ... 25)
+const songRows = ['FC FC FC 42 FC FC FC 81', '10 20 30 40 FE FE FD FD', '11 21 31 41 FE 61 70 80']
+const songCells = (): Cell[] => songRows.flatMap((text, i) => text.split(' ').map((cell, track) => ({ col: 4 + 3 * track, row: 6 + i, text: cell })))
+const songLabels = (): Label[] => songRows.map((_, i) => ({ col: 1, row: 6 + i, text: `0${i}` }))
+
+describe('grid views never remember a text as unreachable', () => {
+    it('a stored unreachable text of a grid view is still a goal', () => {
+        const sim = simulate(songCells(), songLabels(), { viewName: 'song' })
+        const map = createCursorMap()
+        // Stored by an older version after slow presses: the song's own cells
+        for (let i = 0; i < 2; i++) map.markUnreachable('k', '8:22:70')
+        const layout = map.get('k')
+        expect(layout?.unreachable.has('8:22:70')).toBe(true)
+        const grid = gridRows('song', sim.lines())
+        const point = { x: 22 * 12 + 6, y: 8 * 14 + 7 }
+        expect(pickGoal(point, layout, sim.lines(), SMALL, 34, grid)).toMatchObject({ kind: 'text', key: '8:22:70' })
+        // Without the grid (any other view) the same text is skipped
+        expect(pickGoal(point, layout, sim.lines(), SMALL, 34, null)).not.toMatchObject({ key: '8:22:70' })
+    })
+
+    it('a press the M8 drops is sent again, not learned as a blocked key', async () => {
+        let dropped = 0
+        const sim = simulate(songCells(), songLabels(), {
+            viewName: 'song',
+            drop: (from, dir) => from.col === 13 && from.row === 8 && dir === 'right' && dropped++ === 0,
+        })
+        expect(await sim.click(22, 8)).toBe(true)
+        expect(sim.at()).toMatchObject({ col: 22, row: 8 })
+        expect(dropped).toBe(2)
+        expect(sim.cursorMap.toJSON().layouts.every((layout) => layout.moves.every(([, , to]) => to !== null))).toBe(true)
+    })
+
+    it('a press the M8 answers late does not mark the cell, and the cursor ends on it', async () => {
+        const sim = simulate(songCells(), songLabels(), { viewName: 'song', delay: (from, dir) => (from.col === 13 && dir === 'right' ? 700 : 0) })
+        const reached = await sim.click(22, 8)
+        await tick(900)
+        expect(sim.cursorMap.toJSON().layouts.every((layout) => layout.unreachable.length === 0 && (layout.suspects ?? []).length === 0)).toBe(true)
+        expect(typeof reached).toBe('boolean')
+    })
+})
+
+// Chain rows as on the M8: a row number, the phrase at column 3 and the transpose at column 6
+const chainCells = (): Cell[] => Array.from({ length: 16 }, (_, i) => [{ col: 3, row: 6 + i, text: '20' }, { col: 6, row: 6 + i, text: '00' }]).flat()
+const chainLabels = (): Label[] => Array.from({ length: 16 }, (_, i) => ({ col: 1, row: 6 + i, text: i.toString(16) }))
+
+describe('known grids (Song, Chain, Phrase)', () => {
+    it('lays out the cursor cells the device draws, in both font sizes', () => {
+        const chain = fixedGridLayout('chain', { first: 6, last: 21, numberWidth: 1 }, SMALL)
+        expect(chain?.cells.has('36,84,24,14')).toBe(true)
+        expect(chain?.moves.get('36,84,24,14')).toEqual({ down: '36,98,24,14', right: '72,84,24,14' })
+        const phrase = fixedGridLayout('phrase', { first: 6, last: 21, numberWidth: 1 }, LARGE)
+        const row6 = [...(phrase?.cells.values() ?? [])].filter((rect) => rect.y === 96).sort((a, b) => a.x - b.x)
+        expect(row6.map(cellId)).toEqual([
+            '45,96,45,16',
+            '105,96,30,16',
+            '150,96,30,16',
+            '195,96,45,16',
+            '240,96,30,16',
+            '285,96,45,16',
+            '330,96,30,16',
+            '375,96,45,16',
+            '420,96,30,16',
+        ])
+        expect(fixedGridLayout('table', { first: 6, last: 21, numberWidth: 1 }, SMALL)).toBeNull()
+    })
+
+    it('goes straight down a chain despite a wrong learned move, and learns nothing', async () => {
+        const sim = simulate(chainCells(), chainLabels(), { viewName: 'chain' })
+        // Learned by an older version while the view changed: Down from row A landing on a Phrase note cell
+        const key = `chain|M8 Model:02|0|${layoutSignature(sim.lines(), 34)}`
+        const rowA = snapToGrid(sim.rectOf(chainCells()[20]), SMALL)
+        sim.cursorMap.recordMove(key, rowA, 'down', { x: 36, y: 84, w: 36, h: 14 })
+        expect(await sim.click(4, 18)).toBe(true)
+        expect(sim.at()).toMatchObject({ col: 3, row: 18 })
+        expect(sim.presses).toEqual(Array(12).fill('down'))
+        expect(await sim.click(7, 9)).toBe(true)
+        await sim.userPress('down')
+        expect(sim.cursorMap.toJSON().layouts.map((layout) => [layout.key, layout.moves.length])).toEqual([[key, 1]])
+    })
+
+    it('learns as before when the cursor is on none of the known cells', async () => {
+        // The simulated phrase grid has its note at column 2, the device at 3
+        const sim = simulate(phraseGrid(), rowNumbers())
+        expect(await sim.click(17, 9)).toBe(true)
+        expect(sim.cursorMap.toJSON().layouts).toHaveLength(1)
     })
 })
 

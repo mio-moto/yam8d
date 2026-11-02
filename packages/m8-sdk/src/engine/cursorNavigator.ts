@@ -4,10 +4,11 @@
 // rectangle; what it did is learned (cursorMap.ts) per layout, and later moves follow the shortest
 // learned path. Plain arrow presses made outside a navigation (the user's own) are learned too.
 // A text the cursor cannot reach (a label) is remembered and the next nearest cell is tried; when
-// nothing works the cursor goes to the learned cell nearest the click, checking each step.
+// nothing works the cursor goes to the learned cell nearest the click, checking each step. On the
+// Song, Chain and Phrase grids the cells and moves are known (fixedGridLayout) and nothing is learned.
 
 import type { EngineBus } from './bus'
-import { type CellRect, type CursorDir, type CursorMap, cellId, createCursorMap, findPath, wentBackwards } from './cursorMap'
+import { type CellRect, type CursorDir, type CursorLayout, type CursorMap, cellId, createCursorMap, findPath, wentBackwards } from './cursorMap'
 import {
   type CursorGoal,
   candidates,
@@ -15,9 +16,11 @@ import {
   coversX,
   coversY,
   cellHasText,
+  fixedGridLayout,
   goalReached,
   type GridRows,
   gridRows,
+  hasFixedGrid,
   layoutSignature,
   panelColumnFor,
   pickGoal,
@@ -108,6 +111,8 @@ type Run = {
   point: Point
   /** First and last numbered rows on grid views: the cursor never leaves them. */
   grid: GridRows | null
+  /** The known grid of a Song, Chain or Phrase view, planned over instead of the learned layout. */
+  fixed: CursorLayout | null
   goal: CursorGoal
   goals: number
   phase: 'seek' | 'return'
@@ -118,6 +123,8 @@ type Run = {
   explored: number
   /** `"<cellId>:<dir>"` pressed in this phase. */
   tried: Set<string>
+  /** Presses sent again after the M8 did not answer them (grid views). */
+  retried: Set<string>
   /** Learned moves that did something else during this run. */
   distrust: Set<string>
   visited: Map<string, CellRect>
@@ -221,9 +228,11 @@ export const createCursorNavigator = ({
     return (dir === 'up' && row <= r.grid.first) || (dir === 'down' && row >= r.grid.last)
   }
 
+  const planLayout = (r: Run) => r.fixed ?? (r.layoutKey ? cursorMap.get(r.layoutKey) : undefined)
+
   const chooseMove = (r: Run, rect: CellRect): Move | null => {
     const id = cellId(rect)
-    const layout = r.layoutKey ? cursorMap.get(r.layoutKey) : undefined
+    const layout = planLayout(r)
 
     if (layout) {
       const path = findPath(
@@ -293,10 +302,10 @@ export const createCursorNavigator = ({
         const leftOfCursor = run.x + run.w / 2 < rect.x + rect.w / 2
         const cursorRow = rowOf(rect, metrics())
         const towardRow = row < cursorRow ? 'up' : 'down'
-        const blockedNextToRow = Math.abs(row - cursorRow) === 1 && cursorMap.get(r.layoutKey)?.moves.get(cellId(rect))?.[towardRow] === null
+        const blockedNextToRow = Math.abs(row - cursorRow) === 1 && planLayout(r)?.moves.get(cellId(rect))?.[towardRow] === null
         const keys =
           onRow || blockedNextToRow
-            ? candidates(cursorMap.get(r.layoutKey), getScreenLines(), metrics(), panelColumn(), r.grid)
+            ? candidates(planLayout(r), getScreenLines(), metrics(), panelColumn(), r.grid)
                 .runs.filter((text) => text.row === row)
                 .filter((text) => !onRow || (leftOfCursor ? text.rect.x + text.rect.w <= rect.x + 3 : text.rect.x >= rect.x + rect.w - 3))
                 .map((text) => text.key)
@@ -304,9 +313,9 @@ export const createCursorNavigator = ({
         if (!keys.includes(r.goal.key)) keys.push(r.goal.key)
         for (const key of keys) {
           r.failedTexts.add(key)
-          cursorMap.markUnreachable(r.layoutKey, key)
+          if (!r.grid) cursorMap.markUnreachable(r.layoutKey, key)
         }
-        const next = pickGoal(r.point, cursorMap.get(r.layoutKey), getScreenLines(), metrics(), panelColumn(), r.grid, r.failedTexts, true)
+        const next = pickGoal(r.point, planLayout(r), getScreenLines(), metrics(), panelColumn(), r.grid, r.failedTexts, true)
         if (r.goals < MAX_GOALS && next.kind !== 'point' && next.rect !== r.goal.rect) {
           log('text not reachable, trying the next nearest cell', { from: r.goal, to: next })
           r.goal = next
@@ -319,7 +328,7 @@ export const createCursorNavigator = ({
       }
       // Out of goals: the learned cell nearest the click, else the visited cell nearest the goal
       const clicked = { x: r.point.x, y: r.point.y, w: 1, h: 1 }
-      const known = candidates(r.layoutKey ? cursorMap.get(r.layoutKey) : undefined, getScreenLines(), metrics(), panelColumn(), r.grid).cells
+      const known = candidates(planLayout(r), getScreenLines(), metrics(), panelColumn(), r.grid).cells
       let best = rect
       if (known.length > 0) {
         for (const cell of known) if (rectDistance(cell.rect, clicked) < rectDistance(best, clicked) - 1e-6) best = cell.rect
@@ -368,7 +377,7 @@ export const createCursorNavigator = ({
     clearMoveTimeout()
     waitingForKeyAck = false
     const key = layoutKey()
-    if (r.layoutKey && key === r.layoutKey) cursorMap.recordMove(r.layoutKey, pending.from, pending.dir, to)
+    if (r.layoutKey && key === r.layoutKey && !r.fixed) cursorMap.recordMove(r.layoutKey, pending.from, pending.dir, to)
     const toId = to ? cellId(to) : null
     if (!pending.guessed && pending.expected !== undefined && toId !== pending.expected) {
       log('learned move did something else', { pending, to })
@@ -391,8 +400,18 @@ export const createCursorNavigator = ({
         r.pending.graced = true
         scheduleMoveTimeout(MOVE_GRACE_MS)
         return
-      } else if (reason === 'timeout') settle(r, r.pending, null)
-      else return
+      } else if (reason === 'timeout') {
+        // The M8 drops keys pressed right after a view change, and on a grid view no key is ever blocked
+        // inside the rows: press once more before the key is learned as blocked.
+        const move = `${cellId(r.pending.from)}:${r.pending.dir}`
+        if (r.grid && !r.retried.has(move)) {
+          log('no move after the grace, pressing again', { move })
+          r.retried.add(move)
+          r.tried.delete(move)
+          r.pending = null
+          waitingForKeyAck = false
+        } else settle(r, r.pending, null)
+      } else return
     }
     // A plain arrow never changes the view; if it did (a dialog), stop
     if (store.get('viewName') !== r.viewName) {
@@ -430,7 +449,8 @@ export const createCursorNavigator = ({
     }
     const rect = getRect()
     const key = layoutKey()
-    if (!rect || !key) {
+    // Nothing to learn on the known grids
+    if (!rect || !key || hasFixedGrid(store.get('viewName'))) {
       passive = null
       return
     }
@@ -469,11 +489,14 @@ export const createCursorNavigator = ({
         }
 
         const key = layoutKey()
-        const layout = key ? cursorMap.get(key) : undefined
         const lines = getScreenLines()
         const grid = gridRows(store.get('viewName'), lines)
+        // The known grid, unless the cursor is on none of its cells (another model or firmware): then it is learned
+        const known = key ? fixedGridLayout(store.get('viewName'), grid, metrics()) : null
+        const fixed = known?.cells.has(cellId(rect)) ? known : null
+        const layout = fixed ?? (key ? cursorMap.get(key) : undefined)
         const goal = store.get('selectionMode') ? pointGoal(point) : pickGoal(point, layout, lines, metrics(), panelColumn(), grid)
-        if (key && cellHasText(rect, lines, metrics())) cursorMap.recordCell(key, rect)
+        if (key && !fixed && cellHasText(rect, lines, metrics())) cursorMap.recordCell(key, rect)
         if (!carried) holdMask = currentKeysMask & ~NOT_HELD_MASK
         passive = null
         log('navigateTo start', { point, goal })
@@ -481,6 +504,7 @@ export const createCursorNavigator = ({
         const r: Run = {
           point,
           grid,
+          fixed,
           goal,
           goals: 1,
           phase: 'seek',
@@ -489,6 +513,7 @@ export const createCursorNavigator = ({
           steps: 0,
           explored: 0,
           tried: new Set(),
+          retried: new Set(),
           distrust: new Set(),
           visited: new Map([[cellId(rect), rect]]),
           failedTexts: new Set(),
