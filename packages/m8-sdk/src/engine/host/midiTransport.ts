@@ -57,23 +57,48 @@ export const createMidiTransport = (emit: (event: M8TransportEvent) => void): Mi
     }
   }
 
+  type Result = { ok: boolean; error?: string }
+
+  let pending: Promise<Result> | null = null
+  /** Counts disables, so an open that one overtook adds no listener. */
+  let generation = 0
+
+  const open = async (): Promise<Result> => {
+    const started = generation
+    if (!('requestMIDIAccess' in navigator)) return { ok: false, error: 'Web MIDI is not available in this browser' }
+    try {
+      const access = await navigator.requestMIDIAccess()
+      const m8 = [...access.inputs.values()].find((i) => i.name === 'M8')
+      if (!m8) return { ok: false, error: 'no MIDI input named M8' }
+      await m8.open()
+      // A call that was disabled meanwhile must not leave a listener behind.
+      if (generation !== started) return { ok: false, error: 'disabled' }
+      m8.addEventListener('midimessage', onMessage)
+      input = m8
+      return { ok: true }
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : String(error) }
+    }
+  }
+
+  // Calls that come while the input is still opening share its answer: Chrome gives every
+  // requestMIDIAccess() its own MIDIInput objects, so two opens would each add the listener and
+  // count every message twice (the tick count then runs at twice the clock).
   return {
-    enable: async () => {
-      if (input) return { ok: true }
-      if (!('requestMIDIAccess' in navigator)) return { ok: false, error: 'Web MIDI is not available in this browser' }
-      try {
-        const access = await navigator.requestMIDIAccess()
-        const m8 = [...access.inputs.values()].find((i) => i.name === 'M8')
-        if (!m8) return { ok: false, error: 'no MIDI input named M8' }
-        await m8.open()
-        m8.addEventListener('midimessage', onMessage)
-        input = m8
-        return { ok: true }
-      } catch (error) {
-        return { ok: false, error: error instanceof Error ? error.message : String(error) }
-      }
+    enable: () => {
+      if (input) return Promise.resolve({ ok: true })
+      if (pending) return pending
+      const opening = open()
+      pending = opening
+      void opening.then((result) => {
+        // A failure is not kept: the next call tries again.
+        if (pending === opening && !result.ok) pending = null
+      })
+      return opening
     },
     disable: () => {
+      generation += 1
+      pending = null
       input?.removeEventListener('midimessage', onMessage)
       input = null
     },
