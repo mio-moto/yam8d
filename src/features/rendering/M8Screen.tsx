@@ -506,7 +506,6 @@ export const M8Screen = forwardRef<HTMLCanvasElement, { bus?: ConnectedBus | nul
                 height: '100%',
                 margin: 'auto',
                 position: 'relative',
-                borderRadius:'15px'
             }}
         ></canvas>
     )

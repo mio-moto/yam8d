@@ -128,6 +128,7 @@ const FullM8Player: FC<{
   const parentRef = useRef<HTMLDivElement | null>(null)
 
   const [sys] = useSystemInfo()
+  const screenAspect = (sys?.screenWidth ?? 480) / (sys?.screenHeight ?? 320)
 
   const [bgColor] = useBackgroundColor()
   const screenColor = rgbToHex(bgColor ?? { r: 0, g: 0, b: 0 })
@@ -148,19 +149,26 @@ const FullM8Player: FC<{
       const screenEdgeBox = screenEdge.getBoundingClientRect()
       const parentBox = parent.getBoundingClientRect()
 
-      const top = screenEdgeBox.top - parentBox.top //+ 1
-      const left = screenEdgeBox.left - parentBox.left //+ 4
-      const bottom = parentBox.bottom - screenEdgeBox.bottom //- 1
-      const right = parentBox.right - screenEdgeBox.right //- 4
+      // The canvas has sharp corners, so it is inset until they sit inside the rounded corners of the body's screen
+      // (a corner of a square inset by d is inside an arc of radius r when d >= r * (1 - 1/sqrt(2)) ~ 0.293 r)
+      let inset = 0
+      if (screenEdge instanceof SVGRectElement) {
+        const radius = screenEdge.rx.baseVal.value * (screenEdgeBox.width / screenEdge.width.baseVal.value)
+        inset = Math.ceil(radius * 0.3)
+      }
+
+      // Keep the M8 aspect ratio; what the canvas does not cover shows the screen's background colour
+      const availWidth = screenEdgeBox.width - 2 * inset
+      const availHeight = screenEdgeBox.height - 2 * inset
+      const width = Math.floor(Math.min(availWidth, availHeight * screenAspect))
+      const height = Math.floor(width / screenAspect)
 
       const style = screen.style
       style.position = 'absolute'
-      style.top = `${Math.ceil(top)}px`
-      style.left = `${Math.ceil(left)}px`
-      style.bottom = `${Math.floor(bottom)}px`
-      style.right = `${Math.floor(right)}px`
-      style.width = `${Math.floor(screenEdgeBox.width) - 1 /*- 8*/}px`
-      style.height = `${Math.floor(screenEdgeBox.height) - 1 /* - 8*/}px`
+      style.left = `${Math.round(screenEdgeBox.left - parentBox.left + inset + (availWidth - width) / 2)}px`
+      style.top = `${Math.round(screenEdgeBox.top - parentBox.top + inset + (availHeight - height) / 2)}px`
+      style.width = `${width}px`
+      style.height = `${height}px`
     }
 
     updatePosition()
@@ -171,7 +179,7 @@ const FullM8Player: FC<{
     return () => {
       resizeObs.disconnect()
     }
-  }, [model, screenEdgeRef.current, settings.showM8Body])
+  }, [model, screenEdgeRef.current, settings.showM8Body, screenAspect])
 
   const onScreenClick = useCallback(
     (ev: React.MouseEvent<HTMLElement>) => {
@@ -264,7 +272,7 @@ const FullM8Player: FC<{
           <div
             // When body is hidden, provide a placeholder element to anchor the screen overlay
             ref={screenEdgeRef as unknown as React.Ref<HTMLDivElement>}
-            style={{ width: '100%', height: 'var(--content-height)' }}
+            style={{ width: '100%', maxWidth: `calc(var(--content-height) * ${screenAspect})`, aspectRatio: `${screenAspect}` }}
           />
         )}
 
