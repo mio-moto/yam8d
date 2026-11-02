@@ -14,7 +14,7 @@ The app communicates with the M8 through WebSerial when available, then falls ba
 - Graph-based view navigation macros, with default shortcuts for Song, Chain, Phrase, Table, Instrument, FX, and Project views.
 - Virtual MIDI keyboard with configurable note, octave, and velocity keys.
 - External Apps panel for iframe tools that can talk to the live M8 through the YAM8D SDK.
-- Built-in presets for M8 Shortcuts, SDK Test, Cont8xt Notes, Groove Extractor and Scale Divinator.
+- Built-in presets for M8 Shortcuts, SDK Test, Cont8xt Notes, Groove Extractor, Scale Divinator and Song Explorer.
 - Plays the M8's USB audio through the computer.
 - Canvas or full-tab recording to WebM, with the M8's audio.
 - Smooth text rendering controls.

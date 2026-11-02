@@ -114,6 +114,7 @@ The default app list includes:
 | Cont8xt Notes | Notes tool (`cont8xt.html`) |
 | M8 Groove Extractor | Groove extraction tool |
 | M8 Scale Divinator | Scale exploration tool |
+| M8 Song Explorer | 3D view of the whole song that follows the playing tracks |
 
 Open **Configure** to add, remove, rename, reorder by active selection, or edit external app URLs. You can add a local app, such as `http://localhost:5176/` for the M8 Song Explorer. Apps can optionally use the legacy URL fallback format before the SDK connection is ready.
 

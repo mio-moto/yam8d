@@ -6,6 +6,7 @@ export const DEFAULT_SDK_TEST_URL = 'sdk-test.html'
 const DEFAULT_CONT8XT_URL = 'cont8xt.html'
 const DEFAULT_GROOVE_EXTRACTOR_URL = 'https://groove.matterwarlox.com/'
 const DEFAULT_SCALE_DIVINATOR_URL = 'https://scale.matterwarlox.com/'
+const DEFAULT_SONG_EXPLORER_URL = 'https://m8-song-explorer-neon.vercel.app/'
 
 export type ExternalAppConfig = {
     id: string
@@ -43,6 +44,12 @@ export const defaultExternalApps = (shortcutsHost: string, sdkTestHost: string):
         id: 'm8-scale-divinator',
         name: 'M8 Scale Divinator',
         url: DEFAULT_SCALE_DIVINATOR_URL,
+        useUrlFallback: false,
+    },
+    {
+        id: 'm8-song-explorer',
+        name: 'M8 Song Explorer',
+        url: DEFAULT_SONG_EXPLORER_URL,
         useUrlFallback: false,
     },
 ]
