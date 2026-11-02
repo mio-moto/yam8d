@@ -24,8 +24,9 @@ const appClass = css`
     width: -webkit-fill-available;
     flex: 1 1 0;
 
-    /* Next to the External Apps pane, the splitter decides the width */
+    /* Next to the External Apps pane, the splitter decides the width; the pane stops at its content (the mini keyboard) */
     &.with-side-pane {
+        min-width: min-content;
         max-width: none;
     }
   // display: flex;

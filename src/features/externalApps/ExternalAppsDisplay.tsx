@@ -24,8 +24,9 @@ const externalAppsClass = css`
   flex-direction: column;
   background: #111;
 
+  /* Shrinks when the M8 pane has reached its own minimum (mini keyboard), so the pane never leaves the window */
   &.sized {
-    flex: 0 0 auto;
+    flex: 0 1 auto;
   }
 
   &.fullscreen {
@@ -199,7 +200,9 @@ export const ExternalAppsDisplay: FC<{ bus?: ConnectedBus }> = ({ bus }) => {
     const onSplitterPointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
         if (dragWidth === null) return
         event.currentTarget.releasePointerCapture(event.pointerId)
-        updateSettingValue('externalAppsWidth', dragWidth)
+        // Keep what is shown, which may be less than the dragged width
+        const shownWidth = paneRef.current?.getBoundingClientRect().width ?? dragWidth
+        updateSettingValue('externalAppsWidth', clampPaneWidth(Math.min(dragWidth, shownWidth)))
         setDragWidth(null)
     }
 

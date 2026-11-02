@@ -85,6 +85,8 @@ export const globalStyle = css`
 
     #root {
       flex: 1;
+      /* Stay as wide as the window: the panes shrink instead of pushing #root out of it */
+      min-width: 0;
       display: flex;
       flex-direction: row;
       justify-content: space-evenly;
