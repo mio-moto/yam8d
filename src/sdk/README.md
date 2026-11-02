@@ -116,7 +116,7 @@ await connect();
 | Method                                                                              | Description                                        | Returns            |
 | ----------------------------------------------------------------------------------- | -------------------------------------------------- | ------------------ |
 | `navigateToView(viewName: string)`                                                  | Navigate to a view by name                         | `Promise<boolean>` |
-| `navigateTo(x: number, y: number)`                                                  | Navigate to text grid coordinates (0-39 x, 0-23 y) | `Promise<void>`    |
+| `navigateTo(x: number, y: number)`                                                  | Move the cursor to the cell at or nearest to text grid coordinates (0-39 x, 0-23 y); true when reached | `Promise<boolean>` |
 | `setValueToHex(targetHex: number)`                                                  | Set hex value (0-255) using edit+navigation keys   | `Promise<boolean>` |
 | `setValueToInt(targetInt: number)`                                                  | Set decimal integer value using edit+navigation    | `Promise<boolean>` |
 | `setValueFloat(targetFloat: number)`                                                | Set float value parsed from current line (e.g. `440.00`, `-10.69`) | `Promise<boolean>` |
@@ -150,7 +150,7 @@ type M8KeyName = 'left' | 'right' | 'up' | 'down' | 'shift' | 'play' | 'opt' | '
 | Method                                                                           | Description                                        | Returns            |
 | -------------------------------------------------------------------------------- | -------------------------------------------------- | ------------------ |
 | `navigateToView(viewName: string)`                                               | Navigate to a view by name                         | `Promise<boolean>` |
-| `navigateTo(x: number, y: number)`                                               | Navigate to text grid coordinates                  | `Promise<void>`    |
+| `navigateTo(x: number, y: number)`                                               | Move the cursor to the cell at or nearest to text grid coordinates; true when reached | `Promise<boolean>` |
 | `setValueToHex(targetHex: number)`                                               | Set hex value (0-255)                              | `Promise<boolean>` |
 | `setValueToInt(targetInt: number)`                                               | Set decimal integer value                          | `Promise<boolean>` |
 | `setValueFloat(targetFloat: number)`                                             | Set float value parsed from current line           | `Promise<boolean>` |

@@ -59,7 +59,7 @@ export interface ViewNavigationDeps {
   /** The 24 text rows of the screen, to find buttons by their label. */
   getScreenLines?: () => string[]
   /** Moves the cursor to a text grid cell. Without it, button edges are not used. */
-  moveCursor?: (x: number, y: number) => Promise<void>
+  moveCursor?: (x: number, y: number) => Promise<unknown>
 }
 
 // Tried in order on a view the graph does not know (or that has no way left)

@@ -23,7 +23,7 @@ export type HostMethodsDeps = {
   setValueFloat: (targetFloat: number) => Promise<boolean>
   browseFile: (targetText: string, exact: boolean) => Promise<boolean>
   navigateToView: (viewName: string) => Promise<boolean>
-  navigateTo: (point: { x: number; y: number }) => Promise<void>
+  navigateTo: (point: { x: number; y: number }) => Promise<boolean>
   enableMidiTransport: () => Promise<{ ok: boolean; error?: string }>
   getScreenCellColors: () => ScreenCellColors
 }
@@ -57,9 +57,9 @@ export const createHostMethods = ({
       debugLog('[M8SDK] Executing navigateToView:', viewName)
       return navigateToView(viewName)
     }),
-    navigateTo: guarded('navigateTo', undefined, async (gridX: number, gridY: number): Promise<void> => {
+    navigateTo: guarded('navigateTo', false, async (gridX: number, gridY: number): Promise<boolean> => {
       // Convert text grid coordinates (0-39, 0-23) to pixel coordinates
-      await navigateTo(textGridToPixel(store, gridX, gridY))
+      return navigateTo(textGridToPixel(store, gridX, gridY))
     }),
     setValueToHex: guarded('setValueToHex', false, async (hex: number): Promise<boolean> => {
       debugLog('[M8SDK] Executing setValueToHex:', hex)

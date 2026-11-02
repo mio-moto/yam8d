@@ -83,7 +83,8 @@ export interface M8TransportEvent {
 
 export interface M8HostMethods {
   navigateToView(viewName: string): Promise<boolean>
-  navigateTo(x: number, y: number): Promise<void>
+  /** Moves the cursor to the cell at or nearest to a text grid position. Resolves true when it got there. */
+  navigateTo(x: number, y: number): Promise<boolean>
   setValueToHex(targetHex: number): Promise<boolean>
   setValueToInt(targetInt: number): Promise<boolean>
   setValueFloat(targetFloat: number): Promise<boolean>

@@ -38,9 +38,9 @@ You can also click the on-screen M8 body. Pressing and releasing a body button s
 
 ## Screen Click Navigation
 
-Clicking inside the M8 screen asks YAM8D to move the cursor to the clicked grid position. This is useful for jumping across dense tracker pages without repeated direction presses.
+Clicking inside the M8 screen moves the cursor to the field you clicked, with arrow presses only. This is useful for jumping across dense tracker pages without repeated direction presses.
 
-The calculation uses the current device screen layout, offsets, and font mode reported by the M8.
+A click on a label or in the gap between fields goes to the nearest field: a label to the value beside it (or above it, as on the Mixer), text shown after a value (such as the scale name) to that value. On the Song, Chain, Phrase, Table, Groove and Instrument Pool views the cursor stays on the rows shown: a click on the header, the title or below the list goes to the nearest row, and it never scrolls or moves to another chain or phrase. YAM8D learns which fields each screen has and where each arrow key leads, from its own moves and from your arrow presses, so the first click on a new screen can take a few extra presses and later ones take the shortest way. What it learns is kept per view, M8 model and font mode, and saved in the browser.
 
 ## View Macros
 

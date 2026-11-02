@@ -39,7 +39,7 @@ const offline =
 
 const DISCONNECTED_METHODS: M8HostMethods = {
     navigateToView: offline('navigateToView', false),
-    navigateTo: offline('navigateTo', undefined),
+    navigateTo: offline('navigateTo', false),
     setValueToHex: offline('setValueToHex', false),
     setValueToInt: offline('setValueToInt', false),
     setValueFloat: offline('setValueFloat', false),

@@ -4,6 +4,7 @@
 export type { EngineBus, ProtocolEventBus } from './bus'
 export { connectWithRetry } from './connectWithRetry'
 export { type ConnectedBus, connection, decode7BitPacked, type M8ConnectOptions, type M8DeviceTransport } from './connection'
+export { type CellRect, type CursorDir, type CursorLayout, type CursorMap, type CursorMapData, createCursorMap } from './cursorMap'
 export { type CursorNavigator, createCursorNavigator, type Point } from './cursorNavigator'
 export { createM8Engine, type M8Engine, type M8EngineOptions } from './engine'
 export { createEventBus } from './eventBus'

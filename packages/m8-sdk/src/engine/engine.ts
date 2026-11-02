@@ -5,6 +5,7 @@
 
 import type { M8HostEvents, M8HostMethods, M8State } from '../types'
 import type { EngineBus } from './bus'
+import { type CursorMap, createCursorMap } from './cursorMap'
 import { type CursorNavigator, createCursorNavigator, type Point } from './cursorNavigator'
 import { createFileBrowserSearch } from './host/fileBrowserSearch'
 import { createFloatEditor } from './host/floatEditor'
@@ -25,6 +26,8 @@ export interface M8EngineOptions {
   cancelMacroOnKeydown?: boolean
   /** Use this store instead of a new one (for tests, or to keep state across reconnects). */
   store?: M8Store
+  /** Where the cursor navigator keeps the layouts it learns (share one to keep them across reconnects). */
+  cursorMap?: CursorMap
 }
 
 export interface M8Engine {
@@ -33,8 +36,8 @@ export interface M8Engine {
   /** The SDK methods, as an iframe client or the standalone client calls them. */
   readonly methods: M8HostMethods
   readonly macro: MacroRunner
-  /** Moves the cursor towards a point in M8 pixel coordinates. */
-  navigateTo(point: Point): Promise<void>
+  /** Moves the cursor to the cell at or nearest to a point in M8 pixel coordinates. Resolves true when it got there. */
+  navigateTo(point: Point): Promise<boolean>
   /** Resolves true when the view is reached. */
   navigateToView(viewName: string): Promise<boolean>
   getState(): M8State
@@ -61,7 +64,12 @@ export const createM8Engine = (bus: EngineBus, options: M8EngineOptions = {}): M
 
   const extractor = registerViewExtractor(bus.protocol.eventBus, store)
   const macro = createMacroRunner({ bus, store, cancelOnKeydown: options.cancelMacroOnKeydown })
-  const cursorNavigator: CursorNavigator = createCursorNavigator({ bus, store })
+  const cursorNavigator: CursorNavigator = createCursorNavigator({
+    bus,
+    store,
+    getScreenLines: extractor.getScreenLines,
+    cursorMap: options.cursorMap ?? createCursorMap(),
+  })
   const viewNavigation = createViewNavigation({
     store,
     runner: macro,

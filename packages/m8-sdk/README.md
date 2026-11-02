@@ -161,9 +161,12 @@ The views and the moves between them are in `m8Graph.generated.json`: Shift+arro
 await m8.navigateToView('phrase')
 ```
 
-#### `navigateTo(x: number, y: number): Promise<void>`
+#### `navigateTo(x: number, y: number): Promise<boolean>`
 
-Moves the cursor to the given character-grid position.
+Moves the cursor to the cell at the given character-grid position, or to the nearest cell when
+no cursor cell is there (a label, a gap between cells). Resolves `true` when the cursor reached
+that cell, `false` when it stopped on the closest cell it could reach. Arrow keys only; what each
+press does is learned per layout (view, model, font mode), so later moves take the shortest way.
 
 ```ts
 await m8.navigateTo(3, 5)

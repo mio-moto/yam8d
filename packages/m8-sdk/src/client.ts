@@ -64,7 +64,7 @@ export interface M8Client {
   /** Standalone: the API the device is connected through, null while disconnected (always null in host mode). */
   readonly deviceTransport: M8DeviceTransport | null
   navigateToView(viewName: string): Promise<boolean>
-  navigateTo(x: number, y: number): Promise<void>
+  navigateTo(x: number, y: number): Promise<boolean>
   setValueToHex(targetHex: number): Promise<boolean>
   setValueToInt(targetInt: number): Promise<boolean>
   setValueFloat(targetFloat: number): Promise<boolean>
@@ -560,7 +560,7 @@ class M8ClientImpl implements M8Client {
     return this.requireBackend().call('navigateToView', viewName)
   }
 
-  async navigateTo(x: number, y: number): Promise<void> {
+  async navigateTo(x: number, y: number): Promise<boolean> {
     return this.requireBackend().call('navigateTo', x, y)
   }
 
